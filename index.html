@@ -14330,6 +14330,15 @@ Keep the entire response under 480 words. Every price level cited must come from
     else if(instrUpper.includes('GER') || instrUpper.includes('DAX'))    { e2Buf = 40;  slBuf = 80;  }
     else if(instrUpper.includes('OIL') || instrUpper.includes('WTI'))    { e2Buf = 1;   slBuf = 2;   }
     else if(instrUpper.includes('BTC'))                                   { e2Buf = 400; slBuf = 800; }
+    // Silver + forex pairs: 40 / 80 PIPS converted to price (was raw 40/80 → negative prices on EURUSD etc.)
+    else if(instrUpper.includes('XAG') || instrUpper.includes('SILVER'))  { e2Buf = 0.40;   slBuf = 0.80;   }
+    else if(/(EUR|GBP|USD|AUD|NZD|CAD|CHF|JPY)(EUR|GBP|USD|AUD|NZD|CAD|CHF|JPY)/.test(instrUpper)){
+      if(instrUpper.includes('JPY')) { e2Buf = 0.40;   slBuf = 0.80;   }   // JPY pairs: 1 pip = 0.01
+      else                           { e2Buf = 0.0040; slBuf = 0.0080; }   // other pairs: 1 pip = 0.0001
+    }
+    const bmIsPips = /XAG|SILVER/.test(instrUpper) || /(EUR|GBP|USD|AUD|NZD|CAD|CHF|JPY)(EUR|GBP|USD|AUD|NZD|CAD|CHF|JPY)/.test(instrUpper);
+    const e2BufTxt = bmIsPips ? '40 pips' : e2Buf + ' points';
+    const slBufTxt = bmIsPips ? '80 pips' : slBuf + ' points';
 
     let e1TF, e1Price, e1Label, e2TF, e2Price, e2Label, slPrice, slLabel, convictionReason;
 
@@ -14357,10 +14366,10 @@ Keep the entire response under 480 words. Every price level cited must come from
     const e1PriceNum = parseFloat(e1Price) || 0;
     const slPriceNum = parseFloat(slPrice) || 0;
     const autoE2Price = e1PriceNum > 0
-      ? (isKeyLong ? e1PriceNum - e2Buf : e1PriceNum + e2Buf).toFixed(e1PriceNum > 100 ? 2 : 4)
+      ? (isKeyLong ? e1PriceNum - e2Buf : e1PriceNum + e2Buf).toFixed(e1PriceNum > 100 ? 2 : e1PriceNum > 20 ? 3 : 5)
       : e2Price;
     const autoSLPrice = e1PriceNum > 0
-      ? (isKeyLong ? e1PriceNum - slBuf : e1PriceNum + slBuf).toFixed(e1PriceNum > 100 ? 2 : 4)
+      ? (isKeyLong ? e1PriceNum - slBuf : e1PriceNum + slBuf).toFixed(e1PriceNum > 100 ? 2 : e1PriceNum > 20 ? 3 : 5)
       : 'not calculated';
 
     const priceFacts = (()=>{
@@ -14411,7 +14420,7 @@ ENTRY 2 (add to position — ${keyCount >= 5 ? '50% size' : '60% size'} — bett
 → Timeframe: ${e2TF} | MA Level: ${e2Label} | Price: ${e2Price}
 → ${isKeyLong ? 'Price pulls FURTHER DOWN to' : 'Price rallies FURTHER UP to'} ${e2Price} (the ${e2Label}) — ${isKeyLong ? 'BUY again — this is the premium entry' : 'SELL again — this is the premium entry'}
 
-STOP LOSS (place ${slBuf} points ${isKeyLong ? 'BELOW' : 'ABOVE'} the ${slLabel}):
+STOP LOSS (place ${slBufTxt} ${isKeyLong ? 'BELOW' : 'ABOVE'} the ${slLabel}):
 → SL Reference Level: ${slPrice} | Calculated SL: ${autoSLPrice}
 → If price closes ${isKeyLong ? 'below' : 'above'} ${autoSLPrice} — the trade thesis is invalidated
 
@@ -14440,8 +14449,8 @@ PRE-CALCULATED CONFLUENCE:
 STRICT OUTPUT RULES — NO EXCEPTIONS:
 - No markdown. No asterisks. No paragraphs. Plain text only.
 - ENTRY_1: use EXACTLY "${e1Price} — ${e1Label} (${keyCount >= 5 ? '50%' : '40%'} position)"
-- ENTRY_2: use EXACTLY "${autoE2Price} — ${e2Buf} points ${isKeyLong ? 'below' : 'above'} Entry 1 (${keyCount >= 5 ? '50%' : '60%'} add — premium entry)"
-- STOP_LOSS: use EXACTLY "${autoSLPrice}" — ${slBuf} points ${isKeyLong ? 'below' : 'above'} Entry 1
+- ENTRY_2: use EXACTLY "${autoE2Price} — ${e2BufTxt} ${isKeyLong ? 'below' : 'above'} Entry 1 (${keyCount >= 5 ? '50%' : '60%'} add — premium entry)"
+- STOP_LOSS: use EXACTLY "${autoSLPrice}" — ${slBufTxt} ${isKeyLong ? 'below' : 'above'} Entry 1
 - TAKE_PROFIT_1: price number only
 - TAKE_PROFIT_2: price number only
 - RISK RULE (Blue Mac minimum, measured from ENTRY_1 to STOP_LOSS): TAKE_PROFIT_1 must be at least 2x the risk (R:R 1:2 or better). TAKE_PROFIT_2 must be at least 3x the risk (R:R 1:3 or better). If the nearest structure is closer than that, use the next structure level further out.
@@ -14461,7 +14470,7 @@ PROBABILITY_SCORE: ${keyProbScore}%
 ALIGNED_TIMEFRAMES: ${keyCount} of 6 lower TFs confirm this direction
 HIGHER_TF_CONTEXT: [max 15 words — what Daily/Weekly/Monthly shows]
 ENTRY_1: ${e1Price} — ${e1Label} (${keyCount >= 5 ? '50%' : '40%'} position)
-ENTRY_2: ${autoE2Price} — ${e2Buf} points ${isKeyLong ? 'below' : 'above'} Entry 1 (${keyCount >= 5 ? '50%' : '60%'} add — premium entry)
+ENTRY_2: ${autoE2Price} — ${e2BufTxt} ${isKeyLong ? 'below' : 'above'} Entry 1 (${keyCount >= 5 ? '50%' : '60%'} add — premium entry)
 STOP_LOSS: ${autoSLPrice}
 TAKE_PROFIT_1: [first structure target — price only]
 TAKE_PROFIT_2: [extended target — price only]
@@ -15137,6 +15146,14 @@ ${S.bias === null || S.bias === 'neut' ? '🛑 NO POSITION TRADE\n[Explain the m
     else if(instrUpper2.includes('GER') || instrUpper2.includes('DAX'))   { e2Buf2 = 40;  slBuf2 = 80;  }
     else if(instrUpper2.includes('OIL') || instrUpper2.includes('WTI'))   { e2Buf2 = 1;   slBuf2 = 2;   }
     else if(instrUpper2.includes('BTC'))                                    { e2Buf2 = 400; slBuf2 = 800; }
+    // Silver + forex pairs: 40 / 80 PIPS converted to price (was raw 40/80 → negative prices on EURUSD etc.)
+    else if(instrUpper2.includes('XAG') || instrUpper2.includes('SILVER'))  { e2Buf2 = 0.40;   slBuf2 = 0.80;   }
+    else if(/(EUR|GBP|USD|AUD|NZD|CAD|CHF|JPY)(EUR|GBP|USD|AUD|NZD|CAD|CHF|JPY)/.test(instrUpper2)){
+      if(instrUpper2.includes('JPY')) { e2Buf2 = 0.40;   slBuf2 = 0.80;   }   // JPY pairs: 1 pip = 0.01
+      else                            { e2Buf2 = 0.0040; slBuf2 = 0.0080; }   // other pairs: 1 pip = 0.0001
+    }
+    const bmIsPips2 = /XAG|SILVER/.test(instrUpper2) || /(EUR|GBP|USD|AUD|NZD|CAD|CHF|JPY)(EUR|GBP|USD|AUD|NZD|CAD|CHF|JPY)/.test(instrUpper2);
+    const e2BufTxt2 = bmIsPips2 ? '40 pips' : e2Buf2 + ' points';
 
     let e1TF2, e1Price2, e1Label2, e2TF2, e2Price2, e2Label2, slPrice2, slLabel2, convReason2;
 
@@ -15162,11 +15179,11 @@ ${S.bias === null || S.bias === 'neut' ? '🛑 NO POSITION TRADE\n[Explain the m
     const h1ma200Num2 = parseFloat(a.ma_1h_200) || 0;
 const e1PriceNum2 = parseFloat(e1Price2) || 0;
     const autoE2Price2 = e1PriceNum2 > 0
-      ? (isKeyLong2 ? e1PriceNum2 - e2Buf2 : e1PriceNum2 + e2Buf2).toFixed(e1PriceNum2 > 100 ? 2 : 4)
+      ? (isKeyLong2 ? e1PriceNum2 - e2Buf2 : e1PriceNum2 + e2Buf2).toFixed(e1PriceNum2 > 100 ? 2 : e1PriceNum2 > 20 ? 3 : 5)
       : e2Price2;
     let autoSLPrice2;
     autoSLPrice2 = e1PriceNum2 > 0
-      ? (isKeyLong2 ? e1PriceNum2 - slBuf2 : e1PriceNum2 + slBuf2).toFixed(e1PriceNum2 > 100 ? 2 : 4)
+      ? (isKeyLong2 ? e1PriceNum2 - slBuf2 : e1PriceNum2 + slBuf2).toFixed(e1PriceNum2 > 100 ? 2 : e1PriceNum2 > 20 ? 3 : 5)
       : 'not calculated';
     
     const slAnchorLabel2 = h1ma200Num2 > 0 ? '1H 200 MA — institutional structural level' : slLabel2;
@@ -15224,7 +15241,7 @@ DIRECTION: LONG
 PROBABILITY_SCORE: [higher % if macro bias is LONG, lower % if macro bias is SHORT]
 CONFLUENCE_SCORE: [X of 9 TFs support long]
 ENTRY_1: [MA price from table below current price] — [which MA] (${keyCount2 >= 5 ? '50%' : '40%'} position)
-ENTRY_2: ${isKeyLong2 ? autoE2Price2 + ' — ' + e2Buf2 + ' points below Entry 1' : '[price ' + e2Buf2 + ' points below this ENTRY_1 — must stay ABOVE STOP_LOSS]'} (${keyCount2 >= 5 ? '50%' : '60%'} add — premium entry)
+ENTRY_2: ${isKeyLong2 ? autoE2Price2 + ' — ' + e2BufTxt2 + ' below Entry 1' : '[price ' + e2BufTxt2 + ' below this ENTRY_1 — must stay ABOVE STOP_LOSS]'} (${keyCount2 >= 5 ? '50%' : '60%'} add — premium entry)
 STOP_LOSS: [price] — [X] points below [which MA anchors the SL]
 TAKE_PROFIT_1: [price] — [nearest MA or structure resistance above] — R:R [calculated]
 TAKE_PROFIT_2: [price] — [next major MA or structure level above] — R:R [calculated]
@@ -15238,7 +15255,7 @@ DIRECTION: SHORT
 PROBABILITY_SCORE: [higher % if macro bias is SHORT, lower % if macro bias is LONG]
 CONFLUENCE_SCORE: [X of 9 TFs support short]
 ENTRY_1: [MA price from table above current price] — [which MA] (${keyCount2 >= 5 ? '50%' : '40%'} position)
-ENTRY_2: ${!isKeyLong2 ? autoE2Price2 + ' — ' + e2Buf2 + ' points above Entry 1' : '[price ' + e2Buf2 + ' points above this ENTRY_1 — must stay BELOW STOP_LOSS]'} (${keyCount2 >= 5 ? '50%' : '60%'} add — premium entry)
+ENTRY_2: ${!isKeyLong2 ? autoE2Price2 + ' — ' + e2BufTxt2 + ' above Entry 1' : '[price ' + e2BufTxt2 + ' above this ENTRY_1 — must stay BELOW STOP_LOSS]'} (${keyCount2 >= 5 ? '50%' : '60%'} add — premium entry)
 STOP_LOSS: [price] — [X] points above [which MA anchors the SL]
 TAKE_PROFIT_1: [price] — [nearest MA or structure support below] — R:R [calculated]
 TAKE_PROFIT_2: [price] — [next major MA or structure level below] — R:R [calculated]
