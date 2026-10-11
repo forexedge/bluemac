@@ -14444,6 +14444,7 @@ STRICT OUTPUT RULES — NO EXCEPTIONS:
 - STOP_LOSS: use EXACTLY "${autoSLPrice}" — ${slBuf} points ${isKeyLong ? 'below' : 'above'} Entry 1
 - TAKE_PROFIT_1: price number only
 - TAKE_PROFIT_2: price number only
+- RISK RULE (Blue Mac minimum, measured from ENTRY_1 to STOP_LOSS): TAKE_PROFIT_1 must be at least 2x the risk (R:R 1:2 or better). TAKE_PROFIT_2 must be at least 3x the risk (R:R 1:3 or better). If the nearest structure is closer than that, use the next structure level further out.
 - SIGNAL_CANDLE: max 10 words
 - HIGHER_TF_CONTEXT: max 15 words
 - REASONING: max 2 plain-text sentences
@@ -14514,6 +14515,7 @@ ${keyConviction === 'LOW CONVICTION' ? 'LOW_CONVICTION_WARNING: Under 3/6 TFs al
         sl:'Beyond MA', tp:'Next Structure Level',
         rr:'AI Determined', blocked:false
       };
+      if(window._bmKeyPlan) Object.assign(window._lastTradePlan, window._bmKeyPlan);
 
     } catch(err){
       thinking.style.display = 'none';
@@ -15214,13 +15216,15 @@ RULES — NO EXCEPTIONS:
 8. No markdown. No asterisks. Plain text only.
 9. SIGNAL_CANDLE: what closed candle confirms the entry — max 10 words.
 10. WAIT_CONDITION: if price is not yet at the entry MA — what must happen first.
+11. RISK RULE (Blue Mac minimum, measured from ENTRY_1 to STOP_LOSS): TAKE_PROFIT_1 must be at least 2x the risk (R:R 1:2 or better) and TAKE_PROFIT_2 at least 3x the risk (R:R 1:3 or better). If the nearest structure is closer, use the next structure level further out.
+12. ENTRY_2 must ALWAYS sit between ENTRY_1 and STOP_LOSS — never at or beyond the stop loss.
 
 [LONG_IDEA]
 DIRECTION: LONG
 PROBABILITY_SCORE: [higher % if macro bias is LONG, lower % if macro bias is SHORT]
 CONFLUENCE_SCORE: [X of 9 TFs support long]
 ENTRY_1: [MA price from table below current price] — [which MA] (${keyCount2 >= 5 ? '50%' : '40%'} position)
-ENTRY_2: ${autoE2Price2} — ${e2Buf2} points below Entry 1 (${keyCount2 >= 5 ? '50%' : '60%'} add — premium entry)
+ENTRY_2: ${isKeyLong2 ? autoE2Price2 + ' — ' + e2Buf2 + ' points below Entry 1' : '[price ' + e2Buf2 + ' points below this ENTRY_1 — must stay ABOVE STOP_LOSS]'} (${keyCount2 >= 5 ? '50%' : '60%'} add — premium entry)
 STOP_LOSS: [price] — [X] points below [which MA anchors the SL]
 TAKE_PROFIT_1: [price] — [nearest MA or structure resistance above] — R:R [calculated]
 TAKE_PROFIT_2: [price] — [next major MA or structure level above] — R:R [calculated]
@@ -15234,7 +15238,7 @@ DIRECTION: SHORT
 PROBABILITY_SCORE: [higher % if macro bias is SHORT, lower % if macro bias is LONG]
 CONFLUENCE_SCORE: [X of 9 TFs support short]
 ENTRY_1: [MA price from table above current price] — [which MA] (${keyCount2 >= 5 ? '50%' : '40%'} position)
-ENTRY_2: ${autoE2Price2} — ${e2Buf2} points above Entry 1 (${keyCount2 >= 5 ? '50%' : '60%'} add — premium entry)
+ENTRY_2: ${!isKeyLong2 ? autoE2Price2 + ' — ' + e2Buf2 + ' points above Entry 1' : '[price ' + e2Buf2 + ' points above this ENTRY_1 — must stay BELOW STOP_LOSS]'} (${keyCount2 >= 5 ? '50%' : '60%'} add — premium entry)
 STOP_LOSS: [price] — [X] points above [which MA anchors the SL]
 TAKE_PROFIT_1: [price] — [nearest MA or structure support below] — R:R [calculated]
 TAKE_PROFIT_2: [price] — [next major MA or structure level below] — R:R [calculated]
@@ -15337,6 +15341,7 @@ REASONING: [2 sentences — why this short works. If counter-trend, state warnin
       rr: 'AI Determined',
       blocked: false
     };
+    if(S.style === 'key' && window._bmKeyPlan) Object.assign(window._lastTradePlan, window._bmKeyPlan);
 
     const takeBar = document.getElementById('take-trade-bar');
     if(takeBar){
@@ -15531,7 +15536,78 @@ function renderStyleOutput(raw, isBull, isBear, col){
 }
   
 
+// ══ BLUE MAC KEY · RISK RULES ══════════════════════════════
+// Every Blue Mac Key idea must satisfy, measured from Entry 1:
+//   TP1 ≥ 1:2   ·   TP2 ≥ 1:3   ·   Entry 2 always BETWEEN Entry 1 and the Stop Loss
+// If the AI breaks a rule, the level is corrected here and the card says so.
+const BM_KEY_MIN_RR1 = 2, BM_KEY_MIN_RR2 = 3;
+function bmNum(str){
+  if(str == null) return NaN;
+  const m = String(str).replace(/,/g,'').match(/-?\d+(?:\.\d+)?/);
+  return m ? parseFloat(m[0]) : NaN;
+}
+function bmDecimals(){
+  let d = 0;
+  for(const v of arguments){ const m = String(v||'').replace(/,/g,'').match(/\d+\.(\d+)/); if(m) d = Math.max(d, m[1].length); }
+  return Math.min(Math.max(d, 2), 5);
+}
+function bmEnforceKeyRisk(d, isLong){
+  const out = Object.assign({}, d, { rr1:null, rr2:null, fixes:[] });
+  const s  = isLong ? 1 : -1;
+  const E1 = bmNum(d.entry1);
+  let SL = bmNum(d.sl), E2 = bmNum(d.entry2), TP1 = bmNum(d.tp1), TP2 = bmNum(d.tp2);
+  if(!(E1 > 0)) return out;
+  const dp = bmDecimals(d.entry1, d.entry2, d.sl, d.tp1, d.tp2), k = Math.pow(10, dp);
+  const fmt = v => v.toFixed(dp);
+  const outward = v => (s > 0 ? Math.ceil(v * k - 1e-9) : Math.floor(v * k + 1e-9)) / k; // round TPs away from entry
+  const e2OnRightSide = v => !isNaN(v) && s * (E1 - v) > 0;
+  // Stop loss must be on the losing side of Entry 1
+  if(isNaN(SL) || s * (E1 - SL) <= 0){
+    if(!e2OnRightSide(E2)) return out;            // nothing sensible to anchor to — leave untouched
+    SL = E2 - s * (E1 - E2);
+    out.sl = fmt(SL); out.fixes.push('Stop loss placed beyond Entry 2');
+  }
+  const R = s * (E1 - SL);
+  // Entry 2 can never be at or beyond the stop loss
+  if(!e2OnRightSide(E2) || s * (E2 - SL) <= 0){
+    E2 = E1 - s * R * 0.5;
+    out.entry2 = fmt(E2) + ' — midway between Entry 1 and Stop Loss (premium add)';
+    out.fixes.push('Entry 2 moved inside the stop loss');
+  }
+  // Minimum reward
+  const tp1Min = outward(E1 + s * R * BM_KEY_MIN_RR1);
+  const tp2Min = outward(E1 + s * R * BM_KEY_MIN_RR2);
+  if(isNaN(TP1) || s * (TP1 - tp1Min) < 0){ TP1 = tp1Min; out.tp1 = fmt(TP1); out.fixes.push('TP1 raised to 1:' + BM_KEY_MIN_RR1); }
+  if(isNaN(TP2) || s * (TP2 - tp2Min) < 0){ TP2 = tp2Min; out.tp2 = fmt(TP2); out.fixes.push('TP2 raised to 1:' + BM_KEY_MIN_RR2); }
+  if(s * (TP2 - TP1) <= 0){ TP2 = outward(TP1 + s * R); out.tp2 = fmt(TP2); out.fixes.push('TP2 placed beyond TP1'); }
+  out.rr1 = (Math.floor(s * (TP1 - E1) / R * 10 + 1e-6) / 10).toFixed(1);
+  out.rr2 = (Math.floor(s * (TP2 - E1) / R * 10 + 1e-6) / 10).toFixed(1);
+  out.nums = { E1, E2, SL, TP1, TP2 };
+  out.dp = dp;
+  return out;
+}
+function bmKeyRulesStrip(d){
+  if(!d || !d.rr1) return '';
+  return `<div style="padding:8px 12px;border-radius:10px;background:rgba(42,143,227,0.06);border:1px solid rgba(42,143,227,0.22);font-size:11px;font-family:'DM Mono',monospace;color:var(--text2);line-height:1.6;">
+    <span style="color:var(--blue);font-weight:700;letter-spacing:0.06em;">✓ BLUE MAC RISK RULES</span> · TP1 1:${d.rr1} · TP2 1:${d.rr2} · Entry 2 inside SL
+    ${d.fixes.length ? `<div style="color:var(--gold);margin-top:2px;">Adjusted: ${d.fixes.join(' · ')}</div>` : ''}
+  </div>`;
+}
+function bmKeyPlanFrom(d, raw){
+  if(!d || !d.nums) return null;
+  const n = d.nums, f = v => v.toFixed(d.dp);
+  return {
+    entry: f(n.E1) + ' / ' + f(n.E2),
+    sl:    f(n.SL),
+    tp:    f(n.TP1) + ' / ' + f(n.TP2),
+    rr:    d.rr1,
+    aiPlan: raw + '\n\nBLUE MAC RISK RULES APPLIED (' + (d.direction||'').toUpperCase() + '): Entry 1 ' + f(n.E1) + ' · Entry 2 ' + f(n.E2) +
+            ' · SL ' + f(n.SL) + ' · TP1 ' + f(n.TP1) + ' (1:' + d.rr1 + ') · TP2 ' + f(n.TP2) + ' (1:' + d.rr2 + ')'
+  };
+}
+
 function renderKeyOutput(raw, isBull, isBear){
+  window._bmKeyPlan = null;
 
   // ── Helper to parse a block ──
   function parseBlock(block){
@@ -15620,12 +15696,16 @@ function renderKeyOutput(raw, isBull, isBear){
           <div style="padding:10px 12px;background:rgba(34,214,122,0.06);border:1px solid rgba(34,214,122,0.18);border-radius:10px;text-align:center;">
             <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--bull);letter-spacing:0.1em;margin-bottom:4px;font-weight:700;">TAKE PROFIT 1</div>
             <div style="font-size:16px;color:var(--bull);font-weight:800;font-family:'Outfit',sans-serif;">${d.tp1}</div>
+            ${d.rr1 ? `<div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:2px;">R:R 1:${d.rr1}</div>` : ''}
           </div>
           <div style="padding:10px 12px;background:rgba(34,214,122,0.04);border:1px solid rgba(34,214,122,0.12);border-radius:10px;text-align:center;">
             <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--bull);letter-spacing:0.1em;margin-bottom:4px;font-weight:700;">TAKE PROFIT 2</div>
             <div style="font-size:16px;color:var(--bull);font-weight:700;font-family:'Outfit',sans-serif;">${d.tp2}</div>
+            ${d.rr2 ? `<div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:2px;">R:R 1:${d.rr2}</div>` : ''}
           </div>
         </div>
+
+        ${bmKeyRulesStrip(d)}
 
         <!-- SIGNAL CANDLE -->
         <div style="padding:10px 14px;background:rgba(30,136,220,0.06);border:1px solid rgba(30,136,220,0.18);border-left:3px solid var(--blue);border-radius:10px;">
@@ -15649,9 +15729,10 @@ function renderKeyOutput(raw, isBull, isBear){
   const shortMatch = raw.match(/\[SHORT_IDEA\]([\s\S]*?)\[\/SHORT_IDEA\]/);
 
   if(longMatch || shortMatch){
-    const longData  = longMatch  ? parseBlock(longMatch[1])  : null;
-    const shortData = shortMatch ? parseBlock(shortMatch[1]) : null;
+    const longData  = longMatch  ? bmEnforceKeyRisk(parseBlock(longMatch[1]),  true)  : null;
+    const shortData = shortMatch ? bmEnforceKeyRisk(parseBlock(shortMatch[1]), false) : null;
     const macroIsLong = isBull;
+    window._bmKeyPlan = bmKeyPlanFrom(macroIsLong ? (longData || shortData) : (shortData || longData), raw);
 
     let html = `<div style="display:flex;flex-direction:column;gap:16px;">`;
 
@@ -15678,7 +15759,7 @@ function renderKeyOutput(raw, isBull, isBear){
       return m ? m[1].trim() : '—';
     };
     const getMultiline = (key) => {
-      const r = new RegExp(key+':\\s*([\\s\\S]*?)(?=\\n[A-Z_]+:|$)','i');
+      const r = new RegExp(key+':\\s*([\\s\\S]*?)(?=\\n[A-Z0-9_]+:|$)','i');
       const m = block.match(r);
       return m ? m[1].trim() : '—';
     };
@@ -15695,10 +15776,10 @@ function renderKeyOutput(raw, isBull, isBear){
     const tp2Raw      = getMultiline('TAKE_PROFIT_2');
     const extractPrice = (str) => { const m = str.match(/[\d,\.]+/); return m ? m[0] : str; };
     const entry1 = entry1Raw !== '—' ? entry1Raw : getMultiline('ENTRY_ZONE');
-    const entry2 = entry2Raw !== '—' ? entry2Raw : getMultiline('RETRACEMENT_ENTRY_AGGRESSIVE');
-    const sl  = extractPrice(slRaw);
-    const tp1 = extractPrice(tp1Raw);
-    const tp2 = extractPrice(tp2Raw);
+    let entry2 = entry2Raw !== '—' ? entry2Raw : getMultiline('RETRACEMENT_ENTRY_AGGRESSIVE');
+    let sl  = extractPrice(slRaw);
+    let tp1 = extractPrice(tp1Raw);
+    let tp2 = extractPrice(tp2Raw);
     const signal      = getMultiline('SIGNAL_CANDLE');
     const reasoning   = getMultiline('REASONING');
     const warning     = getMultiline('LOW_CONVICTION_WARNING');
@@ -15706,6 +15787,8 @@ function renderKeyOutput(raw, isBull, isBear){
 
     const isLong      = direction.toUpperCase().includes('LONG');
     const isShort     = direction.toUpperCase().includes('SHORT');
+    const _bmR = (isLong || isShort) ? bmEnforceKeyRisk({direction, entry1, entry2, sl, tp1, tp2}, isLong) : null;
+    if(_bmR){ entry2 = _bmR.entry2; sl = _bmR.sl; tp1 = _bmR.tp1; tp2 = _bmR.tp2; window._bmKeyPlan = bmKeyPlanFrom(_bmR, raw); }
     const isHigh      = conviction.toUpperCase().includes('HIGH');
     const dirColor    = isLong ? 'var(--bull)' : isShort ? 'var(--bear)' : 'var(--gold)';
     const dirIcon     = isLong ? '▲' : isShort ? '▼' : '◆';
@@ -15813,12 +15896,16 @@ function renderKeyOutput(raw, isBull, isBear){
             <div style="padding:10px 14px;background:rgba(34,214,122,0.06);border:1px solid rgba(34,214,122,0.18);border-radius:10px;text-align:center;">
               <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--bull);letter-spacing:0.12em;margin-bottom:4px;">TAKE PROFIT 1</div>
               <div style="font-size:15px;color:var(--bull);font-weight:800;font-family:'DM Mono',monospace;">${tp1}</div>
+              ${_bmR && _bmR.rr1 ? `<div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:2px;">R:R 1:${_bmR.rr1}</div>` : ''}
             </div>
             <div style="padding:10px 14px;background:rgba(34,214,122,0.04);border:1px solid rgba(34,214,122,0.12);border-radius:10px;text-align:center;">
               <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--bull);letter-spacing:0.12em;margin-bottom:4px;">TAKE PROFIT 2</div>
               <div style="font-size:15px;color:var(--bull);font-weight:800;font-family:'DM Mono',monospace;">${tp2}</div>
+              ${_bmR && _bmR.rr2 ? `<div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:2px;">R:R 1:${_bmR.rr2}</div>` : ''}
             </div>
           </div>
+
+          ${bmKeyRulesStrip(_bmR)}
 
           <!-- SIGNAL CANDLE -->
           <div style="padding:10px 14px;background:rgba(30,136,220,0.06);border:1px solid rgba(30,136,220,0.2);border-left:3px solid var(--blue);border-radius:10px;">
