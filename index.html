@@ -6008,9 +6008,11 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
       <button class="ex-filter" onclick="filterExamples('sessions',this)">Sessions</button>
       <button class="ex-filter" onclick="filterExamples('patterns',this)">Patterns</button>
       <button class="ex-filter" onclick="filterExamples('fib',this)">Fibonacci</button>
+      <button class="ex-filter" onclick="filterExamples('smc',this)">Smart Money</button>
     </div>
     <div id="pattern-subfilter" class="pattern-subfilter"></div>
     <div id="fib-subfilter" class="pattern-subfilter"></div>
+    <div id="smc-subfilter" class="pattern-subfilter"></div>
 
     <div class="examples-grid" id="examples-grid" style="display:grid;">
 
@@ -16529,7 +16531,8 @@ function filterExamples(cat, btn){
   // Tabs with their own sub-filter row (Patterns, Fibonacci)
   const SUBTABS = {
     patterns: { sub:'pattern-subfilter', fn: typeof filterPatterns==='function' ? filterPatterns : null },
-    fib:      { sub:'fib-subfilter',     fn: typeof filterFib==='function'      ? filterFib      : null }
+    fib:      { sub:'fib-subfilter',     fn: typeof filterFib==='function'      ? filterFib      : null },
+    smc:      { sub:'smc-subfilter',     fn: typeof filterSMC==='function'      ? filterSMC      : null }
   };
   Object.keys(SUBTABS).forEach(k=>{
     const el = document.getElementById(SUBTABS[k].sub);
@@ -16568,5 +16571,6 @@ function filterExamples(cat, btn){
 </script>
 <script src="patterns.js"></script>
 <script src="fibonacci.js"></script>
+<script src="smartmoney.js"></script>
 </body>
 </html>
