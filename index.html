@@ -6009,10 +6009,14 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
       <button class="ex-filter" onclick="filterExamples('patterns',this)">Patterns</button>
       <button class="ex-filter" onclick="filterExamples('fib',this)">Fibonacci</button>
       <button class="ex-filter" onclick="filterExamples('smc',this)">Smart Money</button>
+      <button class="ex-filter" onclick="filterExamples('ind',this)">Indicators</button>
+      <button class="ex-filter" onclick="filterExamples('mgt',this)">Trade Management</button>
     </div>
     <div id="pattern-subfilter" class="pattern-subfilter"></div>
     <div id="fib-subfilter" class="pattern-subfilter"></div>
     <div id="smc-subfilter" class="pattern-subfilter"></div>
+    <div id="ind-subfilter" class="pattern-subfilter"></div>
+    <div id="mgt-subfilter" class="pattern-subfilter"></div>
 
     <div class="examples-grid" id="examples-grid" style="display:grid;">
 
@@ -16532,7 +16536,9 @@ function filterExamples(cat, btn){
   const SUBTABS = {
     patterns: { sub:'pattern-subfilter', fn: typeof filterPatterns==='function' ? filterPatterns : null },
     fib:      { sub:'fib-subfilter',     fn: typeof filterFib==='function'      ? filterFib      : null },
-    smc:      { sub:'smc-subfilter',     fn: typeof filterSMC==='function'      ? filterSMC      : null }
+    smc:      { sub:'smc-subfilter',     fn: typeof filterSMC==='function'      ? filterSMC      : null },
+    ind:      { sub:'ind-subfilter',     fn: window.BMX ? (g,b)=>BMX.filter('ind',g,b) : null },
+    mgt:      { sub:'mgt-subfilter',     fn: window.BMX ? (g,b)=>BMX.filter('mgt',g,b) : null }
   };
   Object.keys(SUBTABS).forEach(k=>{
     const el = document.getElementById(SUBTABS[k].sub);
@@ -16572,5 +16578,8 @@ function filterExamples(cat, btn){
 <script src="patterns.js"></script>
 <script src="fibonacci.js"></script>
 <script src="smartmoney.js"></script>
+<script src="exengine.js"></script>
+<script src="indicators.js"></script>
+<script src="management.js"></script>
 </body>
 </html>

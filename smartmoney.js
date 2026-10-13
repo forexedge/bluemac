@@ -9,6 +9,7 @@
     ['all','All Smart Money','#2A8FE3'],
     ['ob','Order Blocks','#22D67A'],
     ['fvg','Fair Value Gaps','#96D0FF'],
+    ['liq','Structure & Liquidity','#F5B841'],
     ['combo','Pro Setups','#E4E8EE']
   ];
   const col = c => C[c] || c;
@@ -51,6 +52,20 @@
 
     // Premium / discount bands
     (p.bands || []).forEach(b => {
+      if(b.i2 !== undefined){
+        // session / time box spanning candles i..i2
+        const seg = cs.slice(b.i, b.i2 + 1);
+        const ya = Math.min(...seg.map(k => k.h)), yb = Math.max(...seg.map(k => k.l));
+        const xa = X(b.i) - dx / 2, xb = X(b.i2) + dx / 2;
+        s += `<rect x="${xa.toFixed(1)}" y="${ya.toFixed(1)}" width="${(xb - xa).toFixed(1)}" height="${(yb - ya).toFixed(1)}" fill="${col(b.c)}" opacity="0.12"/>`;
+        s += `<rect x="${xa.toFixed(1)}" y="${ya.toFixed(1)}" width="${(xb - xa).toFixed(1)}" height="${(yb - ya).toFixed(1)}" fill="none" stroke="${col(b.c)}" stroke-width="0.8" stroke-dasharray="3,2" opacity="0.7"/>`;
+        if(b.ext){
+          [ya, yb].forEach(y => { s += `<line x1="${xb.toFixed(1)}" y1="${y.toFixed(1)}" x2="${X2}" y2="${y.toFixed(1)}" stroke="${col(b.c)}" stroke-width="0.8" stroke-dasharray="2,3" opacity="0.6"/>`; });
+          s += T(X2 + 3, ya + 2.5, b.ext[0], {a:'start', c:col(b.c)}) + T(X2 + 3, yb + 2.5, b.ext[1], {a:'start', c:col(b.c)});
+        }
+        if(b.l) s += T((xa + xb) / 2, ya - 4, b.l, {c:col(b.c)});
+        return;
+      }
       const y1 = tf(b.y1), y2 = tf(b.y2);
       s += `<rect x="${X(b.i)}" y="${Math.min(y1,y2)}" width="${X2 - X(b.i)}" height="${Math.abs(y2-y1)}" fill="${col(b.c)}" opacity="0.08"/>`;
       if(b.l) s += T(X2 + 3, Math.min(y1,y2) + (b.top ? 9 : Math.abs(y2-y1) - 4), b.l, {a:'start', c:col(b.c), o:0.8});
@@ -59,7 +74,10 @@
     // Zones: order blocks (whole candle range) and FVGs (gap between candle 1 & 3)
     (p.zones || []).forEach(z => {
       let y1, y2, xs;
-      if(z.t === 'fvg'){
+      if(z.t === 'range'){
+        const seg = cs.slice(z.i, z.i2 + 1);
+        y1 = Math.min(...seg.map(k => k.h)); y2 = Math.max(...seg.map(k => k.l)); xs = X(z.i) - bw/2 - 1;
+      } else if(z.t === 'fvg'){
         const a = cs[z.i-1], b = cs[z.i+1];
         if(isBull(cs[z.i])){ y1 = b.l; y2 = a.h; } else { y1 = a.l; y2 = b.h; }
         xs = X(z.i-1) - bw/2;
@@ -299,6 +317,60 @@
       zones:[{ t:'fvg', i:2, c:'bull', l:'IFVG' }],
       dot:[9, 52.5],
       labels:[['@',2,'above','BEAR FVG','bear']] },
+
+    // ───────── STRUCTURE & LIQUIDITY ─────────
+    { id:'bos', name:'Break of Structure (BOS)', icon:'📶', g:'liq', bias:'bull',
+      y0:120, seq:[-10,-8,6,5,-12,-10,-6,7,6,-12,-11,-8,6,5,-14,-10],
+      desc:`In an uptrend, price makes <strong>higher highs (HH)</strong> and <strong>higher lows (HL)</strong>. Every time a candle <strong>closes above the last high</strong>, that's a <strong>break of structure (BOS)</strong> — confirmation the trend is continuing.`,
+      how:`After each BOS, wait for the pullback to form a new higher low (ideally into an OB, FVG or the 50% of the leg), then buy. SL below that higher low. As long as BOS keeps happening, keep trading with the trend.`,
+      tip:`A wick above the high is NOT a BOS — it needs a candle <strong>body close</strong> beyond it. Wicks above highs are usually liquidity grabs.`,
+      tag:'▲ HH · HL · BOS = TREND CONTINUES',
+      lines:[{ y:[1,'h'], i1:1, i2:5, c:'silver', l:'BOS', la:'m' },
+             { y:[6,'h'], i1:6, i2:10, c:'silver', l:'BOS', la:'m' },
+             { y:[11,'h'], i1:11, i2:14, c:'silver', l:'BOS', la:'m' }],
+      labels:[['@',3,'below','HL','bull'],['@',8,'below','HL','bull'],['@',13,'below','HL','bull'],['@',6,'above','HH','bull'],['@',11,'above','HH','bull']] },
+
+    { id:'choch', name:'Change of Character (CHoCH)', icon:'🔀', g:'liq', bias:'bear',
+      y0:110, seq:[-10,-8,6,5,-12,-10,6,7,8,-5,-4,9,10,12,-5,-3,8,10,9],
+      desc:`A <strong>CHoCH</strong> is the <strong>first sign a trend is reversing</strong>. In an uptrend, price fails to make a new high (a <strong>lower high</strong>), then closes <strong>below the last higher low</strong>. The character of the market has changed from bullish to bearish.`,
+      how:`Stop buying after a CHoCH. Wait for price to pull back into the zone that caused the break (an OB or FVG near the lower high), then sell. SL above the lower high. Target the next low / liquidity below.`,
+      tip:`BOS = trend continuing. CHoCH = trend changing. A CHoCH on a lower timeframe inside a higher-timeframe pullback is often the perfect entry trigger.`,
+      tag:'▼ FAILS TO MAKE HH · BREAKS LAST HL',
+      lines:[{ y:[1,'h'], i1:1, i2:5, c:'silver', l:'BOS', la:'m' },
+             { y:[8,'l'], i1:8, i2:12, c:'bear', l:'CHoCH', la:'b', w:1.5 }],
+      labels:[['@',5,'above','HH','bull'],['@',3,'below','HL','bull'],['@',10,'above','LH','bear'],['@',15,'above','LH','bear']],
+      dot:[15, [15,'h']] },
+
+    { id:'liquidity', name:'Buy-Side & Sell-Side Liquidity', icon:'💧', g:'liq', bias:'bear',
+      y0:80, seq:[-8,-8,10,12,-10,-11.5,10.5,11.5,-12.5,-10,6,{d:-4,wt:9},12,12,10,10],
+      desc:`<strong>Buy-side liquidity (BSL)</strong> = buy stops sitting above equal highs (shorts' stop losses + breakout buyers). <strong>Sell-side liquidity (SSL)</strong> = sell stops below equal lows. Price is drawn to these pools like a magnet — big players need that liquidity to fill their orders.`,
+      how:`Mark obvious equal highs and lows. Expect price to run one side first. When price sweeps BSL and closes back below the highs, sell — targeting the SSL on the other side. (And the reverse for buys.)`,
+      tip:`The cleaner and more obvious the equal highs/lows look, the more stops are behind them — and the more likely they get taken.`,
+      tag:'▼ SWEEP BSL → TARGET SSL',
+      lines:[{ y:62, i1:1, i2:10, c:'bull', l:'BSL · STOPS ABOVE', la:'m' },
+             { y:88.5, i1:3, i2:12, c:'bear', l:'SSL · STOPS BELOW', la:'b' }],
+      labels:[['@',11,'above','SWEEP','bear']],
+      dot:[12, [12,'o']] },
+
+    { id:'judas', name:'Asian Range Sweep (Judas Swing)', icon:'🌏', g:'liq', bias:'bull',
+      y0:80, seq:[-2,2,-3,2,-1,3,-2,1,2,-2,{d:6,wb:6},{d:-1,wb:3},-8,-10,-9,-7,-8,-6],
+      desc:`During the <strong>Asian session</strong> price ranges quietly, building stops above and below. At the <strong>London open</strong>, price often fakes one way to sweep the Asian high or low (the <strong>Judas swing</strong>), then makes the real move of the day in the opposite direction.`,
+      how:`Mark the Asian session high and low (roughly 02:00–08:00 SAST). At London open, if price sweeps the Asian low and closes back inside, buy. SL below the sweep wick. Target the Asian high, then beyond.`,
+      tip:`In SA time London opens at 09:00 SAST (northern summer) or 10:00 SAST (northern winter). Same idea at the New York open using the London range.`,
+      tag:'▲ SWEEP ASIAN LOW AT LONDON OPEN → BUY',
+      bands:[{ i:0, i2:9, c:'slate', l:'ASIAN RANGE', ext:['A-HIGH','A-LOW'] }],
+      labels:[['@',10,'below','LONDON SWEEP','bear']],
+      dot:[12, [12,'o']] },
+
+    { id:'snd', name:'Supply & Demand Zones', icon:'🏗️', g:'liq', bias:'bull',
+      y0:50, seq:[8,9,8,{d:2,wt:1.5,wb:1.5},{d:-2,wt:1.5,wb:1.5},{d:1,wt:1.5,wb:1.5},-14,-16,-12,3,8,10,12,{d:3,wb:3},-12,-14,-12],
+      desc:`A <strong>demand zone</strong> is a tight <strong>base</strong> of small candles right before an explosive rally (drop-base-rally or rally-base-rally). Unfilled buy orders were left there. A <strong>supply zone</strong> is the opposite — a base before an explosive drop.`,
+      how:`Draw the zone around the base candles (highest body/wick to lowest wick). When price returns for the first time, buy at the top of the zone. SL below the zone. Target the high made by the rally.`,
+      tip:`Strong zones: few base candles (1–3), a fast exit move, and price hasn't been back yet. Each retest weakens the zone.`,
+      tag:'▲ DROP · BASE · RALLY → BUY THE RETURN',
+      zones:[{ t:'range', i:3, i2:5, c:'bull', l:'DEMAND ZONE' }],
+      labels:[['@',4,'below','BASE','silver'],['@',7,'above','RALLY','bull']],
+      dot:[13, [13,'l']] },
 
     // ───────── PRO SETUPS ─────────
     Object.assign({}, SEQ_A, {
