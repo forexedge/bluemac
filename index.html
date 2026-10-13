@@ -6007,8 +6007,10 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
       <button class="ex-filter" onclick="filterExamples('entry',this)">Entry Zones</button>
       <button class="ex-filter" onclick="filterExamples('sessions',this)">Sessions</button>
       <button class="ex-filter" onclick="filterExamples('patterns',this)">Patterns</button>
+      <button class="ex-filter" onclick="filterExamples('fib',this)">Fibonacci</button>
     </div>
     <div id="pattern-subfilter" class="pattern-subfilter"></div>
+    <div id="fib-subfilter" class="pattern-subfilter"></div>
 
     <div class="examples-grid" id="examples-grid" style="display:grid;">
 
@@ -16524,16 +16526,24 @@ document.addEventListener('DOMContentLoaded', () => { updateEduProgressBar(); })
 function filterExamples(cat, btn){
   document.querySelectorAll('.ex-filter').forEach(b=>b.classList.remove('on'));
   if(btn) btn.classList.add('on');
-  const sub = document.getElementById('pattern-subfilter');
-  if(sub) sub.classList.toggle('show', cat==='patterns');
-  if(cat==='patterns'){
-    const first = document.querySelector('.pat-filter');
-    if(first){ filterPatterns('all', first); return; }
+  // Tabs with their own sub-filter row (Patterns, Fibonacci)
+  const SUBTABS = {
+    patterns: { sub:'pattern-subfilter', fn: typeof filterPatterns==='function' ? filterPatterns : null },
+    fib:      { sub:'fib-subfilter',     fn: typeof filterFib==='function'      ? filterFib      : null }
+  };
+  Object.keys(SUBTABS).forEach(k=>{
+    const el = document.getElementById(SUBTABS[k].sub);
+    if(el) el.classList.toggle('show', cat===k);
+  });
+  const st = SUBTABS[cat];
+  if(st && st.fn){
+    const first = document.querySelector('#'+st.sub+' .pat-filter');
+    if(first){ st.fn('all', first); return; }
   }
   document.querySelectorAll('.ex-card').forEach(card=>{
     const cats = (card.dataset.cat||'').split(' ');
-    const isPattern = cats.includes('patterns');
-    card.style.display = cat==='all' ? (isPattern ? 'none' : 'block') : (cats.includes(cat) ? 'block' : 'none');
+    const isLibrary = Object.keys(SUBTABS).some(k => cats.includes(k));
+    card.style.display = cat==='all' ? (isLibrary ? 'none' : 'block') : (cats.includes(cat) ? 'block' : 'none');
   });
 }
 
@@ -16557,5 +16567,6 @@ function filterExamples(cat, btn){
 })();
 </script>
 <script src="patterns.js"></script>
+<script src="fibonacci.js"></script>
 </body>
 </html>
