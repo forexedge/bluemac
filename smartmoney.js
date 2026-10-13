@@ -169,7 +169,7 @@
     const g = GROUPS.find(x => x[0] === p.g) || GROUPS[0];
     const bc = p.bias==='bull' ? 'var(--bull)' : p.bias==='bear' ? 'var(--bear)' : 'var(--blue)';
     return `
-      <div class="ex-card" data-cat="smc smc-${p.g}" style="display:none;">
+      <div class="ex-card" data-id="smc-${p.id}" data-cat="smc smc-${p.g}" style="display:none;">
         <div class="ex-card-header">
           <div class="ex-card-icon">${p.icon}</div>
           <div class="ex-card-title">${p.name}</div>

@@ -113,7 +113,7 @@
     const bc = p.bias==='bull' ? 'var(--bull)' : p.bias==='bear' ? 'var(--bear)' : 'var(--blue)';
     const bt = p.bias==='bull' ? '▲ BULLISH' : p.bias==='bear' ? '▼ BEARISH' : '◆ EITHER WAY';
     return `
-      <div class="ex-card" data-cat="patterns pat-${p.g}">
+      <div class="ex-card" data-id="pat-${p.id}" data-cat="patterns pat-${p.g}">
         <div class="ex-card-header">
           <div class="ex-card-icon">${p.icon}</div>
           <div class="ex-card-title">${p.name}</div>
