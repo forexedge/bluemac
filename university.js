@@ -22,10 +22,12 @@ window.BMU = (function(){
   function save(){ try { localStorage.setItem(KEY, JSON.stringify(P)); } catch(e){} }
 
   const modDone   = m => m.lessons.filter(l => P.done[l.id]).length;
-  const passed    = m => !!(P.quiz[m.id] && P.quiz[m.id].passed);
+  const earned    = m => !!(P.quiz[m.id] && P.quiz[m.id].passed);              // passed the quiz
+  const exempt    = m => !earned(m) && !!P.placed && m.level.num < P.placed.level; // placed out by the placement test
+  const passed    = m => earned(m) || exempt(m);                                // counts for unlocking
   const unlocked  = m => m.idx === 0 || passed(MODULES[m.idx - 1]);
-  const quizReady = m => modDone(m) === m.lessons.length;
-  const levelDone = L => L.modules.every(passed);
+  const quizReady = m => exempt(m) || modDone(m) === m.lessons.length;
+  const levelDone = L => L.modules.every(earned);                               // certificates need real passes
   const doneCount = () => MODULES.reduce((s, m) => s + modDone(m), 0);
   const currentModule = () => MODULES.find(m => !passed(m)) || null;
 
@@ -90,7 +92,8 @@ window.BMU = (function(){
   const crumbs = parts => `<div class="uni-crumbs">${parts.map(([t, fn]) => fn ? `<button onclick="${fn}">${t}</button>` : `<span>${t}</span>`).join('<i>›</i>')}</div>`;
 
   function statusOf(m){
-    if(passed(m)) return { k:'passed', t:`✅ Passed · ${Math.round(P.quiz[m.id].best * 100)}%` };
+    if(earned(m)) return { k:'passed', t:`✅ Passed · ${Math.round(P.quiz[m.id].best * 100)}%` };
+    if(exempt(m)) return { k:'exempt', t:'⏭ Placed out' };
     if(!unlocked(m)) return { k:'locked', t:'🔒 Locked' };
     if(quizReady(m)) return { k:'quiz', t:'📝 Quiz ready' };
     const d = modDone(m);
@@ -104,9 +107,13 @@ window.BMU = (function(){
     const cur = currentModule(), ns = nextStep();
     const lvl = cur ? cur.level : LEVELS[LEVELS.length - 1];
     let cta;
-    if(!ns) cta = `<button class="uni-cta" onclick="BMU.cert('degree')">🎓 View your Self-Mastery Degree</button>`;
+    if(!ns){
+      const ex = MODULES.find(exempt);
+      cta = ex ? `<button class="uni-cta" onclick="BMU.module('${ex.id}')"><span>Almost there — earn your remaining certificates</span><b>📝 Test out of Module ${ex.code} · ${esc(ex.title)}</b></button>`
+               : `<button class="uni-cta" onclick="BMU.cert('degree')">🎓 View your Self-Mastery Degree</button>`;
+    }
     else if(ns.quiz) cta = `<button class="uni-cta" onclick="BMU.quiz('${ns.m.id}')"><span>Continue where you left off</span><b>📝 Module ${ns.m.code} quiz — ${esc(ns.m.title)}</b></button>`;
-    else cta = `<button class="uni-cta" onclick="BMU.lesson('${ns.m.id}','${ns.l.id}')"><span>${done ? 'Continue where you left off' : 'Start your degree'}</span><b>▶ Module ${ns.m.code} · ${esc(lessonTitle(ns.l))}</b></button>`;
+    else cta = `<button class="uni-cta" onclick="BMU.lesson('${ns.m.id}','${ns.l.id}')"><span>${done ? 'Continue where you left off' : (P.placed && P.placed.level > 1 ? `Start at your placement — Level ${P.placed.level}` : 'Start your degree')}</span><b>▶ Module ${ns.m.code} · ${esc(lessonTitle(ns.l))}</b></button>`;
 
     let h = `
       <div class="uni-hero">
@@ -124,6 +131,8 @@ window.BMU = (function(){
         <div><b>${LEVELS.filter(levelDone).length}<i>/${LEVELS.length}</i></b><span>Certificates</span></div>
         <div><b style="color:${lvl.color};">L${lvl.num}</b><span>${esc(lvl.title)}</span></div>
       </div>
+      ${!P.placed && !doneCount() && !Object.keys(P.quiz).length && window.BMP ? `<div class="uni-placement"><div><b>🧭 Already know some trading?</b><span>Take the 2-minute placement test and skip straight to the level that matches your experience.</span></div><button class="uni-btn primary" onclick="BMP.open(true)">Take the placement test</button></div>` : ''}
+      ${P.placed && P.placed.level > 1 ? `<div class="uni-placed-note">🧭 Placement test: you started at <b>Level ${P.placed.level}</b>. Levels below it are placed out — review them or take their quizzes any time to earn full credit.</div>` : ''}
       <details class="uni-how"><summary>How the degree works</summary>
         <ol><li><b>Read each lesson</b> in order and tap <em>Complete &amp; continue</em>.</li>
         <li>When every lesson in a module is done, the <b>module quiz</b> opens.</li>
@@ -153,7 +162,7 @@ window.BMU = (function(){
       h += `</div></div>`;
     });
     h += `</div><div id="uni-locked-msg"></div>
-      <div class="uni-foot"><button class="uni-reset" id="uni-reset" onclick="BMU.reset()">Reset progress</button></div>`;
+      <div class="uni-foot">${window.BMP ? `<button class="uni-reset" onclick="BMP.open(true)">Retake placement test</button> ` : ''}<button class="uni-reset" id="uni-reset" onclick="BMU.reset()">Reset progress</button></div>`;
     show(h);
   }
 
@@ -178,6 +187,7 @@ window.BMU = (function(){
         <div><span>Builds on</span><b>${prev ? `Module ${prev.code} · ${esc(prev.title)}` : 'Nothing — this is where everyone starts'}</b></div>
         <div><span>Unlocks</span><b>${next ? `Module ${next.code} · ${esc(next.title)}` : '🎓 Your Self-Mastery Degree'}</b></div>
       </div>
+      ${exempt(m) ? `<div class="uni-placed-note">⏭ <b>You placed out of this module.</b> Review any lesson you like, or take the quiz now to earn full credit towards your Level ${L.num} certificate.</div>` : ''}
       ${m.why ? `<div class="uni-why">🧭 <b>Why this matters:</b> ${m.why}</div>` : ''}
       <div class="uni-lesson-list">`;
     m.lessons.forEach((l, i) => {
@@ -190,7 +200,7 @@ window.BMU = (function(){
     h += `</div>
       <div class="uni-quiz-box ${quizReady(m) ? 'ready' : ''}">
         <div><b>📝 Module ${m.code} quiz</b><small>${m.quiz.length} questions · pass mark 80%${q ? ` · best score ${Math.round(q.best * 100)}%` : ''}</small></div>
-        ${quizReady(m) ? `<button class="uni-btn primary" onclick="BMU.quiz('${m.id}')">${passed(m) ? 'Retake quiz' : 'Start quiz'}</button>` : `<span class="uni-quiz-lock">Complete all ${m.lessons.length} lessons first (${d}/${m.lessons.length})</span>`}
+        ${quizReady(m) ? `<button class="uni-btn primary" onclick="BMU.quiz('${m.id}')">${earned(m) ? 'Retake quiz' : exempt(m) ? 'Test out — take the quiz' : 'Start quiz'}</button>` : `<span class="uni-quiz-lock">Complete all ${m.lessons.length} lessons first (${d}/${m.lessons.length})</span>`}
       </div>`;
     show(h);
   }
@@ -273,6 +283,7 @@ window.BMU = (function(){
       <div class="uni-result ${ok ? 'pass' : 'fail'}">
         <div class="uni-result-score">${Math.round(pct * 100)}%</div>
         <div class="uni-result-title">${ok ? '🎉 Module passed!' : 'Not yet — you need 80% to pass'}</div>
+        ${!ok && exempt(m) ? `<p style="margin-bottom:0;">You're still placed out of this module, so nothing gets locked. Review the lessons and try again whenever you like.</p>` : ''}
         <p>${score} of ${qs.length} correct. ${ok ? (next ? `<b>Module ${next.code} · ${esc(next.title)}</b> is now unlocked.` : 'You have completed every module.') : 'Go back over the lessons — especially the ones these questions came from — then try again. There is no limit on retries.'}</p>
         <div class="uni-result-btns">
           ${ok ? (newCert ? `<button class="uni-btn primary" onclick="BMU.cert('${m.level.id}')">🏅 Claim your ${esc(m.level.badge)}</button>` : next ? `<button class="uni-btn primary" onclick="BMU.module('${next.id}')">Start Module ${next.code} ›</button>` : '')
@@ -316,12 +327,21 @@ window.BMU = (function(){
     resetArmed = false; P = { v:1, done:{}, quiz:{}, last:null, certs:{}, started:null }; save(); home();
   }
 
+  function applyPlacement(level){
+    level = Math.max(1, Math.min(6, +level || 1));
+    P.placed = { level, at:new Date().toISOString() };
+    P.last = null; save();
+  }
+
   function onShow(){
     // try to personalise certificates with the logged-in user's name
     try {
       if(typeof _supabase !== 'undefined') _supabase.auth.getSession().then(r => {
         const u = r && r.data && r.data.session && r.data.session.user;
         if(u) window.BMU_NAME = (u.user_metadata && (u.user_metadata.full_name || u.user_metadata.name)) || (u.email || '').split('@')[0];
+        // new device: restore the placement level saved on the account
+        const pl = u && u.user_metadata && u.user_metadata.tv_placement_level;
+        if(pl && !P.placed){ applyPlacement(pl); home(); }
       }).catch(() => {});
     } catch(e){}
     home();
@@ -366,6 +386,10 @@ window.BMU = (function(){
   .uni-mod-main b{font-size:13.5px;font-weight:700;}.uni-mod-main small{font-size:11px;color:var(--text3,#777);}
   .uni-mod-status{font-family:'DM Mono',monospace;font-size:10px;white-space:nowrap;color:var(--text3,#888);}
   .uni-mod.passed .uni-mod-status{color:#22D67A;}.uni-mod.quiz .uni-mod-status{color:#F5B841;}.uni-mod.progress .uni-mod-status,.uni-mod.open .uni-mod-status{color:#96D0FF;}
+  .uni-placement{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:16px 18px;border-radius:14px;background:rgba(245,184,65,.07);border:1px solid rgba(245,184,65,.35);margin-bottom:14px;}
+  .uni-placement b{display:block;color:#fff;font-size:15px;margin-bottom:3px;}.uni-placement span{font-size:13px;color:var(--text2,#A2A2A8);}
+  .uni-placed-note{padding:12px 14px;border-radius:12px;background:rgba(138,164,191,.08);border:1px solid rgba(138,164,191,.3);color:#C8D2DC;font-size:13px;line-height:1.6;margin-bottom:14px;}
+  .uni-mod.exempt .uni-mod-status{color:#8AA4BF;}
   .uni-toast{margin-top:14px;padding:12px 16px;border-radius:12px;background:rgba(245,184,65,.1);border:1px solid rgba(245,184,65,.35);color:#F5D9A0;font-size:13px;}
   .uni-foot{margin-top:26px;text-align:center;}
   .uni-reset{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3,#777);padding:6px 12px;border-radius:8px;border:1px solid var(--border,rgba(255,255,255,.1));background:transparent;cursor:pointer;}
@@ -436,7 +460,7 @@ window.BMU = (function(){
   }`;
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
 
-  return { home, module, lesson, complete, quiz, answer, nextQ, cert, reset, locked, onShow, _p:() => P, MODULES, LEVELS, TOTAL };
+  return { home, module, lesson, complete, quiz, answer, nextQ, cert, reset, locked, onShow, applyPlacement, _p:() => P, MODULES, LEVELS, TOTAL };
 })();
 
 // Render the degree as soon as the page exists
