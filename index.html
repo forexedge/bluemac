@@ -268,6 +268,15 @@ header::after{
 .examples-title{font-family:'Outfit',sans-serif;font-size:32px;font-weight:800;color:#fff;letter-spacing:-0.01em;line-height:1;}
 .examples-subtitle{font-size:13px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:0.06em;margin-top:6px;text-transform:uppercase;}
 .examples-filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border);}
+/* ── PATTERNS SUB-FILTER ── */
+.pattern-subfilter{display:none;gap:6px;flex-wrap:wrap;align-items:center;margin:-12px 0 24px;}
+.pattern-subfilter.show{display:flex;}
+.pattern-subfilter-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--blue);margin-right:6px;}
+.pat-filter{font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 12px;border-radius:999px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.6);cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
+.pat-filter span{font-family:'DM Mono',monospace;font-size:10px;opacity:.6;}
+.pat-filter:hover{border-color:rgba(42,143,227,0.5);color:#fff;}
+.pat-filter.on{background:rgba(42,143,227,0.15);border-color:var(--blue);color:#fff;}
+.ex-diagram-item svg{margin:0 auto;}
 .ex-filter{
   padding:7px 18px;border-radius:8px;font-size:12px;font-weight:700;
   font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;
@@ -5997,7 +6006,9 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
       <button class="ex-filter" onclick="filterExamples('levels',this)">Key Levels</button>
       <button class="ex-filter" onclick="filterExamples('entry',this)">Entry Zones</button>
       <button class="ex-filter" onclick="filterExamples('sessions',this)">Sessions</button>
+      <button class="ex-filter" onclick="filterExamples('patterns',this)">Patterns</button>
     </div>
+    <div id="pattern-subfilter" class="pattern-subfilter"></div>
 
     <div class="examples-grid" id="examples-grid" style="display:grid;">
 
@@ -7126,10 +7137,8 @@ function goPage(id,btn){
   if(id==='journal'){ if(typeof loadJournal==='function') loadJournal(); else renderJournal(); }
   if(id==='rules'){ showRules('scalp', document.querySelector('.srt')); }
   if(id==='examples'){
-    document.querySelectorAll('.ex-card').forEach(c=>c.style.display='block');
-    document.querySelectorAll('.ex-filter').forEach(b=>b.classList.remove('on'));
     const allBtn = document.querySelector('.ex-filter');
-    if(allBtn) allBtn.classList.add('on');
+    if(allBtn) filterExamples('all', allBtn);
   }
 }
 
@@ -16514,13 +16523,17 @@ function resetEduProgress(){
 document.addEventListener('DOMContentLoaded', () => { updateEduProgressBar(); });
 function filterExamples(cat, btn){
   document.querySelectorAll('.ex-filter').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
+  if(btn) btn.classList.add('on');
+  const sub = document.getElementById('pattern-subfilter');
+  if(sub) sub.classList.toggle('show', cat==='patterns');
+  if(cat==='patterns'){
+    const first = document.querySelector('.pat-filter');
+    if(first){ filterPatterns('all', first); return; }
+  }
   document.querySelectorAll('.ex-card').forEach(card=>{
-    if(cat==='all'){card.style.display='block';}
-    else{
-      const cats = card.dataset.cat||'';
-      card.style.display = cats.includes(cat) ? 'block' : 'none';
-    }
+    const cats = (card.dataset.cat||'').split(' ');
+    const isPattern = cats.includes('patterns');
+    card.style.display = cat==='all' ? (isPattern ? 'none' : 'block') : (cats.includes(cat) ? 'block' : 'none');
   });
 }
 
@@ -16543,5 +16556,6 @@ function filterExamples(cat, btn){
   updateEduProgressBar();
 })();
 </script>
+<script src="patterns.js"></script>
 </body>
 </html>
