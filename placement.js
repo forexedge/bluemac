@@ -18,7 +18,7 @@ window.BMP = (function(){
     { q:'How much time can you spend on the charts?', style:true, o:[
       ['☕','A few minutes a day','Check in once or twice','position'], ['🌙','1–2 hours a day','Evenings or mornings','swing'], ['☀️','A full session','London or New York','day'], ['⚡','Hours at a time','I can react fast all day','scalp'] ] }
   ];
-  const STYLES = { position:['🏔️ Position','W1 / D1 · weeks per trade'], swing:['🌊 Swing','D1 / H4 · 2–5 days per trade'], day:['☀️ Day Trade','H1 / H4 · closed the same day'], scalp:['⚡ Scalp','15m / 30m · minutes per trade'] };
+  const STYLES = { position:['🏔️ Position','MN / W1 / D1 · weeks to months'], swing:['🌊 Swing','W1 / D1 / H4 · 2–15 days per trade'], day:['☀️ Day Trade','D1 / H4 / H1 · closed the same day'], scalp:['⚡ Scalp','H1 / 15m / 5m · minutes per trade'] };
   // Knowledge check: passing both questions of level N means Level N is already known
   const KNOW = {
     1:[ { q:'EURUSD rises from 1.1000 to 1.1030. How many pips is that?', o:['30 pips','3 pips','300 pips','0.3 pips'], a:0 },

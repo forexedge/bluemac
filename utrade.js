@@ -19,14 +19,15 @@
 // ══════════════════════════════════════════════════════
 window.UT = (function(){
   const STRATS = {};
-  const st = { style:null, step:0, ans:{}, lv:{}, shots:[], result:null };
-  const GRADES = [[85,'A+','A+ Setup'],[72,'A','A-Grade Setup'],[60,'B','B-Grade Setup']];
+  const st = { style:null, step:0, ans:{}, lv:{}, shots:[], result:null, showAll:{} };
+  // [min score, grade, label, % of account to risk]
+  const GRADES = [[85,'A+','A+ Setup',1],[72,'A','A-Grade Setup',0.75],[60,'B','B-Grade Setup',0.5]];
   const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
   function register(key, def){ def.key = key; STRATS[key] = def; }
   function has(key){ return !!STRATS[key]; }
   function cur(){ return STRATS[S.style]; }
-  function reset(){ st.style = S.style; st.step = 0; st.ans = {}; st.lv = {}; st.shots = []; st.result = null; }
+  function reset(){ st._drawn = -1; st.style = S.style; st.step = 0; st.ans = {}; st.lv = {}; st.shots = []; st.result = null; st.showAll = {}; }
 
   // ── Diagram helpers (shared by every strategy) ──────────
   // dir-aware candle charts on top of BMX.render. Write the BULL version;
@@ -130,20 +131,24 @@ window.UT = (function(){
     d = d || new Date();
     const lo = [toSAST('Europe/London', 8, 0, d), toSAST('Europe/London', 11, 0, d)];
     const ny = [toSAST('America/New_York', 8, 30, d), toSAST('America/New_York', 11, 0, d)];
+    const loD = [toSAST('Europe/London', 8, 0, d), toSAST('Europe/London', 12, 0, d)];      // day-trade windows
+    const nyD = [toSAST('America/New_York', 8, 30, d), toSAST('America/New_York', 12, 0, d)];
     const nowS = (d.getUTCHours() * 60 + d.getUTCMinutes() + 120) % 1440;
     const inW = w => nowS >= w[0] && nowS < w[1];
     const day = new Date(d.getTime() + 2 * 3600e3).getUTCDay();
-    return { lo, ny, now:nowS, nowTxt:hm(nowS), weekend: day === 0 || day === 6,
-             cur: inW(lo) ? 'london' : inW(ny) ? 'ny' : null, fmt: w => hm(w[0]) + '–' + hm(w[1]) };
+    return { lo, ny, loD, nyD, now:nowS, nowTxt:hm(nowS), weekend: day === 0 || day === 6,
+             cur: inW(lo) ? 'london' : inW(ny) ? 'ny' : null, curD: inW(loD) ? 'london' : inW(nyD) ? 'ny' : null,
+             fmt: w => hm(w[0]) + '–' + hm(w[1]) };
   }
 
   // ── Scoring ─────────────────────────────────────────────
   function evaluate(){
     const s = cur(), A = st.ans;
-    let earned = 0, max = 0, bias = 0;
+    let earned = 0, max = 0, bias = 0, halfRisk = false, conf = null;
     const gates = [], warns = [], ticks = [];
     // 1) bias from the bias layer (first bias question decides, others must agree)
     s.questions.filter(q => q.bias).forEach(q => {
+      if(q.type === 'matrix'){ const d = matrixBias(q); if(d && !bias) bias = d; else if(d && d !== bias) warns.push(`${q.short} disagrees with your bias`); return; }
       const o = opt(q, A[q.id]); if(!o || !o.dir) return;
       if(!bias) bias = o.dir;
       else if(o.dir !== bias) warns.push(`${q.short}: ${o.l} disagrees with your bias`);
@@ -151,6 +156,14 @@ window.UT = (function(){
     // 2) every answer
     s.questions.forEach(q => {
       if(q.type === 'levels' || q.type === 'instrument') return;
+      if(q.type === 'matrix'){
+        const m = matrixScore(q, bias);
+        max += q.pts; earned += q.pts * m.f; conf = m;
+        ticks.push({ ok: m.f >= q.min ? true : false, q:q.short, l:`${m.aligned}/${q.rows.length} timeframes aligned · ${Math.round(m.f * 100)}% weighted confluence` });
+        if(bias && m.f < q.min) gates.push({ type:'block', q:q.short, l:`Only ${Math.round(m.f * 100)}% weighted confluence`, why:`The stack is split. Blue Mac Key needs ${Math.round(q.min * 100)}%+ weighted agreement across the timeframes — below that there is no edge.` });
+        m.against.forEach(r => warns.push(`${r} stack points against your bias`));
+        return;
+      }
       if(q.type === 'multi'){
         const picks = (A[q.id] || []).map(v => opt(q, v)).filter(Boolean);
         max += q.max;
@@ -162,6 +175,7 @@ window.UT = (function(){
       }
       const o = opt(q, A[q.id]); if(!o) return;
       const best = Math.max(...q.options.map(x => x.pts || 0));
+      if(o.noScore){ ticks.push({ ok:null, q:q.short, l:o.l }); return; }   // skipped layer — not counted
       max += best;
       if(o.gate === 'block'){ gates.push({ type:'block', q:q.short, l:o.l, why:o.why }); ticks.push({ ok:false, q:q.short, l:o.l }); return; }
       if(o.gate === 'wait'){ gates.push({ type:'wait', q:q.short, l:o.l, why:o.why }); ticks.push({ ok:null, q:q.short, l:o.l }); earned += o.pts || 0; return; }
@@ -175,22 +189,45 @@ window.UT = (function(){
       earned += o.pts || 0;
       ticks.push({ ok:(o.pts || 0) >= best * 0.6 ? true : null, q:q.short, l:o.l });
       if(o.warn) warns.push(o.warn);
+      if(o.halfRisk) halfRisk = true;
       if(typeof o.check === 'function'){ const w = o.check(sessions()); if(w) warns.push(w); }
     });
     if(!bias && !gates.some(g => g.type === 'block')) gates.push({ type:'block', q:'Bias', l:'No directional bias', why:`${s.biasTF} gives no clear direction. No bias = no trade.` });
     const score = max ? Math.round(earned / max * 100) : 0;
     const blocked = gates.some(g => g.type === 'block');
     const waiting = !blocked && gates.some(g => g.type === 'wait');
-    let grade = null, gradeLong = 'No Trade';
-    for(const [min, g, gl] of GRADES) if(score >= min){ grade = g; gradeLong = gl; break; }
+    let grade = null, gradeLong = 'No Trade', risk = 0;
+    for(const [min, g, gl, r] of GRADES) if(score >= min){ grade = g; gradeLong = gl; risk = r; break; }
+    if(halfRisk) risk = risk / 2;   // e.g. 2 losses today → half risk
     const tooWeak = !blocked && !grade;
-    return { bias, score, grade, gradeLong, gates, warns, ticks, blocked, waiting, tooWeak };
+    return { bias, score, grade, gradeLong, risk, gates, warns, ticks, blocked, waiting, tooWeak, conf };
   }
   const opt = (q, v) => v == null ? null : q.options.find(o => o.v === v);
+  // ── 9-timeframe matrix (Blue Mac Key) ──
+  // rows: [code, label, weight, setsBias]
+  function matrixBias(q){
+    const A = st.ans[q.id] || {}; let s = 0, W = 0;
+    q.rows.forEach(([k,, w, b]) => { if(!b) return; W += w; const c = q.cols.find(x => x.v === A[k]); if(c) s += w * c.dir; });
+    return W && Math.abs(s) >= W * 0.34 ? Math.sign(s) : 0;
+  }
+  function matrixScore(q, bias){
+    const A = st.ans[q.id] || {}; let got = 0, W = 0, aligned = 0; const against = [];
+    q.rows.forEach(([k, lab, w]) => {
+      W += w; const c = q.cols.find(x => x.v === A[k]); if(!c) return;
+      if(bias && c.dir === bias){ got += w; aligned++; }
+      else if(!c.dir) got += w * 0.35;
+      else if(bias) against.push(lab);
+    });
+    return { f: W ? got / W : 0, aligned, against };
+  }
   // bias from the answers given so far (first bias question that has a direction)
   function currentBias(){
     const s = cur(); if(!s) return 0;
-    for(const q of s.questions){ if(!q.bias) continue; const o = opt(q, st.ans[q.id]); if(o && o.dir) return o.dir; }
+    for(const q of s.questions){
+      if(!q.bias) continue;
+      if(q.type === 'matrix'){ const d = matrixBias(q); if(d) return d; continue; }
+      const o = opt(q, st.ans[q.id]); if(o && o.dir) return o.dir;
+    }
     return 0;
   }
 
@@ -213,23 +250,103 @@ window.UT = (function(){
     if(!(dir * (e1 - e2) >= 0 && dir * (e2 - sl) > 0)) e2 = e1 - dir * R * 0.5;     // Entry 2 always inside the stop
     const fixes = [];
     const tp1Min = e1 + dir * R * mins[0], tp2Min = e1 + dir * R * mins[1];
-    let tp1 = k.t1, tp2 = k.t2, note1 = k.t1why || '', note2 = k.t2why || '';
     const rrTo = v => dir * (v - e1) / R;
-    const nearRR = isFinite(tp1) && dir * (tp1 - e1) > 0 ? rrTo(tp1) : null;
-    if(!isFinite(tp1) || dir * (tp1 - tp1Min) < 0){
-      if(isFinite(tp1) && dir * (tp1 - e1) > 0) fixes.push(`Nearest target only gives 1:${(Math.floor(nearRR * 10) / 10).toFixed(1)} — TP1 set to the 1:${mins[0]} minimum beyond it`);
-      tp1 = tp1Min; note1 = `1:${mins[0]} minimum`;
-    }
-    if(!isFinite(tp2) || dir * (tp2 - tp2Min) < 0 || dir * (tp2 - tp1) <= 0){
-      // furthest of: the 1:3 minimum, or one more R beyond TP1
-      tp2 = dir > 0 ? Math.max(tp2Min, tp1 + R) : Math.min(tp2Min, tp1 - R);
-      note2 = `1:${mins[1]}+ minimum`;
-    }
+    const r1 = v => (Math.floor(v * 10) / 10).toFixed(1);
+    // structural targets beyond Entry 1, nearest first
+    const tg = (k.tg || [[k.t1, k.t1why], [k.t2, k.t2why]]).filter(t => isFinite(t[0]) && dir * (t[0] - e1) > 0).sort((a, b) => dir * (a[0] - b[0]));
+    const nearRR = tg.length ? rrTo(tg[0][0]) : null;
+    // TP1 = first real level that pays at least the minimum; otherwise the minimum itself
+    let i1 = tg.findIndex(t => dir * (t[0] - tp1Min) >= 0), tp1, note1, tp2, note2;
+    if(i1 >= 0){ tp1 = tg[i1][0]; note1 = tg[i1][1]; if(i1 > 0) fixes.push(`${tg[0][1]} only gives 1:${r1(nearRR)} — TP1 moved to the next level`); }
+    else { tp1 = tp1Min; note1 = `1:${mins[0]} minimum`; if(tg.length) fixes.push(`Nearest target only gives 1:${r1(nearRR)} — TP1 set to the 1:${mins[0]} minimum`); }
+    // TP2 = next real level beyond TP1 that pays the TP2 minimum; otherwise the minimum (or TP1 + 1R)
+    const floor2 = dir > 0 ? Math.max(tp2Min, tp1 + R) : Math.min(tp2Min, tp1 - R);
+    const t2 = tg.find(t => dir * (t[0] - floor2) >= 0);
+    if(t2){ tp2 = t2[0]; note2 = t2[1]; } else { tp2 = floor2; note2 = `1:${mins[1]}+ minimum`; }
     const round = (v, away) => { const f = Math.pow(10, dp); return (away ? (dir > 0 ? Math.ceil(v * f - 1e-9) : Math.floor(v * f + 1e-9)) : Math.round(v * f)) / f; };
     tp1 = round(tp1, true); tp2 = round(tp2, true);
     const rr = v => (Math.floor(rrTo(v) * 10 + 1e-6) / 10).toFixed(1);
     return { dir, e1, e2, sl, tp1, tp2, R, dp, fmt, rr1:rr(tp1), rr2:rr(tp2), note1, note2, fixes,
              e1why:k.e1why || '', e2why:k.e2why || '', slwhy:k.slwhy || '', targetShort: nearRR !== null && nearRR < mins[0] };
+  }
+
+  // ── Standard level maths (shared by the strategies) ─────
+  // o = { tf:'15m', up:[[field,label]], dn:[[field,label]], buf:0.04, ext:true }
+  // Entry from the zone (if it sits on the right side of price), stop beyond the
+  // opposite swing + buffer, targets = swing + marked liquidity (+ fib 127.2%).
+  function stdLevels(dir, L, num, o){
+    const p = num(L.price), hi = num(L.swing_hi), lo = num(L.swing_lo);
+    if(![p, hi, lo].every(isFinite)) return null;
+    const tf = o.tf, zh = num(L.zone_hi), zl = num(L.zone_lo), hasZone = isFinite(zh) && isFinite(zl);
+    const buf = (hi - lo) * (o.buf || 0.04);
+    let e1 = p, e2, e1why = 'market price', e2why;
+    const sl = dir > 0 ? lo - buf : hi + buf;
+    const slwhy = dir > 0 ? `below the ${tf} swing low + buffer` : `above the ${tf} swing high + buffer`;
+    const zoneOk = hasZone && (dir > 0 ? zl < p && zl > sl : zh > p && zh < sl);
+    if(zoneOk){
+      e1 = dir > 0 ? Math.min(zh, p) : Math.max(zl, p);
+      e1why = (dir > 0 ? zh >= p : zl <= p) ? 'price is inside the zone' : 'limit order at the zone edge';
+      e2 = (zh + zl) / 2; e2why = '50% of the zone';
+      if(dir * (e1 - e2) <= 0){ e2 = e1 - dir * (e1 - sl) * 0.4; e2why = 'deeper in the zone, above the stop'; }
+    } else { e2 = e1 - dir * (e1 - sl) * 0.5; e2why = 'halfway to the stop (better price)'; }
+    const cands = dir > 0 ? [[hi, `${tf} swing high (buy-side liquidity)`]] : [[lo, `${tf} swing low (sell-side liquidity)`]];
+    (dir > 0 ? o.up : o.dn).forEach(([f, lab]) => cands.push([num(L[f]), lab]));
+    if(o.ext) cands.push([dir > 0 ? hi + (hi - lo) * 0.272 : lo - (hi - lo) * 0.272, `fib 127.2% extension of the ${tf} swing`]);
+    const tg = cands.filter(t => isFinite(t[0]) && dir * (t[0] - e1) > 0).sort((a, b) => dir * (a[0] - b[0]));
+    return { e1, e2, sl, e1why, e2why, slwhy, tg };
+  }
+  // shared level-field validation
+  function stdCheck(L, num, tf){
+    const hi = num(L.swing_hi), lo = num(L.swing_lo), p = num(L.price);
+    if(hi <= lo) return `Your ${tf} swing high must be above your ${tf} swing low.`;
+    const span = hi - lo;
+    if(p > hi + span * 1.5 || p < lo - span * 1.5) return `Current price is far outside your ${tf} swing high and low — use the swing points from the current ${tf} leg.`;
+    if(L.zone_hi && L.zone_lo && num(L.zone_hi) <= num(L.zone_lo)) return 'Zone top must be above zone bottom.';
+    return null;
+  }
+
+  // ── Rules page (generated from the same strategy definition) ──
+  function rulesHTML(key){
+    const s = STRATS[key]; if(!s || !s.rules) return '';
+    const R = s.rules, c = s.color;
+    const block = (icon, title, body, danger) => `<div class="rules-block">
+      <div class="rules-block-header" style="${danger ? 'border-bottom-color:rgba(217,82,82,0.2);background:rgba(217,82,82,0.03);' : 'border-bottom-color:rgba(30,136,220,0.15);'}">
+        <div class="rules-block-header-icon">${icon}</div><div class="rules-block-title" style="color:${danger ? 'var(--bear)' : c};">${title}</div></div>
+      <div class="rules-block-body">${body}</div></div>`;
+    const pre = `<div class="preflight-list">${R.preflight.map(([t, x], i) => `<div class="preflight-item"><div class="preflight-num" style="color:${c};">${String(i + 1).padStart(2,'0')}</div><div class="preflight-text"><strong>${t}</strong> ${x}</div></div>`).join('')}</div>`;
+    const steps = `<div class="protocol-steps" style="display:flex;flex-direction:column;gap:10px;">${R.steps.map(([t, x], i) => `<div class="protocol-step"><div class="protocol-step-num" style="background:rgba(30,136,220,0.15);color:${c};">${i + 1}</div><div class="protocol-step-content"><div class="protocol-step-title">${t}</div><div class="protocol-step-desc">${x}</div></div></div>`).join('')}</div>`;
+    const mins = s.minRR || [2,3];
+    const grades = `<div style="display:flex;flex-direction:column;gap:8px;">${GRADES.map(([min, g, , r]) => `<div class="grade-row"><div class="grade-tag" style="color:${g === 'B' ? 'var(--gold)' : 'var(--bull)'}">${g === 'A+' ? 'A+ Setup' : g + '-Grade'}</div><div class="grade-detail"><strong>Score ${min}+</strong> — ${g === 'A+' ? 'every layer lines up, including the trigger and extra confluence.' : g === 'A' ? 'bias, zone and trigger agree; a little confluence missing.' : 'tradeable but thinner — smaller size, take TP1 quickly.'}</div><div class="grade-size" style="color:var(--bull);border-color:rgba(45,184,122,0.3);background:rgba(45,184,122,0.08);">${r}% risk</div></div>`).join('')}
+      <div class="grade-row"><div class="grade-tag" style="color:var(--bear)">No Trade</div><div class="grade-detail"><strong>Below 60, or any hard stop</strong> — uTrade Ideas will not build an idea. <strong>Watchlist</strong> = valid but not confirmed yet: monitor only.</div><div class="grade-size" style="color:var(--bear);border-color:rgba(217,82,82,0.3);background:rgba(217,82,82,0.08);">0%</div></div></div>`;
+    const risk = `<div class="preflight-list">${[
+      ['Entry 1 / Entry 2.', 'Entry 1 at the zone edge (or market). Entry 2 is a better price deeper in the zone — <strong>always between Entry 1 and the stop</strong>.'],
+      ['Stop loss.', R.stop],
+      [`TP1 ≥ 1:${mins[0]} · TP2 ≥ 1:${mins[1]}.`, R.targets],
+      ['Management.', R.manage]
+    ].map(([t, x], i) => `<div class="preflight-item"><div class="preflight-num" style="color:${c};">${['E','SL','TP','M'][i]}</div><div class="preflight-text"><strong>${t}</strong> ${x}</div></div>`).join('')}</div>`;
+    const never = R.never.map(([t, x]) => `<div class="never-item"><div class="never-icon">✗</div><div class="never-text"><strong>${t}</strong> ${x}</div></div>`).join('');
+    const mind = `<div class="mindset-principles">${R.mindset.map(([t, x]) => `<div class="mindset-principle" style="border-color:rgba(30,136,220,0.15);"><div class="mindset-principle-label" style="color:${c};">${t}</div><div class="mindset-principle-text">${x}</div></div>`).join('')}</div>`;
+    return `<div class="rules-hero" style="border-color:rgba(228,232,238,0.3);color:${c};">
+        <div class="rules-hero-left"><div class="rules-hero-icon">${R.icon}</div><div>
+          <div class="rules-hero-name" style="color:${c};">${s.name}</div>
+          <div class="rules-hero-sub" style="color:${c};">${s.short} · ${s.tfs} · ${R.sub}</div></div></div>
+        <div class="rules-hero-pills" style="color:${c};">${s.pills.map(p => `<span class="rules-hero-pill">${p}</span>`).join('')}</div></div>
+      <div class="rules-layout"><div class="rules-col">
+        ${block('✈️', 'Pre-Flight Checklist', pre)}
+        ${block('🎯', 'The Setup — Step by Step', steps)}
+        ${block('📊', 'Grades & Position Size', grades)}
+      </div><div class="rules-col">
+        ${block('🛡', 'Entries, Stops & Targets', risk)}
+        ${block('🚫', 'Never Do This', never, true)}
+        ${block('🧠', 'Mindset', mind)}
+      </div></div>
+      <div style="margin-top:16px;"><button class="ut-learn-btn" onclick="UT.goTo('${key}')">Open ${s.short} in uTrade Ideas →</button></div>`;
+  }
+  function goTo(key){
+    const b = [...document.querySelectorAll('.nav-item')].find(x => (x.getAttribute('onclick') || '').includes("'checklist'"));
+    if(b) goPage('checklist', b);
+    setStyle(key, document.querySelector('.style-tab.' + key));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // ── Rendering ───────────────────────────────────────────
@@ -247,7 +364,9 @@ window.UT = (function(){
     else if(q.type === 'single') body = optionsHTML(q, false);
     else if(q.type === 'multi') body = optionsHTML(q, true);
     else if(q.type === 'levels') body = levelsHTML(q);
+    else if(q.type === 'matrix') body = matrixHTML(q);
     const live = typeof q.live === 'function' ? q.live(sessions()) : '';
+    const same = st._drawn === st.step; st._drawn = st.step;   // re-render of the same question → no entrance animation
     panel.innerHTML = `
       <div class="ut-wrap" style="--ut:${s.color};">
         ${st.step === 0 ? introHTML(s) : ''}
@@ -256,7 +375,7 @@ window.UT = (function(){
           <div class="ut-bar"><i style="width:${pct}%"></i></div>
           <div class="ut-count">Question ${st.step + 1} of ${total}</div>
         </div>
-        <div class="ut-card">
+        <div class="ut-card${same ? ' still' : ''}">
           <div class="ut-kicker">${sg.label}${q.tf ? ` · <span class="ut-tf">${q.tf}</span>` : ''}</div>
           <div class="ut-q">${q.q}</div>
           ${q.help ? `<div class="ut-help">${q.help}</div>` : ''}
@@ -268,6 +387,8 @@ window.UT = (function(){
             ${st.step > 0 ? `<button class="ut-back" onclick="UT.back()">← Back</button>` : '<span></span>'}
             ${q.type === 'multi' ? `<button class="ut-next" onclick="UT.next()">${(st.ans[q.id] || []).length ? 'Next →' : 'None of these — Next →'}</button>` : ''}
             ${q.type === 'levels' ? `<button class="ut-next" onclick="UT.submitLevels()">Build My Trade Idea →</button>` : ''}
+            ${q.type === 'matrix' ? (() => { const n = q.rows.filter(r => (st.ans[q.id] || {})[r[0]]).length;
+                return `<button class="ut-next" onclick="UT.next()" ${n < q.rows.length ? 'disabled' : ''}>${n < q.rows.length ? `${n}/${q.rows.length} answered` : 'Next →'}</button>`; })() : ''}
           </div>
         </div>
       </div>`;
@@ -289,10 +410,15 @@ window.UT = (function(){
     const cur_ = st.ans[q.id];
     const sel = o => multi ? (cur_ || []).includes(o.v) : cur_ === o.v;
     // once the bias is known, show the options that agree with it first
-    let list = q.options;
+    let list = q.options, hidden = 0;
     const b = q.bias ? 0 : currentBias();
     if(b) list = q.options.map((o, i) => [o, i]).sort((x, y) => rank(x[0]) - rank(y[0]) || x[1] - y[1]).map(x => x[0]);
     function rank(o){ return o.gate ? 3 : !o.dir ? 1 : o.dir === b ? 0 : 2; }
+    // critical questions: tuck the against-the-bias options behind a button (unless one is already picked)
+    if(b && q.align === 'critical' && !st.showAll[q.id]){
+      const keep = list.filter(o => !o.dir || o.dir === b || sel(o));
+      hidden = list.length - keep.length; list = keep;
+    }
     const hasDg = q.options.some(o => o.dg) && !q.compact;
     return `<div class="ut-opts${q.compact ? ' compact' : ''}${hasDg ? ' dg' : ''}">${list.map(o => {
       const tone = o.gate === 'block' ? 'block' : o.gate === 'wait' ? 'wait' : o.dir > 0 ? 'bull' : o.dir < 0 ? 'bear' : 'neut';
@@ -305,8 +431,22 @@ window.UT = (function(){
         ${o.gate === 'block' ? `<div class="ut-tag block">🛑 No trade</div>` : o.gate === 'wait' ? `<div class="ut-tag wait">⏳ Wait</div>` : ''}
         ${o.ref ? `<button class="ut-opt-learn" onclick="event.stopPropagation();UT.learn('${o.ref}')">📖 Learn</button>` : ''}
       </div>`;
-    }).join('')}</div>`;
+    }).join('')}</div>${hidden ? `<button class="ut-more" onclick="UT.showAll('${q.id}')">Show ${hidden} ${b > 0 ? 'bearish' : 'bullish'} option${hidden > 1 ? 's' : ''} (against your bias)</button>` : ''}`;
   }
+  function matrixHTML(q){
+    const A = st.ans[q.id] || {};
+    const live = (() => {
+      const b = matrixBias(q), m = matrixScore(q, b), n = Object.keys(A).length;
+      if(!n) return '';
+      return `<div class="ut-mx-sum ${b > 0 ? 'bull' : b < 0 ? 'bear' : ''}">${b > 0 ? '▲ Bullish' : b < 0 ? '▼ Bearish' : '◆ No'} higher-timeframe bias · ${Math.round(m.f * 100)}% weighted confluence <i style="width:${Math.round(m.f * 100)}%"></i></div>`;
+    })();
+    return `<div class="ut-mx">${q.rows.map(([k, lab, w, b]) => `
+      <div class="ut-mx-r"><div class="ut-mx-l"><b>${k}</b><span>${lab}${b ? ' · sets bias' : ''}</span><em>weight ${w}</em></div>
+        <div class="ut-mx-b">${q.cols.map(c => `<button class="${c.dir > 0 ? 'bull' : c.dir < 0 ? 'bear' : 'neut'}${A[k] === c.v ? ' on' : ''}" onclick="UT.cell('${q.id}','${k}','${c.v}')">${c.l}</button>`).join('')}</div></div>`).join('')}
+    </div>${live}`;
+  }
+  function showAll(id){ st.showAll[id] = true; render(); }
+  function cell(id, row, v){ (st.ans[id] = st.ans[id] || {})[row] = v; render(); }
   function levelsHTML(q){
     const shots = [0,1,2].map(i => {
       const sh = st.shots[i], lab = q.shots[i];
@@ -388,6 +528,7 @@ window.UT = (function(){
 
   // ── Result screen ───────────────────────────────────────
   function renderResult(){
+    st._drawn = -1;
     const s = cur(), ev = evaluate(), panel = document.getElementById('guided-panel');
     st.result = ev;
     const isBull = ev.bias > 0, isBear = ev.bias < 0;
@@ -414,7 +555,7 @@ window.UT = (function(){
           <div class="ut-res-bias ${isBull ? 'bull' : isBear ? 'bear' : ''}">${isBull ? '▲ BULLISH BIAS — look for longs' : isBear ? '▼ BEARISH BIAS — look for shorts' : '◆ NO BIAS'}</div>
           ${gateHTML}${warnHTML}
           ${p && p.error ? `<div class="ut-gate block"><b>🛑 ${p.error}</b></div>` : ''}
-          ${p && !p.error ? planPreview(p) : ''}
+          ${p && !p.error ? planPreview(p, ev) : ''}
           <details class="ut-ticks"><summary>Your answers (${ev.ticks.length})</summary>${tickHTML}</details>
           <div class="ut-actions">
             <button class="ut-back" onclick="UT.back()">← Change answers</button>
@@ -426,7 +567,11 @@ window.UT = (function(){
       </div>`;
     scrollTop();
   }
-  function planPreview(p){
+  function riskLine(ev){
+    if(!ev || !ev.risk) return '';
+    return `<div class="ut-risk">Risk on this trade: <b>${+ev.risk.toFixed(2)}% of your account</b> (${ev.grade} grade${ev.risk < 0.5 ? ', halved' : ''}) — size your lots so the stop loss costs exactly that.</div>`;
+  }
+  function planPreview(p, ev){
     const L = p.dir > 0 ? 'LONG' : 'SHORT';
     return `<div class="ut-plan">
       <div class="ut-plan-h">${p.dir > 0 ? '▲' : '▼'} ${L} PLAN — calculated from your levels</div>
@@ -436,6 +581,7 @@ window.UT = (function(){
         <div class="tp"><span>TP1 · 1:${p.rr1}</span><b>${p.fmt(p.tp1)}</b></div><div class="tp"><span>TP2 · 1:${p.rr2}</span><b>${p.fmt(p.tp2)}</b></div>
       </div>
       ${p.fixes.length ? `<div class="ut-plan-fix">⚠ ${p.fixes.join(' · ')}</div>` : ''}
+      ${ev && !ev.waiting ? riskLine(ev) : ''}
     </div>`;
   }
 
@@ -445,6 +591,7 @@ window.UT = (function(){
     s.questions.forEach(q => {
       if(q.type === 'levels') return;
       if(q.type === 'instrument') return;   // already in the prompt header
+      if(q.type === 'matrix'){ const A2 = A[q.id] || {}; out.push(`${q.short}: ` + q.rows.map(([k]) => `${k} ${(q.cols.find(c => c.v === A2[k]) || {}).ai || '—'}`).join(', ')); return; }
       if(q.type === 'multi'){ const ls = (A[q.id] || []).map(v => opt(q, v)).filter(Boolean).map(o => o.ai || o.l); out.push(`${q.short}: ${ls.length ? ls.join('; ') : 'none'}`); return; }
       const o = opt(q, A[q.id]); if(o) out.push(`${q.short}${q.tf ? ' (' + q.tf + ')' : ''}: ${o.ai || o.l}`);
     });
@@ -541,7 +688,7 @@ REASONING: …
       grade: ev.waiting ? 'Watchlist' : ev.gradeLong,
       entry: f(main.e1) + ' / ' + f(main.e2), sl: f(main.sl), tp: f(main.tp1) + ' / ' + f(main.tp2), rr: main.rr1,
       aiPlan: `uTRADE ${s.short.toUpperCase()} · ${main.dir > 0 ? 'LONG' : 'SHORT'} · ${ev.gradeLong} (${ev.score}/100)\n` +
-              `Entry 1 ${f(main.e1)} · Entry 2 ${f(main.e2)} · SL ${f(main.sl)} · TP1 ${f(main.tp1)} (1:${main.rr1}) · TP2 ${f(main.tp2)} (1:${main.rr2})\n` +
+              `Entry 1 ${f(main.e1)} · Entry 2 ${f(main.e2)} · SL ${f(main.sl)} · TP1 ${f(main.tp1)} (1:${main.rr1}) · TP2 ${f(main.tp2)} (1:${main.rr2})` + (ev.risk && !ev.waiting ? ` · Risk ${+ev.risk.toFixed(2)}%` : '') + `\n` +
               (mainTxt.signal ? `Signal: ${mainTxt.signal}\n` : '') + (mainTxt.wait ? `Wait: ${mainTxt.wait}\n` : '') +
               (mainTxt.inval ? `Invalidation: ${mainTxt.inval}\n` : '') + (mainTxt.manage ? `Management: ${mainTxt.manage}\n` : '') +
               (mainTxt.why ? `Why: ${mainTxt.why}\n` : '') + `\nSetup:\n${answersText()}`,
@@ -567,7 +714,7 @@ REASONING: …
         </div>
         ${ladder(p)}
       </div>
-      <div class="ut-rules">✓ BLUE MAC RISK RULES · TP1 1:${p.rr1} · TP2 1:${p.rr2} · Entry 2 inside SL${p.fixes.length ? `<div>Adjusted: ${esc(p.fixes.join(' · '))}</div>` : ''}</div>
+      <div class="ut-rules">✓ BLUE MAC RISK RULES · TP1 1:${p.rr1} · TP2 1:${p.rr2} · Entry 2 inside SL${aligned && ev.risk && !ev.waiting ? ` · RISK ${+ev.risk.toFixed(2)}%` : ''}${p.fixes.length ? `<div>Adjusted: ${esc(p.fixes.join(' · '))}</div>` : ''}</div>
       ${t.signal ? `<div class="ut-idea-row sig"><span>🕯 Signal to wait for</span>${esc(t.signal)}</div>` : ''}
       ${t.why ? `<div class="ut-idea-row"><span>Why this trade</span>${esc(t.why)}</div>` : ''}
       ${t.manage ? `<div class="ut-idea-row"><span>Managing it</span>${esc(t.manage)}</div>` : ''}
@@ -592,8 +739,8 @@ REASONING: …
     return `<svg class="ut-ladder" viewBox="0 0 100 180" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${sv}</svg>`;
   }
 
-  return { register, has, reset, render, pick, toggle, next, back, submitLevels, addShot, dropShot, fire,
-           learn, closeLearn, sessions, bias: currentBias, D, exCard, _st: st, _eval: evaluate, _plan: plan };
+  return { register, has, reset, render, pick, toggle, cell, showAll, next, back, submitLevels, addShot, dropShot, fire,
+           learn, closeLearn, sessions, bias: currentBias, stdLevels, stdCheck, rulesHTML, goTo, D, exCard, _st: st, _eval: evaluate, _plan: plan };
 })();
 
 // ── Styles ──────────────────────────────────────────────
@@ -619,6 +766,7 @@ REASONING: …
 .ut-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),#96D0FF);border-radius:4px;transition:width .35s}
 .ut-count{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--text3);text-align:right}
 .ut-card{background:var(--bg3);border:1px solid var(--border2);border-radius:18px;padding:24px 26px;display:flex;flex-direction:column;gap:14px;box-shadow:0 8px 40px rgba(0,0,0,0.35);animation:rise .3s ease both}
+.ut-card.still{animation:none}
 .ut-kicker{font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);font-weight:700}
 .ut-tf{color:var(--text);background:var(--bg5);padding:1px 7px;border-radius:5px}
 .ut-q{font-family:'Outfit',sans-serif;font-size:21px;font-weight:700;line-height:1.35;color:var(--text)}
@@ -629,6 +777,9 @@ REASONING: …
 .ut-live .now{color:var(--bull)}
 .ut-hero{border-radius:12px;background:rgba(255,255,255,0.02);border:1px solid var(--border);padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px}
 .ut-hero svg{max-width:420px!important;width:100%}
+.ut-hero-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+.ut-hero-row>div{display:flex;flex-direction:column;align-items:center;gap:4px}
+.ut-hero-row b{font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.06em}
 .ut-hero-cap{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--text2);text-align:center;letter-spacing:.04em;line-height:1.6}
 .ut-learn-btn,.ut-opt-learn{font-family:'DM Sans',sans-serif;font-size:11.5px;font-weight:600;color:var(--blue);background:rgba(42,143,227,0.08);border:1px solid rgba(42,143,227,0.25);border-radius:20px;padding:4px 12px;cursor:pointer}
 .ut-learn-btn:hover,.ut-opt-learn:hover{background:rgba(42,143,227,0.16)}
@@ -662,6 +813,25 @@ REASONING: …
 .ut-back:hover{color:var(--text);border-color:rgba(255,255,255,0.3)}
 .ut-next,.ut-fire{padding:12px 20px;border-radius:12px;border:1px solid rgba(42,143,227,0.5);background:linear-gradient(135deg,#2A8FE3,#1272BC);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 6px 20px rgba(42,143,227,0.25)}
 .ut-fire[disabled]{background:var(--bg4);color:var(--text3);border-color:var(--border);box-shadow:none;cursor:not-allowed}
+.ut-more{align-self:flex-start;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:var(--text3);background:transparent;border:1px dashed var(--border2);border-radius:20px;padding:6px 14px;cursor:pointer}
+.ut-more:hover{color:var(--text2);border-color:rgba(255,255,255,0.3)}
+.ut-mx{display:flex;flex-direction:column;gap:6px}
+.ut-mx-r{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;padding:8px 10px;border-radius:12px;background:var(--bg4);border:1px solid var(--border)}
+.ut-mx-l{display:flex;flex-direction:column;line-height:1.25}
+.ut-mx-l b{font-family:'DM Mono',monospace;font-size:14px;color:var(--text)}
+.ut-mx-l span{font-size:11px;color:var(--text2)}
+.ut-mx-l em{font-style:normal;font-family:'DM Mono',monospace;font-size:9.5px;color:var(--text3)}
+.ut-mx-b{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.ut-mx-b button{padding:9px 6px;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
+.ut-mx-b button.bull.on{background:rgba(34,214,122,0.14);border-color:var(--bull);color:var(--bull)}
+.ut-mx-b button.bear.on{background:rgba(255,92,92,0.14);border-color:var(--bear);color:var(--bear)}
+.ut-mx-b button.neut.on{background:rgba(228,232,238,0.1);border-color:var(--gold);color:var(--text)}
+.ut-mx-sum{position:relative;overflow:hidden;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;padding:10px 12px;border-radius:10px;background:var(--bg4);border:1px solid var(--border2);color:var(--text2)}
+.ut-mx-sum.bull{color:var(--bull)}.ut-mx-sum.bear{color:var(--bear)}
+.ut-mx-sum i{position:absolute;left:0;bottom:0;height:3px;background:currentColor;opacity:.8}
+.ut-next[disabled]{background:var(--bg4);color:var(--text3);border-color:var(--border);box-shadow:none;cursor:not-allowed}
+.ut-risk{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--text2);margin-top:8px}
+.ut-risk b{color:var(--text)}
 .ut-inst{display:flex;flex-direction:column;gap:12px}
 .ut-inst-gl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
 .ut-inst-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
@@ -784,6 +954,9 @@ REASONING: …
   .ut-rules,.ut-idea-row{margin-left:14px;margin-right:14px}
   .ut-ladder{width:70px}
   .ut-inst-row{grid-template-columns:repeat(3,1fr)}
+  .ut-mx-r{grid-template-columns:1fr;gap:6px}
+  .ut-hero-row{grid-template-columns:1fr}
+  .ut-mx-l{flex-direction:row;gap:8px;align-items:baseline}
   .ut-take{grid-template-columns:1fr}
   .ut-next,.ut-fire{flex:1}
 }

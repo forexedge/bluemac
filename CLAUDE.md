@@ -14,8 +14,8 @@ and a full trading University. Owner: Brahm (Cape Town). Live: https://bluemac.v
 - Everything must make sense for SA traders: SAST times, FSCA brokers, ZAR.
 
 ## Architecture
-Static site, no build step. `index.html` (~730 KB) holds the main app (Checklist / Journal / Rules
-pages, guided mode, AI calls, auth). New features live in separate JS files loaded at the end of
+Static site, no build step. `index.html` (~315 KB since the 15 Oct cleanup) holds the app shell:
+uTrade Ideas page shell, Journal, Rules page shell, auth, glossary, setup guide. New features live in separate JS files loaded at the end of
 `index.html`, in this order:
 
 | File | What it is |
@@ -31,7 +31,13 @@ pages, guided mode, AI calls, auth). New features live in separate JS files load
 | `placement.js` | `window.BMP` — placement test shown once after registration (lives in `#quiz-gate`) |
 | `university.js` | `window.BMU` — Education tab: degree dashboard, modules, lessons, quizzes, certificates |
 | `utrade.js` | `window.UT` — **uTrade Ideas engine** (replaces the old Checklist guided flow per style): code-based answers, gates, scoring/grades, engine-calculated price plan, AI prompt + output cards, Learn modal, SAST kill-zone clock |
-| `utrade-scalp.js` | Scalp strategy for UT ("Session Liquidity Scalp": H1 bias → 15m sweep into OB/FVG/flip → 5m CHoCH/engulf). Each strategy file = questions + diagrams + `levelMap()` + `prompt()` |
+| `utrade-diagrams.js` | Shared UT diagram library (`UT.DG`, `UT.C(key, dir)`, `UT.sessionBar`, `UT.pdDg`) + `UT.INSTR` instrument list |
+| `utrade-scalp.js` | Scalp — "Session Liquidity Scalp": H1 bias → 15m sweep into OB/FVG/flip → 5m CHoCH/engulf |
+| `utrade-day.js` | Day — "Trend Pullback Day Trade": D1 bias → H4 BOS → H1 zone (golden pocket/OB/FVG/flip) → 15m trigger |
+| `utrade-swing.js` | Swing — "Weekly Zone Swing": W1 structure + 50/200 stack → D1 zone → push count → H4 pattern/CHoCH |
+| `utrade-position.js` | Position — "Macro Trend Position": MN + W1 200 SMA + trend age + macro + COT → weekly major pattern → D1 entry |
+| `utrade-key.js` | Blue Mac Key — "Key MA System+": 9-TF 50/200 matrix (62%+ weighted) → 50/200 MA pullback → zone at MA → trigger |
+| | Each strategy file = questions + diagrams + `rules` (Rules page is generated from it) + `levelMap()` + `prompt()` |
 | `logo.png` | Single logo file (used to be embedded 4× as base64) |
 
 ### Key conventions
@@ -47,9 +53,9 @@ pages, guided mode, AI calls, auth). New features live in separate JS files load
   Placement level is also saved to Supabase user metadata (`tv_placement_level`).
 - Auth: Supabase (`_supabase`). One login handler `onSignedIn()` runs once per login:
   placement test → disclaimer → app. If the Supabase CDN fails, `_sbOffline` stub keeps the app alive.
-- AI ideas: Supabase Edge Function `trade-idea`. `runStyleAI()` (Scalp/Day/Swing/Position) and
-  `runKeyAI()` (Blue Mac Key). Typed chart prices are injected into the prompt as
-  "EXACT PRICE LEVELS". Hard-blocked setups (`GM.blocked`) never call the AI.
+- AI ideas: Supabase Edge Function `trade-idea`, called by `UT.fire()` for every style. The old
+  `runStyleAI`/`runKeyAI`, `GUIDED_*` arrays, `RULES` HTML and manual tick-box mode were deleted on 15 Oct.
+  Hard-blocked setups never call the AI. `takeThisTrade()` saves `window._lastTradePlan` (set by UT).
 - Journal table: `trade_journal` (outcomes: pending / win / loss / be).
 
 ### Testing approach used so far
@@ -69,15 +75,19 @@ Dead-code checks were done with acorn (reachability from HTML/onclick/other JS f
 ## uTrade Ideas rebuild (started 15 Oct 2026)
 "Checklist" is renamed **uTrade Ideas** (page id stays `pg-checklist`). Every style is being rebuilt from
 scratch on the UT engine, one at a time, with Brahm's OK between each:
-1. ✅ Engine + rename + **Scalp** 2. Day 3. Swing 4. Position 5. Blue Mac Key 6. Rules page + delete all old guided code
+1. ✅ Engine + rename + **Scalp** 2. ✅ Day 3. ✅ Swing 4. ✅ Position 5. ✅ Blue Mac Key 6. ✅ Rules page + old code deleted
 Decisions (Brahm, 15 Oct): all 5 styles rebuilt incl. Key · Claude designs the strategies from the Examples library ·
-risk rule applies to **every** style (TP1 ≥ 1:2, TP2 ≥ 1:3, Entry 2 between Entry 1 and SL, plus style minimums:
-Swing 1:3, Position 1:5) · old tick-box sections removed — guided only · every question shows example diagrams.
+risk rule applies to **every** style (Entry 2 between Entry 1 and SL). `minRR` [TP1, TP2]: Scalp/Day/Key 1:2 & 1:3,
+Swing 1:3 & 1:4, Position 1:3 & 1:5 · old tick-box sections removed — guided only · every question shows example diagrams.
 
 ### UT conventions
 - Option codes: `dir` (+1/-1/0), `pts`, `gate:'block'` (no trade, AI never called) / `'wait'` (Watchlist idea, Monitor only),
   `bias:true` on bias-layer questions, `align:'critical'` (against bias → wait) or soft (→ warning). No text matching.
-- Grades: A+ ≥ 85 · A ≥ 72 · B ≥ 60 · below 60 = No Trade.
+- Grades: A+ ≥ 85 (1% risk) · A ≥ 72 (0.75%) · B ≥ 60 (0.5%) · below 60 = No Trade. `halfRisk:true` options halve it.
+- Question types: `instrument`, `single`, `multi` (confluence, capped by `max`), `matrix` (Key 9-TF grid), `levels`.
+  `noScore:true` = skipped layer (not counted). Critical questions hide against-bias options behind a "Show N…" button.
+- TP selection (`plan()`): TP1 = first structural target paying the minimum, else the minimum; TP2 = next level beyond
+  max(TP2 minimum, TP1 + 1R). `UT.stdLevels()` / `UT.stdCheck()` are the shared level maths.
 - **Prices come from the engine** (`levelMap` + `plan()`), never the AI. The AI only writes signal / wait / invalidation /
   management / reasoning. Counter-trend idea score = 45% of the main score (max 45).
 - Diagrams: write the bull version in `DG`; `UT.D.chart(spec, -1)` mirrors to bear. Reuse Examples diagrams with
@@ -86,7 +96,9 @@ Swing 1:3, Position 1:5) · old tick-box sections removed — guided only · eve
   NY KZ 08:30–11:00 New York.
 
 ## Next up
-- **uTrade Ideas step 2: Day Trade** (then Swing, Position, Key, Rules page). Rules page Scalp tab still describes the OLD scalp.
+- Brahm to test all 5 uTrade styles on the `revamp` preview (phone first) and give feedback.
+- Leftovers for the redesign pass: old `.guided-*` / tick-box CSS is now unused; the manual "log trade" modal
+  (`#log-modal`, `confirmLog`) has no opener anymore — decide whether to bring back a manual journal entry button.
 - **Redesign pass** (agreed): Examples filter bar now wraps to 2 rows → grouped menu;
   rebuild bias detection on fixed answer codes instead of text matching; overall visual refresh.
 - Later: Supabase redirect URLs for preview logins (`https://*-abrahams-projects-2cf14794.vercel.app/**`),

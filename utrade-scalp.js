@@ -9,161 +9,7 @@
   if(!window.UT) return;
   const D = UT.D;
 
-  // ── Diagrams (bull versions — D.chart(spec, -1) mirrors to bear) ──
-  const DG = {
-    structTrend: {
-      n:40, seed:11, noise:0.45, wick:0.6,
-      pts:[[0,100],[7,106],[11,103],[19,110.5],[23,107],[31,115],[35,112],[39,114]],
-      marks:[
-        { t:'text', i:11, p:101.4, s:['HL','LH'], c:['bull','bear'] },
-        { t:'text', i:7, p:107.7, s:['HH','LL'], c:'slate' },
-        { t:'text', i:19, p:112.2, s:['HH','LL'], c:['bull','bear'] },
-        { t:'text', i:23, p:105.4, s:['HL','LH'], c:['bull','bear'] },
-        { t:'text', i:31, p:116.7, s:['HH','LL'], c:['bull','bear'] },
-        { t:'arrow', pts:[[24,104.5],[36,110.5]], c:['bull','bear'] }
-      ]
-    },
-    choch: {
-      n:40, seed:5, noise:0.4, wick:0.6,
-      pts:[[0,114],[6,108],[10,111],[17,104.5],[21,108.5],[27,102],[31,105],[36,111],[39,112.5]],
-      marks:[
-        { t:'hline', p:108.5, i1:21, i2:38, c:['bull','bear'], l:'CHoCH', lr:false },
-        { t:'text', i:21, p:110.1, s:['LH','HL'], c:'slate' },
-        { t:'text', i:27, p:100.4, s:['LL','HH'], c:'slate' },
-        { t:'ring', i:34, p:108.5, c:['bull','bear'], r:5 }
-      ]
-    },
-    range: {
-      n:40, seed:3, noise:0.5, wick:0.7,
-      pts:[[0,105],[5,109.5],[10,100.5],[15,109.3],[20,100.8],[25,109.6],[30,100.4],[35,109],[39,105]],
-      boxes:[{ i1:1, i2:39, p1:100, p2:110, c:'silver', op:0.06, border:true, l:'CHOP' }]
-    },
-    emaTrend: {
-      n:100, show:46, seed:21, noise:0.9, wick:0.6,
-      pts:[[0,86],[30,94],[45,92],[60,101],[70,98.5],[82,106],[90,103.5],[99,109]],
-      ov:[{ t:'ema', n:50, c:'blue', l:'50 EMA' }],
-      marks:[{ t:'ring', i:90, p:103.3, c:['bull','bear'], r:5 }]
-    },
-    emaFlat: {
-      n:100, show:46, seed:9, noise:1.1, wick:0.7,
-      pts:[[0,100],[12,104],[25,97],[38,103.5],[52,96.5],[64,103],[76,97],[88,103],[99,100]],
-      ov:[{ t:'ema', n:50, c:'blue', l:'50 EMA' }]
-    },
-    sweep: {
-      n:40, seed:14, noise:0.35, wick:0.5,
-      pts:[[0,102],[4,103.6],[8,100.8],[12,103.5],[16,100.9],[20,103.4],[24,101.1],[25,100.6],[26,101.6],[30,103.6],[34,106],[39,108]],
-      fix:{ 25:{ o:101.2, c:100.6, h:101.4, l:100.3 }, 26:{ o:100.6, c:101.9, h:102.1, l:98.2 } },
-      boxes:[{ i1:1, i2:24, p1:100.5, p2:104, c:'slate', op:0.08, l:'ASIAN RANGE', lt:'below' }],
-      marks:[
-        { t:'hline', p:100.5, i1:1, c:['bull','bear'], l:['SSL','BSL'] },
-        { t:'ring', i:26, p:98.4, c:'amber', r:5 },
-        { t:'text', i:26, p:96.6, s:'SWEEP', c:'amber' },
-        { t:'arrow', pts:[[28,102.5],[37,107]], c:['bull','bear'] }
-      ],
-      fitExtra:[96]
-    },
-    contin: {
-      n:40, seed:8, noise:0.4, wick:0.55,
-      pts:[[0,100],[8,104],[13,102],[20,106.5],[25,104.2],[31,109],[39,112]],
-      marks:[
-        { t:'hline', p:106.5, i1:20, i2:33, c:'slate', l:'BOS', lr:false },
-        { t:'arrow', pts:[[26,105],[36,111]], c:['bull','bear'] }
-      ]
-    },
-    midRange: {
-      n:40, seed:4, noise:0.5, wick:0.6,
-      pts:[[0,104],[6,108.5],[12,100.8],[18,108.2],[24,101.2],[30,105.6],[34,104.4],[39,105.2]],
-      boxes:[{ i1:1, i2:39, p1:100.5, p2:109, c:'slate', op:0.06, border:true }],
-      marks:[{ t:'dot', i:39, p:105.2, c:'amber' }, { t:'text', i:33, p:111, s:'NO SWEEP · MID-RANGE', c:'amber' }],
-      fitExtra:[112]
-    },
-    ob: {
-      n:40, seed:31, noise:0.35, wick:0.5,
-      pts:[[0,108],[7,104.5],[13,102.6],[14,101.4],[15,104],[16,107.6],[20,110],[24,111.5],[30,107],[35,103.6],[37,104.2],[39,106]],
-      fix:{ 14:{ o:103.2, c:101.4, h:103.5, l:100.9 }, 15:{ o:101.4, c:104.6, h:104.9, l:101.2 }, 16:{ o:104.6, c:107.8, h:108.1, l:104.3 } },
-      boxes:[{ i1:14, i2:39, p1:100.9, p2:103.5, c:['bull','bear'], op:0.16, border:true, l:'ORDER BLOCK', lt:'below' }],
-      marks:[{ t:'ring', i:35, p:103.5, c:['bull','bear'], r:5 }]
-    },
-    fvg: {
-      n:40, seed:12, noise:0.35, wick:0.5,
-      pts:[[0,101],[10,102.5],[14,102.6],[15,105],[16,108.3],[22,110.5],[28,108],[34,105],[36,104.6],[39,106.5]],
-      fix:{ 14:{ o:102.3, c:103.1, h:103.4, l:101.9 }, 15:{ o:103.1, c:107.6, h:107.9, l:102.9 }, 16:{ o:107.6, c:108.7, h:109.1, l:105.4 } },
-      boxes:[{ i1:14, i2:39, p1:103.4, p2:105.4, c:['bull','bear'], op:0.18, border:true, l:'FVG', lt:'below' }],
-      marks:[{ t:'ring', i:35, p:104.4, c:['bull','bear'], r:5 }]
-    },
-    flip: {
-      n:40, seed:19, noise:0.35, wick:0.55,
-      pts:[[0,101],[6,104.8],[10,102],[15,104.9],[19,102.3],[24,108],[27,109.4],[31,105.6],[33,105.4],[36,107.5],[39,109]],
-      marks:[
-        { t:'hline', p:105, c:['bull','bear'], l:['S/R FLIP','S/R FLIP'] },
-        { t:'text', i:10, p:107, s:['RESISTANCE','SUPPORT'], c:'slate' },
-        { t:'ring', i:32, p:105.2, c:['bull','bear'], r:5 }
-      ]
-    },
-    noZone: {
-      n:40, seed:23, noise:0.45, wick:0.6,
-      pts:[[0,100],[10,104],[16,108],[22,109.5],[28,106.5],[34,107.2],[39,106.8]],
-      boxes:[{ i1:4, i2:39, p1:100, p2:101.6, c:'slate', op:0.1, l:'ZONE' }, { i1:12, i2:39, p1:111, p2:112.6, c:'slate', op:0.1, l:'ZONE', lt:'below' }],
-      marks:[{ t:'dot', i:39, p:106.8, c:'amber' }, { t:'text', i:30, p:103.8, s:'OPEN SPACE', c:'amber' }],
-      fitExtra:[113.5, 99]
-    },
-    trigChoch: {
-      n:40, seed:27, noise:0.3, wick:0.5,
-      pts:[[0,108],[6,105],[9,106.6],[15,103],[18,104.8],[23,101.2],[25,100.4],[26,101.8],[27,105.6],[28,106.6],[32,105.6],[36,106.2],[39,107.6]],
-      fix:{ 26:{ o:100.6, c:102, h:102.2, l:100.2 }, 27:{ o:102, c:105.9, h:106.1, l:101.8 }, 28:{ o:105.9, c:106.9, h:107.2, l:104.4 } },
-      boxes:[{ i1:26, i2:39, p1:102.2, p2:104.4, c:['bull','bear'], op:0.18, border:true, l:'FVG', lt:'below' }],
-      marks:[{ t:'hline', p:104.8, i1:18, i2:31, c:['bull','bear'], l:'CHoCH', lr:false }, { t:'ring', i:25, p:100.2, c:'amber', r:4.5 }]
-    },
-    trigEngulf: {
-      n:40, seed:6, noise:0.3, wick:0.5,
-      pts:[[0,109],[10,106],[18,104],[26,102.4],[33,101.6],[34,101.3],[35,102.6],[39,104]],
-      fix:{ 34:{ o:102.2, c:101.2, h:102.4, l:100.8 }, 35:{ o:101.1, c:103.2, h:103.4, l:100.9 } },
-      boxes:[{ i1:20, i2:39, p1:100.5, p2:102.4, c:['bull','bear'], op:0.14, l:'ZONE', lt:'below' }],
-      marks:[{ t:'ring', i:35, p:102.2, c:['bull','bear'], r:6 }, { t:'text', i:35, p:105.6, s:'ENGULFING', c:['bull','bear'] }],
-      fitExtra:[106.5]
-    },
-    trigNone: {
-      n:40, seed:15, noise:0.25, wick:0.6,
-      pts:[[0,108],[12,105],[22,102.4],[28,101.6],[33,102],[39,101.7]],
-      boxes:[{ i1:20, i2:39, p1:100.5, p2:102.4, c:'slate', op:0.12, l:'ZONE', lt:'below' }],
-      marks:[{ t:'text', i:33, p:104.6, s:'NO SIGNAL YET', c:'amber' }],
-      fitExtra:[105.5]
-    },
-    levels: {
-      n:44, seed:14, noise:0.3, wick:0.45,
-      pts:[[0,104],[5,109.4],[9,104.5],[14,107],[19,102.2],[22,100.6],[23,101.8],[27,105],[28,106.2],[31,105],[35,103.8],[39,104.3],[43,104.8]],
-      fix:{ 5:{ o:108.9, c:109.3, h:109.6, l:108.7 }, 22:{ o:101.6, c:100.9, h:101.8, l:99.2 }, 23:{ o:100.9, c:102.6, h:102.9, l:100.7 }, 28:{ o:105.8, c:106.1, h:106.6, l:105.6 } },
-      boxes:[{ i1:23, i2:43, p1:101.8, p2:102.9, c:'bull', op:0.18, border:true, l:'ZONE TOP / BOTTOM', lt:'below' }],
-      marks:[
-        { t:'hline', p:109.6, i1:5, c:'bull', l:'LIQ ABOVE' },
-        { t:'hline', p:106.6, i1:28, c:'silver', l:'SWING HIGH' },
-        { t:'hline', p:99.2, i1:22, c:'bear', l:'SWING LOW' },
-        { t:'ring', i:22, p:99.4, c:'amber', r:4.5 },
-        { t:'dot', i:43, p:104.8, c:'blue' },
-        { t:'text', i:42, p:103.2, s:'NOW', c:'blue', a:'end' }
-      ],
-      fitExtra:[110.2, 98.6]
-    }
-  };
-  const C = (k, dir) => () => D.chart(DG[k], dir);
-
-  // SAST day timeline for the session question
-  function sessionBar(s){
-    const W = 260, X = m => 6 + m / 1440 * (W - 12);
-    const seg = (a, b, c, op) => a <= b
-      ? `<rect x="${X(a).toFixed(1)}" y="18" width="${(X(b) - X(a)).toFixed(1)}" height="16" rx="3" fill="${c}" opacity="${op}"/>`
-      : seg(a, 1440, c, op) + seg(0, b, c, op);
-    const lab = (m, t, c) => `<text x="${X(m).toFixed(1)}" y="13" text-anchor="middle" font-family="'DM Mono',monospace" font-size="6.5" font-weight="bold" fill="${c}">${t}</text>`;
-    const mid = w => (w[0] + w[1]) / 2;
-    let sv = `<rect x="6" y="18" width="${W - 12}" height="16" rx="3" fill="#8AA4BF" opacity="0.12"/>`;
-    sv += seg(0, s.lo[0] - 60, '#8AA4BF', 0.22);
-    sv += seg(s.lo[0], s.lo[1], '#2A8FE3', 0.85) + seg(s.ny[0], s.ny[1], '#22D67A', 0.85);
-    sv += lab(mid([0, s.lo[0] - 60]), 'ASIA · NO SCALPS', '#8AA4BF') + lab(mid(s.lo), 'LONDON KZ', '#96D0FF') + lab(mid(s.ny), 'NEW YORK KZ', '#22D67A');
-    [0, 360, 720, 1080].forEach(m => sv += `<text x="${X(m).toFixed(1)}" y="44" text-anchor="${m ? 'middle' : 'start'}" font-family="'DM Mono',monospace" font-size="6" fill="rgba(255,255,255,0.4)">${String(m / 60).padStart(2,'0')}:00</text>`);
-    const x = X(s.now);
-    sv += `<line x1="${x.toFixed(1)}" y1="15" x2="${x.toFixed(1)}" y2="37" stroke="#F5B841" stroke-width="1.6"/><text x="${x.toFixed(1)}" y="53" text-anchor="middle" font-family="'DM Mono',monospace" font-size="7" font-weight="bold" fill="#F5B841">NOW ${s.nowTxt}</text>`;
-    return `<svg width="100%" viewBox="0 0 ${W} 58" style="max-width:520px;display:block;" xmlns="http://www.w3.org/2000/svg">${sv}</svg>`;
-  }
+  const C = UT.C, sessionBar = UT.sessionBar, pdDg = UT.pdDg;
 
   UT.register('scalp', {
     name: 'Session Liquidity Scalp',
@@ -177,16 +23,44 @@
     pills: ['Hold 5–90 min', 'London & NY kill zones', 'TP1 ≥ 1:2 · TP2 ≥ 1:3', 'Max 3 losses a day'],
     stages: [{ label:'Safety gates' }, { label:'H1 bias' }, { label:'15m setup' }, { label:'5m trigger' }, { label:'Your levels' }],
 
+    rules: {
+      icon:'⚡', sub:'London & New York kill zones only',
+      preflight:[
+        ['Kill zone open.', 'London 08:00–11:00 London time or New York 08:30–11:00 New York time — uTrade Ideas shows both in SAST. No scalps in Asia or after the NY close.'],
+        ['Calendar checked.', 'No red-folder news for your instrument 30 minutes either side. USD news moves gold, indices and every USD pair.'],
+        ['Asian range & PDH/PDL marked.', 'These are the liquidity pools the banks will raid. Mark them before London opens.'],
+        ['H1 bias decided.', 'HH/HL = longs only. LH/LL = shorts only. A ranging H1 = no scalps today.'],
+        ['Daily stop known.', '3 losses (or your daily loss limit) and you are done. After 2 losses, half risk.']
+      ],
+      steps:[
+        ['H1 sets the direction', 'Structure first (HH/HL or LH/LL, or a fresh CHoCH), then the 50 EMA slope, then premium/discount. Buy in discount, sell in premium.'],
+        ['15m sweep', 'Wait for price to wick through the Asian high/low, PDH/PDL or equal highs/lows and <strong>close back inside</strong>. That is the Judas swing — the fake move before the real one.'],
+        ['15m zone', 'Price must react from an order block, FVG or flipped S/R level. No zone = no entry.'],
+        ['5m trigger', 'Best: a 5m CHoCH that leaves an FVG. Also valid: a closed engulfing or pin bar inside the zone. No closed signal = Watchlist only.'],
+        ['Type your levels', 'Blue Mac calculates Entry 1, Entry 2, stop and targets from your 15m swings, zone and liquidity — and enforces the risk rules.']
+      ],
+      stop:'Beyond the 15m swing that was swept, plus a small buffer. Never inside the sweep wick.',
+      targets:'Targets are the liquidity on the other side (15m swing, Asian high/low, PDH/PDL). If the nearest one is too close, TP1 moves out to the next level or the minimum.',
+      manage:'Close half at TP1 and move the stop to breakeven. If the trade has not moved within ~60 minutes, close it — a scalp that stalls is wrong.',
+      never:[
+        ['Never scalp the Asian session.', 'That is when the range is built, not when it is traded.'],
+        ['Never scalp against the H1.', 'Counter-trend scalps are the lowest-probability trades in the system.'],
+        ['Never enter before the sweep.', 'Buying in front of sell-side liquidity means you ARE the liquidity.'],
+        ['Never trade the 30 minutes around red news.', 'Spreads widen and spikes run straight through stops.'],
+        ['Never take a 4th trade after 3 losses.', 'Revenge trading turns a red day into a blown account.']
+      ],
+      mindset:[
+        ['On patience', 'Most London opens give one good sweep. Taking that one trade properly beats taking five average ones.'],
+        ['On being wrong', 'If the 5m closes back through the sweep low/high, the idea is dead. Cut it — the next kill zone is only hours away.'],
+        ['On size', 'Scalps are fast and emotional. Keep risk fixed at the grade size, never bigger because "this one is obvious".']
+      ]
+    },
+
     questions: [
       { id:'instrument', stage:0, type:'instrument', short:'Instrument',
         q:'What are you scalping?',
         help:'Pick the chart you have open. Gold, NAS100 and US30 move the most in the kill zones; majors like EURUSD and GBPUSD give the cleanest sweeps.',
-        groups:[
-          ['Metals', [['XAUUSD','Gold'],['XAGUSD','Silver']]],
-          ['Indices', [['NAS100','Nasdaq'],['US30','Dow Jones'],['SPX500','S&P 500'],['GER40','DAX'],['UK100','FTSE 100']]],
-          ['Forex', [['EURUSD','Euro'],['GBPUSD','Cable'],['USDJPY','Yen'],['GBPJPY','Guppy'],['EURJPY','Euro/Yen'],['AUDUSD','Aussie'],['USDCAD','Loonie'],['USDZAR','Rand']]],
-          ['Energy & Crypto', [['USOIL','WTI Oil'],['BTCUSD','Bitcoin']]]
-        ] },
+        groups: UT.INSTR },
 
       { id:'session', stage:0, type:'single', short:'Session', tf:'SAST',
         q:'Which session window are you in right now?',
@@ -319,36 +193,12 @@
           { id:'liq_dn', label:'Liquidity below', hint:'Asian low, PDL or equal lows below price — short target.' }
         ],
         shots:['H1 chart', '15m chart', '5m chart'],
-        check(L, num){
-          const hi = num(L.swing_hi), lo = num(L.swing_lo), p = num(L.price);
-          if(hi <= lo) return 'Your swing high must be above your swing low.';
-          if(p > hi * 1.02 || p < lo * 0.98) return 'Current price is far outside your swing high and low — use the swing points from the current 15m leg.';
-          if(L.zone_hi && L.zone_lo && num(L.zone_hi) <= num(L.zone_lo)) return 'Zone top must be above zone bottom.';
-          return null;
-        } }
+        check(L, num){ return UT.stdCheck(L, num, '15m'); } }
     ],
 
     // Entries, stop and structural targets for each direction
     levelMap(dir, L, num){
-      const p = num(L.price), hi = num(L.swing_hi), lo = num(L.swing_lo);
-      if(![p, hi, lo].every(isFinite)) return null;
-      const zh = num(L.zone_hi), zl = num(L.zone_lo), hasZone = isFinite(zh) && isFinite(zl);
-      const buf = (hi - lo) * 0.04;
-      let e1 = p, e2, e1why = 'market price', e2why;
-      const sl = dir > 0 ? lo - buf : hi + buf;
-      const slwhy = dir > 0 ? 'below the 15m swing low + buffer' : 'above the 15m swing high + buffer';
-      // the zone only counts if it is on the correct side of price for this direction
-      const zoneOk = hasZone && (dir > 0 ? zl < p && zl > sl : zh > p && zh < sl);
-      if(zoneOk){
-        const prox = dir > 0 ? Math.min(zh, p) : Math.max(zl, p);
-        e1 = prox; e1why = (dir > 0 ? zh >= p : zl <= p) ? 'price is inside the zone' : 'limit at the zone edge';
-        e2 = (zh + zl) / 2; e2why = '50% of the zone (consequent encroachment)';
-        if(dir * (e1 - e2) <= 0){ e2 = e1 - dir * (e1 - sl) * 0.4; e2why = 'deeper in the zone, above the stop'; }
-      } else { e2 = e1 - dir * (e1 - sl) * 0.5; e2why = 'halfway to the stop (better price)'; }
-      const tg = (dir > 0 ? [[hi, '15m swing high (buy-side liquidity)'], [num(L.liq_up), 'liquidity above you marked']]
-                          : [[lo, '15m swing low (sell-side liquidity)'], [num(L.liq_dn), 'liquidity below you marked']])
-        .filter(t => isFinite(t[0]) && dir * (t[0] - e1) > 0).sort((a, b) => dir * (a[0] - b[0]));
-      return { e1, e2, sl, e1why, e2why, slwhy, t1: tg[0] ? tg[0][0] : NaN, t1why: tg[0] ? tg[0][1] : '', t2: tg[1] ? tg[1][0] : NaN, t2why: tg[1] ? tg[1][1] : '' };
+      return UT.stdLevels(dir, L, num, { tf:'15m', up:[['liq_up','liquidity above you marked']], dn:[['liq_dn','liquidity below you marked']] });
     },
 
     prompt(x){
@@ -383,15 +233,4 @@ If chart screenshots are attached, use them to sharpen the signal, wait conditio
     }
   });
 
-  // premium / discount mini diagram (not mirrored — the price position changes)
-  function pdDg(where){
-    const end = { discount:102.8, premium:109.4, eq:106 }[where];
-    return BMX.render({
-      n:40, seed:41, noise:0.35, wick:0.55,
-      pts:[[0,104],[5,100.2],[18,112],[24,110],[30,107],[36,end + (where === 'premium' ? -0.6 : where === 'discount' ? 0.6 : 0.4)],[39,end]],
-      boxes:[{ i1:5, i2:39, p1:106, p2:112, c:'bear', op:0.09 }, { i1:5, i2:39, p1:100, p2:106, c:'bull', op:0.09 }],
-      ov:[{ t:'level', p:106, c:'silver', l:'50% EQ', dash:'3,3' }, { t:'level', p:112, c:'bear', l:'PREMIUM', w:0.8 }, { t:'level', p:100.2, c:'bull', l:'DISCOUNT', w:0.8 }],
-      marks:[{ t:'dot', i:39, p:end, c:'amber', r:3.6 }]
-    });
-  }
 })();
