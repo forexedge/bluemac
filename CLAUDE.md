@@ -88,6 +88,15 @@ Swing 1:3 & 1:4, Position 1:3 & 1:5 · old tick-box sections removed — guided 
   `noScore:true` = skipped layer (not counted). Critical questions hide against-bias options behind a "Show N…" button.
 - TP selection (`plan()`): TP1 = first structural target paying the minimum, else the minimum; TP2 = next level beyond
   max(TP2 minimum, TP1 + 1R). `UT.stdLevels()` / `UT.stdCheck()` are the shared level maths.
+- **Costs & sizing (15 Oct):** `SPEC` in utrade.js = per-instrument quote currency, contract size and typical spread
+  (user can override spread/contract per instrument; account currency ZAR/USD/EUR/GBP/AUD + balance) — stored in
+  `localStorage['bm_cost_v1']`. All R:R is **net of spread**; TP minimums must be met after the spread.
+  FX rates from Frankfurter (ECB), cached daily in `bm_fx_v1`, manual-entry fallback. Lots = risk% × balance ÷
+  ((stop distance + spread) × contract × FX), rounded down to 0.01, split across E1/E2; "too big for account" if < 0.01.
+- **Room check:** if no structural target pays the TP1 minimum after costs → wait gate ("Room to target") → Watchlist.
+  If a nearer level sits in the way, a warning suggests partials there. Targets are never stretched into empty space.
+- **Journal Edge Report** (`buildEdgeReport` in index.html): win rate, avg planned R on wins, break-even win rate and
+  expectancy (R per trade) by uTrade grade and by style; verdict needs 20+ closed trades.
 - **Prices come from the engine** (`levelMap` + `plan()`), never the AI. The AI only writes signal / wait / invalidation /
   management / reasoning. Counter-trend idea score = 45% of the main score (max 45).
 - Diagrams: write the bull version in `DG`; `UT.D.chart(spec, -1)` mirrors to bear. Reuse Examples diagrams with
@@ -100,6 +109,9 @@ Swing 1:3 & 1:4, Position 1:3 & 1:5 · old tick-box sections removed — guided 
 
 ## Next up
 - Brahm to test all 5 uTrade styles on the `revamp` preview (phone first) and give feedback.
+- Agreed later list (15 Oct review): let members use it 4–6 weeks and log everything → FSCA/FAIS compliance check
+  before charging (specific entries/SL/TP may count as advice) → PayFast → password reset → University progress to
+  Supabase → manual journal entry button → merge to main. Idea: let the AI check answers against chart screenshots.
 - Leftovers for the redesign pass: old `.guided-*` / tick-box CSS is now unused; the manual "log trade" modal
   (`#log-modal`, `confirmLog`) has no opener anymore — decide whether to bring back a manual journal entry button.
 - **Redesign pass** (agreed): Examples filter bar now wraps to 2 rows → grouped menu;

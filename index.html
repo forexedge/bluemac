@@ -640,6 +640,29 @@ header::after{
 
 .analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .analytics-card{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;}
+.edge-card{margin-bottom:12px}
+.edge-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.edge-sum div{display:flex;flex-direction:column;padding:10px 12px;border-radius:10px;background:var(--bg4);border:1px solid var(--border)}
+.edge-sum b{font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:var(--text)}
+.edge-sum span{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--text3)}
+.edge-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.edge-t{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
+.edge-t th{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);text-align:left;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--border)}
+.edge-t td{padding:7px 8px;border-bottom:1px solid var(--border);color:var(--text2);font-family:'DM Mono',monospace}
+.edge-t td:first-child{font-family:'DM Sans',sans-serif;font-weight:700}
+.edge-sec td{font-family:'DM Mono',monospace!important;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--blue)!important;padding-top:12px;font-weight:700}
+.edge-v{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.edge-v.pos{color:var(--bull);background:rgba(34,214,122,0.1)} .edge-v.neg{color:var(--bear);background:rgba(255,92,92,0.1)}
+.edge-v.early{color:#F5B841;background:rgba(245,184,65,0.1)} .edge-v.none{color:var(--text3)}
+.edge-note{font-size:12px;color:var(--text3);line-height:1.6}
+@media (max-width:700px){
+  .edge-t{min-width:0;font-size:11.5px}
+  .edge-t th:nth-child(5),.edge-t td:nth-child(5){display:none}
+  .edge-t th,.edge-t td{padding:6px 4px}
+  .edge-sum b{font-size:18px}
+  .edge-v{padding:2px 6px;font-size:9.5px}
+}
+.edge-note b{color:var(--text2)}
 .analytics-card-title{font-size:10px;font-family:'DM Mono',monospace;color:var(--blue);letter-spacing:0.12em;text-transform:uppercase;padding-bottom:8px;border-bottom:1px solid var(--border);}
 
 .grade-insight-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03);}
@@ -3597,7 +3620,8 @@ function buildAnalytics(){
     scalp:    { icon:'⚡', name:'Scalp',    color:'var(--gold)'   },
     day:      { icon:'📈', name:'Day Trade',color:'var(--blue)'   },
     swing:    { icon:'🌊', name:'Swing',    color:'var(--bull)'   },
-    position: { icon:'🏔', name:'Position', color:'var(--purple)' }
+    position: { icon:'🏔', name:'Position', color:'var(--purple)' },
+    key:      { icon:'🔑', name:'Blue Mac Key', color:'var(--gold)' }
   };
 
   const styleHTML = Object.entries(styleGroups).map(([key,cfg])=>{
@@ -3712,8 +3736,12 @@ function buildAnalytics(){
     </div>
     ${disciplineInsight}` : disciplineInsight;
 
+  // ── 5. EDGE REPORT — is the system actually making money? ──
+  const edgeHTML = buildEdgeReport(log, styleGroups);
+
   // ── ASSEMBLE PANEL ───────────────────────────────
   panel.innerHTML = `
+    ${edgeHTML}
     <div class="analytics-grid">
       <div class="analytics-card">
         <div class="analytics-card-title">📈 Score vs Win Rate</div>
@@ -3736,6 +3764,56 @@ function buildAnalytics(){
       </div>
     </div>`;
 }
+// ─── EDGE REPORT ───
+// Win rate, average planned R:R on winners and expectancy (R per trade) by uTrade grade and by style.
+// Loss = −1R, break-even = 0R, win = the trade's planned TP1 R:R (net of spread for uTrade trades).
+function buildEdgeReport(log, styleGroups){
+  const done = log.filter(e => e.outcome === 'win' || e.outcome === 'loss' || e.outcome === 'be');
+  const stats = rows => {
+    const n = rows.length, w = rows.filter(e => e.outcome === 'win'), l = rows.filter(e => e.outcome === 'loss').length;
+    const rrs = w.map(e => parseFloat(e.rr)).filter(v => v > 0);
+    const avgRR = rrs.length ? rrs.reduce((a, b) => a + b, 0) / rrs.length : null;
+    const wr = n ? w.length / n : null;
+    const exp = n && avgRR !== null ? (w.length * avgRR - l) / n : (n ? -l / n : null);
+    const need = avgRR ? 1 / (1 + avgRR) : null;          // break-even win rate at that R:R
+    return { n, wr, avgRR, exp, need };
+  };
+  const verdict = x => {
+    if(!x.n) return '<span class="edge-v none">—</span>';
+    if(x.n < 20) return `<span class="edge-v early">${x.n}/20</span>`;
+    return x.exp > 0 ? '<span class="edge-v pos">✓ Edge</span>' : '<span class="edge-v neg">✕ No edge yet</span>';
+  };
+  const pct = v => v === null ? '—' : Math.round(v * 100) + '%';
+  const row = (label, color, rows) => { const x = stats(rows); return `<tr>
+      <td style="color:${color}">${label}</td><td>${x.n}</td><td>${pct(x.wr)}</td>
+      <td>${x.avgRR !== null ? '1:' + x.avgRR.toFixed(1) : '—'}</td><td>${pct(x.need)}</td>
+      <td style="color:${x.exp === null || Math.abs(x.exp) < 0.005 ? 'var(--text3)' : x.exp > 0 ? 'var(--bull)' : 'var(--bear)'}">${x.exp === null ? '—' : (x.exp > 0 ? '+' : '') + x.exp.toFixed(2) + 'R'}</td>
+      <td>${verdict(x)}</td></tr>`; };
+  const grades = [['A+ Setup','A+','var(--bull)'], ['A-Grade Setup','A','var(--bull)'], ['B-Grade Setup','B','var(--gold)'], ['Watchlist','Watchlist','#F5B841']];
+  const known = grades.map(g => g[0]);
+  const older = done.filter(e => !known.includes(e.grade));
+  const all = stats(done);
+  const head = `<tr><th></th><th>Trades</th><th>Win rate</th><th>Avg win</th><th>Need</th><th>Per trade</th><th>Verdict</th></tr>`;
+  return `<div class="analytics-card edge-card">
+    <div class="analytics-card-title">🎯 Edge Report — is the system making money?</div>
+    <div class="edge-sum">
+      <div><b style="color:${all.exp === null || Math.abs(all.exp) < 0.005 ? 'var(--text3)' : all.exp > 0 ? 'var(--bull)' : 'var(--bear)'}">${all.exp === null ? '—' : (all.exp > 0 ? '+' : '') + all.exp.toFixed(2) + 'R'}</b><span>average per trade</span></div>
+      <div><b>${pct(all.wr)}</b><span>win rate · ${all.n} closed</span></div>
+      <div><b>${pct(all.need)}</b><span>needed to break even</span></div>
+    </div>
+    <div class="edge-scroll"><table class="edge-t">
+      <thead>${head}</thead>
+      <tbody>
+        <tr class="edge-sec"><td colspan="7">By uTrade grade</td></tr>
+        ${grades.map(([g, l, c]) => row(l, c, done.filter(e => e.grade === g))).join('')}
+        ${older.length ? row('Older grades', 'var(--text3)', older) : ''}
+        <tr class="edge-sec"><td colspan="7">By style</td></tr>
+        ${Object.entries(styleGroups).map(([k, c]) => row(c.icon + ' ' + c.name, c.color, done.filter(e => e.style === k))).join('')}
+      </tbody></table></div>
+    <div class="edge-note"><b>How to read it:</b> "Per trade" is your expectancy — what an average trade earns in R (1R = the amount you risk). Above 0 = the edge is real. Each row needs <b>20+ closed trades</b> before it means anything (the verdict shows how many you have, e.g. 9/20). "Need" is the win rate required to break even at that row's average R:R. Wins use the planned TP1 R:R, losses count as −1R, break-even as 0.</div>
+  </div>`;
+}
+
 // ─── JOURNAL CARD HELPERS ───
 function toggleJCard(idx){
   const body = document.getElementById('jbody-'+idx);

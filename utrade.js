@@ -20,6 +20,50 @@
 window.UT = (function(){
   const STRATS = {};
   const st = { style:null, step:0, ans:{}, lv:{}, shots:[], result:null, showAll:{} };
+  // ── Instrument specs (typical broker values — the user can override spread & contract size) ──
+  // q = quote currency (what P/L is paid in) · c = units per 1.00 lot · sp = typical spread in price
+  const SPEC = {
+    XAUUSD:{ q:'USD', c:100,    sp:0.30,    u:'oz' },     XAGUSD:{ q:'USD', c:5000,   sp:0.03,    u:'oz' },
+    NAS100:{ q:'USD', c:1,      sp:1.5,     u:'index' },  US30:{ q:'USD', c:1,        sp:3,       u:'index' },
+    SPX500:{ q:'USD', c:1,      sp:0.6,     u:'index' },  GER40:{ q:'EUR', c:1,       sp:1.5,     u:'index' },
+    UK100:{ q:'GBP', c:1,       sp:1.2,     u:'index' },
+    EURUSD:{ q:'USD', c:100000, sp:0.00012 }, GBPUSD:{ q:'USD', c:100000, sp:0.00015 }, AUDUSD:{ q:'USD', c:100000, sp:0.00014 },
+    USDJPY:{ q:'JPY', c:100000, sp:0.015 },   GBPJPY:{ q:'JPY', c:100000, sp:0.03 },    EURJPY:{ q:'JPY', c:100000, sp:0.025 },
+    USDCAD:{ q:'CAD', c:100000, sp:0.00018 }, USDZAR:{ q:'ZAR', c:100000, sp:0.012 },
+    USOIL:{ q:'USD', c:1000,    sp:0.04,    u:'barrels' }, BTCUSD:{ q:'USD', c:1,     sp:25,      u:'coin' }
+  };
+  const CCYS = [['ZAR','R','South African Rand'], ['USD','$','US Dollar'], ['EUR','€','Euro'], ['GBP','£','British Pound'], ['AUD','A$','Australian Dollar']];
+  const CKEY = 'bm_cost_v1';
+  // account currency + balance (per viewer) and per-instrument spread / contract overrides
+  const cost = (() => { try { return Object.assign({ ccy:'ZAR', bal:'', inst:{} }, JSON.parse(localStorage.getItem(CKEY) || '{}')); } catch(e){ return { ccy:'ZAR', bal:'', inst:{} }; } })();
+  const saveCost = () => { try { localStorage.setItem(CKEY, JSON.stringify(cost)); } catch(e){} };
+  const specOf = sym => {
+    const d = SPEC[sym] || { q:'USD', c:1, sp:0 }, o = cost.inst[sym] || {};
+    const spv = parseFloat(o.sp), cv = parseFloat(o.c);
+    return { q:d.q, u:d.u || 'units', c: isFinite(cv) && cv > 0 ? cv : d.c, sp: isFinite(spv) && spv >= 0 ? spv : d.sp, dc:d.c, dsp:d.sp };
+  };
+  // ── Exchange rates (ECB via Frankfurter), cached for the day; manual entry as fallback ──
+  const FX = {};   // 'USDZAR' -> rate
+  try { const c = JSON.parse(localStorage.getItem('bm_fx_v1') || '{}'); if(c.day === new Date().toISOString().slice(0,10)) Object.assign(FX, c.r || {}); } catch(e){}
+  const saveFx = () => { try { localStorage.setItem('bm_fx_v1', JSON.stringify({ day:new Date().toISOString().slice(0,10), r:FX })); } catch(e){} };
+  const fxPending = {};
+  function rate(from, to){ return from === to ? 1 : FX[from + to]; }
+  async function loadRate(from, to){
+    if(from === to || FX[from + to] || fxPending[from + to]) return;
+    fxPending[from + to] = true;
+    const urls = [`https://api.frankfurter.dev/v1/latest?base=${from}&symbols=${to}`, `https://api.frankfurter.app/latest?from=${from}&to=${to}`];
+    for(const u of urls){
+      try{
+        const r = await fetch(u); if(!r.ok) continue;
+        const j = await r.json(); const v = j && j.rates && j.rates[to];
+        if(v > 0){ FX[from + to] = v; saveFx(); break; }
+      }catch(e){}
+    }
+    fxPending[from + to] = false;
+    refreshSizing();
+  }
+  function setManualRate(from, to, v){ const n = parseFloat(String(v).replace(',', '.')); if(n > 0){ FX[from + to] = n; saveFx(); refreshSizing(); } }
+
   // [min score, grade, label, % of account to risk]
   const GRADES = [[85,'A+','A+ Setup',1],[72,'A','A-Grade Setup',0.75],[60,'B','B-Grade Setup',0.5]];
   const V = x => typeof x === 'function' ? x(st.ans) : x;   // text may depend on earlier answers
@@ -250,25 +294,97 @@ window.UT = (function(){
     if(!(R > 0)) return { error:'Stop loss is on the wrong side of the entry — check your swing high / low.' };
     if(!(dir * (e1 - e2) >= 0 && dir * (e2 - sl) > 0)) e2 = e1 - dir * R * 0.5;     // Entry 2 always inside the stop
     const fixes = [];
-    const tp1Min = e1 + dir * R * mins[0], tp2Min = e1 + dir * R * mins[1];
-    const rrTo = v => dir * (v - e1) / R;
+    // costs: the spread is paid on every trade → risk grows by it, reward shrinks by it
+    const sp = specOf(st.ans.instrument).sp || 0, Rn = R + sp;
+    const need = m => e1 + dir * (m * Rn + sp);                 // price that pays m:1 AFTER the spread
+    const tp1Min = need(mins[0]), tp2Min = need(mins[1]);
+    const rrTo = v => (dir * (v - e1) - sp) / Rn;              // net R:R
+    const rrGross = v => dir * (v - e1) / R;
     const r1 = v => (Math.floor(v * 10) / 10).toFixed(1);
     // structural targets beyond Entry 1, nearest first
     const tg = (k.tg || [[k.t1, k.t1why], [k.t2, k.t2why]]).filter(t => isFinite(t[0]) && dir * (t[0] - e1) > 0).sort((a, b) => dir * (a[0] - b[0]));
     const nearRR = tg.length ? rrTo(tg[0][0]) : null;
-    // TP1 = first real level that pays at least the minimum; otherwise the minimum itself
-    let i1 = tg.findIndex(t => dir * (t[0] - tp1Min) >= 0), tp1, note1, tp2, note2;
-    if(i1 >= 0){ tp1 = tg[i1][0]; note1 = tg[i1][1]; if(i1 > 0) fixes.push(`${tg[0][1]} only gives 1:${r1(nearRR)} — TP1 moved to the next level`); }
-    else { tp1 = tp1Min; note1 = `1:${mins[0]} minimum`; if(tg.length) fixes.push(`Nearest target only gives 1:${r1(nearRR)} — TP1 set to the 1:${mins[0]} minimum`); }
+    // TP1 = first REAL level that pays the minimum after costs. If none does, there is not enough room:
+    // we still show the minimum so the trader can see it, but the setup becomes Watchlist (see roomCheck).
+    let i1 = tg.findIndex(t => dir * (t[0] - tp1Min) >= 0), tp1, note1, tp2, note2, noRoom = false, through = null;
+    if(i1 >= 0){
+      tp1 = tg[i1][0]; note1 = tg[i1][1];
+      if(i1 > 0) through = { name: tg[0][1], price: tg[0][0], rr: nearRR };   // reported as a warning by roomCheck
+    } else {
+      noRoom = true; tp1 = tp1Min; note1 = `1:${mins[0]} minimum — no real level here`;
+    }
     // TP2 = next real level beyond TP1 that pays the TP2 minimum; otherwise the minimum (or TP1 + 1R)
-    const floor2 = dir > 0 ? Math.max(tp2Min, tp1 + R) : Math.min(tp2Min, tp1 - R);
+    const floor2 = dir > 0 ? Math.max(tp2Min, tp1 + Rn) : Math.min(tp2Min, tp1 - Rn);
     const t2 = tg.find(t => dir * (t[0] - floor2) >= 0);
     if(t2){ tp2 = t2[0]; note2 = t2[1]; } else { tp2 = floor2; note2 = `1:${mins[1]}+ minimum`; }
     const round = (v, away) => { const f = Math.pow(10, dp); return (away ? (dir > 0 ? Math.ceil(v * f - 1e-9) : Math.floor(v * f + 1e-9)) : Math.round(v * f)) / f; };
     tp1 = round(tp1, true); tp2 = round(tp2, true);
     const rr = v => (Math.floor(rrTo(v) * 10 + 1e-6) / 10).toFixed(1);
-    return { dir, e1, e2, sl, tp1, tp2, R, dp, fmt, rr1:rr(tp1), rr2:rr(tp2), note1, note2, fixes,
-             e1why:k.e1why || '', e2why:k.e2why || '', slwhy:k.slwhy || '', targetShort: nearRR !== null && nearRR < mins[0] };
+    const rrg = v => (Math.floor(rrGross(v) * 10 + 1e-6) / 10).toFixed(1);
+    return { dir, e1, e2, sl, tp1, tp2, R, Rn, sp, dp, fmt, rr1:rr(tp1), rr2:rr(tp2), rr1g:rrg(tp1), rr2g:rrg(tp2), note1, note2, fixes,
+             e1why:k.e1why || '', e2why:k.e2why || '', slwhy:k.slwhy || '', noRoom, through, nearRR, nearName: tg[0] ? tg[0][1] : '', mins };
+  }
+
+  // room for the trade: no real target paying the minimum → Watchlist (wait for a better entry)
+  function roomCheck(ev, p){
+    if(!p || p.error || ev.blocked) return;
+    const r1 = v => (Math.floor(v * 10) / 10).toFixed(1);
+    if(p.noRoom){
+      ev.gates.push({ type:'wait', q:'Room to target', l: p.nearRR !== null ? `${p.nearName} only gives 1:${r1(p.nearRR)} after the spread` : 'No target on your chart',
+        why:`Blue Mac needs a real level paying at least 1:${p.mins[0]} after costs. Either wait for a deeper pullback (better entry, smaller stop) or mark a further target on a higher timeframe. A TP placed beyond the liquidity in empty space usually never gets hit.` });
+      ev.waiting = true;
+    } else if(p.through){
+      ev.warns.push(`Price must break through the ${p.through.name} (1:${r1(p.through.rr)}) before TP1 — consider taking partials there`);
+    }
+  }
+
+  // ── Position size (lots) in the trader's account currency ──
+  const fmtMoney = (v, ccy) => { const c = CCYS.find(x => x[0] === ccy) || ['', '']; return c[1] + Math.round(v).toLocaleString('en-ZA').replace(/,/g, ' '); };
+  function sizing(p, ev){
+    if(!p || p.error) return null;
+    const sym = st.ans.instrument, sp = specOf(sym), bal = parseFloat(String(cost.bal).replace(/[\s,]/g, ''));
+    const riskPct = ev && ev.risk ? ev.risk : 0;
+    if(!(bal > 0) || !riskPct) return { need: !(bal > 0) ? 'balance' : 'grade', sp, riskPct };
+    const fx = rate(sp.q, cost.ccy);
+    if(!fx) return { need:'rate', sp, riskPct };
+    const riskAmt = bal * riskPct / 100;
+    const lossPerLot = p.Rn * sp.c * fx;                         // money lost per 1.00 lot if the stop is hit (spread included)
+    const raw = riskAmt / lossPerLot, lots = Math.floor(raw * 100 + 1e-9) / 100;
+    if(lots < 0.01){
+      const minRisk = 0.01 * lossPerLot;
+      return { tooSmall:true, minRisk, minPct: minRisk / bal * 100, riskAmt, riskPct, sp, fx };
+    }
+    const l1 = lots >= 0.02 ? Math.ceil(lots * 100 / 2) / 100 : lots, l2 = +(lots - l1).toFixed(2);
+    const gain = tp => lots * (p.dir * (tp - p.e1) - p.sp) * sp.c * fx;
+    return { lots, l1, l2, riskAmt, realRisk: lots * lossPerLot, riskPct, tp1: gain(p.tp1), tp2: gain(p.tp2), sp, fx };
+  }
+  function sizingHTML(p, ev){
+    const z = sizing(p, ev); if(!z) return '';
+    const ccy = cost.ccy, M = v => fmtMoney(v, ccy), sym = esc(st.ans.instrument || '');
+    let body = '';
+    if(z.need === 'balance') body = `<span>Add your <b>account balance</b> on the levels step and Blue Mac will work out your lot size.</span>`;
+    else if(z.need === 'grade') body = `<span>Lot size appears once the setup qualifies for a trade.</span>`;
+    else if(z.need === 'rate') body = `<span>Fetching the ${z.sp.q}→${ccy} exchange rate… If it does not load, type it: 1 ${z.sp.q} = <input class="ut-fx" inputmode="decimal" placeholder="rate" onchange="UT.setRate('${z.sp.q}','${ccy}',this.value)"> ${ccy}</span>`;
+    else if(z.tooSmall) body = `<b class="no">Too big for this account.</b> <span>Even the minimum 0.01 lot risks <b>${M(z.minRisk)}</b> (${z.minPct.toFixed(1)}% of your account) — more than the ${+z.riskPct.toFixed(2)}% this grade allows. Skip it, or trade a smaller instrument.</span>`;
+    else body = `<div class="ut-size-g">
+        <div><span>Total size</span><b>${z.lots.toFixed(2)} lots</b></div>
+        <div><span>Split</span><b>${z.l2 > 0 ? `${z.l1.toFixed(2)} @ E1 + ${z.l2.toFixed(2)} @ E2` : `${z.l1.toFixed(2)} @ E1`}</b></div>
+        <div class="sl"><span>Max loss</span><b>−${M(z.realRisk)}</b></div>
+        <div class="tp"><span>At TP1</span><b>+${M(z.tp1)}</b></div>
+        <div class="tp"><span>At TP2</span><b>+${M(z.tp2)}</b></div>
+      </div>
+      <small>${+z.riskPct.toFixed(2)}% of ${M(parseFloat(String(cost.bal).replace(/[\s,]/g, '')))} · spread ${z.sp.sp} included · ${z.sp.c.toLocaleString('en-ZA')} ${z.sp.u} per lot${z.sp.q !== ccy ? ` · 1 ${z.sp.q} = ${(+z.fx).toFixed(z.fx < 10 ? 4 : 2)} ${ccy}` : ''}. Max loss assumes both entries fill at Entry 1's distance — the real loss is a little smaller.</small>`;
+    return `<div class="ut-size" data-size>${'<div class="ut-size-h">🧮 POSITION SIZE · ' + sym + ' · ' + ccy + '</div>'}${body}</div>`;
+  }
+  // re-draw only the sizing blocks (after an exchange rate arrives)
+  function refreshSizing(){
+    const ev = st.result; if(!ev) return;
+    document.querySelectorAll('[data-size]').forEach(el => {
+      const dir = +(el.dataset.dir || ev.bias);
+      const p = plan(dir);
+      const tmp = document.createElement('div'); tmp.innerHTML = sizingHTML(p, dir === ev.bias ? ev : null);
+      const n = tmp.firstElementChild; if(n){ n.dataset.dir = dir; el.replaceWith(n); }
+    });
   }
 
   // ── Standard level maths (shared by the strategies) ─────
@@ -322,9 +438,10 @@ window.UT = (function(){
     const risk = `<div class="preflight-list">${[
       ['Entry 1 / Entry 2.', 'Entry 1 at the zone edge (or market). Entry 2 is a better price deeper in the zone — <strong>always between Entry 1 and the stop</strong>.'],
       ['Stop loss.', R.stop],
-      [`TP1 ≥ 1:${mins[0]} · TP2 ≥ 1:${mins[1]}.`, R.targets],
-      ['Management.', R.manage]
-    ].map(([t, x], i) => `<div class="preflight-item"><div class="preflight-num" style="color:${c};">${['E','SL','TP','M'][i]}</div><div class="preflight-text"><strong>${t}</strong> ${x}</div></div>`).join('')}</div>`;
+      [`TP1 ≥ 1:${mins[0]} · TP2 ≥ 1:${mins[1]} after the spread.`, R.targets + ' If no real level pays the minimum, the setup becomes <strong>Watchlist</strong> — Blue Mac never stretches a target into empty space.'],
+      ['Management.', R.manage],
+      ['Lot size.', 'Type your account balance and currency on the levels step — uTrade Ideas works out the lots, split across Entry 1 and Entry 2, so the stop costs exactly your grade\'s risk %.']
+    ].map(([t, x], i) => `<div class="preflight-item"><div class="preflight-num" style="color:${c};">${['E','SL','TP','M','LOT'][i]}</div><div class="preflight-text"><strong>${t}</strong> ${x}</div></div>`).join('')}</div>`;
     const never = R.never.map(([t, x]) => `<div class="never-item"><div class="never-icon">✗</div><div class="never-text"><strong>${t}</strong> ${x}</div></div>`).join('');
     const mind = `<div class="mindset-principles">${R.mindset.map(([t, x]) => `<div class="mindset-principle" style="border-color:rgba(30,136,220,0.15);"><div class="mindset-principle-label" style="color:${c};">${t}</div><div class="mindset-principle-text">${x}</div></div>`).join('')}</div>`;
     return `<div class="rules-hero" style="border-color:rgba(228,232,238,0.3);color:${c};">
@@ -448,6 +565,37 @@ window.UT = (function(){
   }
   function showAll(id){ st.showAll[id] = true; render(); }
   function cell(id, row, v){ (st.ans[id] = st.ans[id] || {})[row] = v; render(); }
+  function costHTML(){
+    const sym = st.ans.instrument, sp = specOf(sym), o = cost.inst[sym] || {};
+    return `<div class="ut-cost">
+      <div class="ut-cost-h">💰 Account & costs <em>saved on this device</em></div>
+      <div class="ut-lv">
+        <div class="ut-lv-f"><label for="ut-c-ccy">Account currency</label>
+          <select id="ut-c-ccy">${CCYS.map(([c,, n]) => `<option value="${c}"${c === cost.ccy ? ' selected' : ''}>${c} — ${n}</option>`).join('')}</select>
+          <small>The currency your broker account is in.</small></div>
+        <div class="ut-lv-f"><label for="ut-c-bal">Account balance <em>optional</em></label>
+          <input id="ut-c-bal" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 20000" value="${esc(cost.bal)}">
+          <small>Used to work out your lot size. Never leaves this device.</small></div>
+        <div class="ut-lv-f"><label for="ut-c-sp">Spread on ${esc(sym)}</label>
+          <input id="ut-c-sp" type="text" inputmode="decimal" autocomplete="off" placeholder="${sp.dsp}" value="${esc(o.sp != null ? o.sp : sp.dsp)}">
+          <small>In price, e.g. ${sp.dsp} is typical. Check your broker — add commission here too.</small></div>
+        <div class="ut-lv-f"><label for="ut-c-c">Contract size per 1.00 lot</label>
+          <input id="ut-c-c" type="text" inputmode="decimal" autocomplete="off" placeholder="${sp.dc}" value="${esc(o.c != null ? o.c : sp.dc)}">
+          <small>${sp.dc.toLocaleString('en-ZA')} ${sp.u} is standard. Some brokers differ — check the contract specs in MT5 (right-click the symbol → Specification).</small></div>
+      </div></div>`;
+  }
+  function readCost(){
+    const sym = st.ans.instrument, g = id => { const el = document.getElementById(id); return el ? el.value.trim() : null; };
+    const ccy = g('ut-c-ccy'); if(ccy) cost.ccy = ccy;
+    const bal = g('ut-c-bal'); if(bal !== null) cost.bal = bal;
+    const sp = g('ut-c-sp'), c = g('ut-c-c');
+    if(sym && (sp !== null || c !== null)){
+      const o = cost.inst[sym] = cost.inst[sym] || {};
+      if(sp !== null) o.sp = sp === '' ? undefined : sp;
+      if(c !== null) o.c = c === '' ? undefined : c;
+    }
+    saveCost();
+  }
   function levelsHTML(q){
     const shots = [0,1,2].map(i => {
       const sh = st.shots[i], lab = q.shots[i];
@@ -460,6 +608,7 @@ window.UT = (function(){
         <input id="ut-lv-${f.id}" type="text" inputmode="decimal" autocomplete="off" placeholder="${f.ph || 'e.g. 2345.60'}" value="${esc(st.lv[f.id] || '')}">
         <small>${V(f.hint)}</small>
       </div>`).join('')}</div>
+      ${costHTML()}
       <div class="ut-lv-err" id="ut-lv-err"></div>
       <div class="ut-shots-l">📷 Chart screenshots <em>optional · helps the AI read your exact chart</em></div>
       <div class="ut-shots">${shots}</div>`;
@@ -504,6 +653,11 @@ window.UT = (function(){
       if(isNaN(num(raw)) || num(raw) <= 0){ bad.push(V(f.label)); el.classList.add('bad'); return; }
       st.lv[f.id] = raw;
     });
+    readCost();
+    const cs = document.getElementById('ut-c-sp'), cc = document.getElementById('ut-c-c'), cb = document.getElementById('ut-c-bal');
+    if(cs && cs.value.trim() && !(parseFloat(cs.value) >= 0)) bad.push('Spread');
+    if(cc && cc.value.trim() && !(parseFloat(cc.value) > 0)) bad.push('Contract size');
+    if(cb && cb.value.trim() && !(parseFloat(cb.value.replace(/[\s,]/g, '')) > 0)) bad.push('Account balance');
     if(bad.length){ err.textContent = 'Check: ' + bad.join(', '); return; }
     const chk = q.check ? q.check(st.lv, num) : null;
     if(chk){ err.textContent = chk; return; }
@@ -517,6 +671,7 @@ window.UT = (function(){
       st.shots[i] = { data: full.split(',')[1], mediaType: file.type || 'image/png', preview: full, label: cur().questions[st.step].shots[i] };
       // keep typed numbers while re-rendering
       cur().questions[st.step].fields.forEach(f => { const el = document.getElementById('ut-lv-' + f.id); if(el && el.value.trim()) st.lv[f.id] = el.value.trim(); });
+      readCost();
       render();
     };
     r.readAsDataURL(file);
@@ -524,6 +679,7 @@ window.UT = (function(){
   function addShot(input, i){ readShot(input.files[0], i); }
   function dropShot(i){
     cur().questions[st.step].fields.forEach(f => { const el = document.getElementById('ut-lv-' + f.id); if(el && el.value.trim()) st.lv[f.id] = el.value.trim(); });
+    readCost();
     st.shots[i] = null; render();
   }
 
@@ -536,6 +692,8 @@ window.UT = (function(){
     S.bias = isBull ? 'bull' : isBear ? 'bear' : 'neut';
     GM.blocked = ev.blocked;
     const p = !ev.blocked && Object.keys(st.lv).length ? plan(ev.bias) : null;
+    roomCheck(ev, p);
+    if(p && !p.error){ const sp = specOf(st.ans.instrument); loadRate(sp.q, cost.ccy); }
     const tone = ev.blocked || ev.tooWeak ? 'block' : ev.waiting ? 'wait' : ev.grade === 'B' ? 'neut' : 'go';
     const head = ev.blocked ? '🛑 No Trade' : ev.tooWeak ? '✕ Below Blue Mac Standard' : ev.waiting ? '⏳ Watchlist — Not Ready Yet' : `✓ ${ev.gradeLong}`;
     const sub = ev.blocked ? 'A hard rule is broken. The AI is not called for blocked setups.'
@@ -570,7 +728,7 @@ window.UT = (function(){
   }
   function riskLine(ev){
     if(!ev || !ev.risk) return '';
-    return `<div class="ut-risk">Risk on this trade: <b>${+ev.risk.toFixed(2)}% of your account</b> (${ev.grade} grade${ev.risk < 0.5 ? ', halved' : ''}) — size your lots so the stop loss costs exactly that.</div>`;
+    return `<div class="ut-risk">Risk on this trade: <b>${+ev.risk.toFixed(2)}% of your account</b> (${ev.grade} grade${ev.risk < 0.5 ? ', halved' : ''}).</div>`;
   }
   function planPreview(p, ev){
     const L = p.dir > 0 ? 'LONG' : 'SHORT';
@@ -581,9 +739,11 @@ window.UT = (function(){
         <div class="sl"><span>Stop loss</span><b>${p.fmt(p.sl)}</b></div>
         <div class="tp"><span>TP1 · 1:${p.rr1}</span><b>${p.fmt(p.tp1)}</b></div><div class="tp"><span>TP2 · 1:${p.rr2}</span><b>${p.fmt(p.tp2)}</b></div>
       </div>
+      <div class="ut-plan-net">R:R shown <b>after the spread</b> (${p.sp} on ${esc(st.ans.instrument || '')}). Before costs: TP1 1:${p.rr1g} · TP2 1:${p.rr2g}.</div>
       ${p.fixes.length ? `<div class="ut-plan-fix">⚠ ${p.fixes.join(' · ')}</div>` : ''}
       ${ev && !ev.waiting ? riskLine(ev) : ''}
-    </div>`;
+    </div>
+    ${ev && !ev.waiting && !ev.tooWeak ? sizingHTML(p, ev) : ''}`;
   }
 
   // ── AI ──────────────────────────────────────────────────
@@ -604,7 +764,7 @@ window.UT = (function(){
   }
   function planText(p){
     if(!p || p.error) return 'not available';
-    return `ENTRY_1 ${p.fmt(p.e1)} (${p.e1why}) · ENTRY_2 ${p.fmt(p.e2)} (${p.e2why}) · STOP_LOSS ${p.fmt(p.sl)} (${p.slwhy}) · TAKE_PROFIT_1 ${p.fmt(p.tp1)} = 1:${p.rr1} (${p.note1}) · TAKE_PROFIT_2 ${p.fmt(p.tp2)} = 1:${p.rr2} (${p.note2})`;
+    return `ENTRY_1 ${p.fmt(p.e1)} (${p.e1why}) · ENTRY_2 ${p.fmt(p.e2)} (${p.e2why}) · STOP_LOSS ${p.fmt(p.sl)} (${p.slwhy}) · TAKE_PROFIT_1 ${p.fmt(p.tp1)} = 1:${p.rr1} after spread (${p.note1}) · TAKE_PROFIT_2 ${p.fmt(p.tp2)} = 1:${p.rr2} after spread (${p.note2})${p.through ? ` · NOTE: price must first break through the ${p.through.name} at ${p.fmt(p.through.price)}` : ''}`;
   }
   async function fire(){
     const s = cur(), ev = st.result || evaluate();
@@ -692,9 +852,15 @@ REASONING: …
               `Entry 1 ${f(main.e1)} · Entry 2 ${f(main.e2)} · SL ${f(main.sl)} · TP1 ${f(main.tp1)} (1:${main.rr1}) · TP2 ${f(main.tp2)} (1:${main.rr2})` + (ev.risk && !ev.waiting ? ` · Risk ${+ev.risk.toFixed(2)}%` : '') + `\n` +
               (mainTxt.signal ? `Signal: ${mainTxt.signal}\n` : '') + (mainTxt.wait ? `Wait: ${mainTxt.wait}\n` : '') +
               (mainTxt.inval ? `Invalidation: ${mainTxt.inval}\n` : '') + (mainTxt.manage ? `Management: ${mainTxt.manage}\n` : '') +
-              (mainTxt.why ? `Why: ${mainTxt.why}\n` : '') + `\nSetup:\n${answersText()}`,
+              (mainTxt.why ? `Why: ${mainTxt.why}\n` : '') + sizeText(main, ev) + `\nSetup:\n${answersText()}`,
       blocked: false
     };
+  }
+  function sizeText(p, ev){
+    const z = ev.waiting ? null : sizing(p, ev);
+    if(!z || z.need || z.tooSmall) return '';
+    const M = v => fmtMoney(v, cost.ccy);
+    return `Size: ${z.lots.toFixed(2)} lots (${z.l1.toFixed(2)} @ E1${z.l2 > 0 ? ` + ${z.l2.toFixed(2)} @ E2` : ''}) · max loss −${M(z.realRisk)} · TP1 +${M(z.tp1)} · TP2 +${M(z.tp2)} (${cost.ccy}, spread ${p.sp})\n`;
   }
   function ideaCard(p, t, aligned, score, ev){
     const long = p.dir > 0, c = long ? 'bull' : 'bear', f = p.fmt;
@@ -715,7 +881,8 @@ REASONING: …
         </div>
         ${ladder(p)}
       </div>
-      <div class="ut-rules">✓ BLUE MAC RISK RULES · TP1 1:${p.rr1} · TP2 1:${p.rr2} · Entry 2 inside SL${aligned && ev.risk && !ev.waiting ? ` · RISK ${+ev.risk.toFixed(2)}%` : ''}${p.fixes.length ? `<div>Adjusted: ${esc(p.fixes.join(' · '))}</div>` : ''}</div>
+      ${aligned && !ev.waiting ? sizingHTML(p, ev).replace('data-size', `data-size data-dir="${p.dir}"`) : ''}
+      <div class="ut-rules">✓ BLUE MAC RISK RULES · TP1 1:${p.rr1} · TP2 1:${p.rr2} after spread · Entry 2 inside SL${aligned && ev.risk && !ev.waiting ? ` · RISK ${+ev.risk.toFixed(2)}%` : ''}${p.fixes.length ? `<div>Adjusted: ${esc(p.fixes.join(' · '))}</div>` : ''}</div>
       ${t.signal ? `<div class="ut-idea-row sig"><span>🕯 Signal to wait for</span>${esc(t.signal)}</div>` : ''}
       ${t.why ? `<div class="ut-idea-row"><span>Why this trade</span>${esc(t.why)}</div>` : ''}
       ${t.manage ? `<div class="ut-idea-row"><span>Managing it</span>${esc(t.manage)}</div>` : ''}
@@ -740,7 +907,7 @@ REASONING: …
     return `<svg class="ut-ladder" viewBox="0 0 100 180" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${sv}</svg>`;
   }
 
-  return { register, has, reset, render, pick, toggle, cell, showAll, next, back, submitLevels, addShot, dropShot, fire,
+  return { register, has, reset, render, pick, toggle, cell, showAll, setRate: setManualRate, spec: specOf, cost, next, back, submitLevels, addShot, dropShot, fire,
            learn, closeLearn, sessions, bias: currentBias, stdLevels, stdCheck, rulesHTML, goTo, D, exCard, _st: st, _eval: evaluate, _plan: plan };
 })();
 
@@ -886,6 +1053,23 @@ REASONING: …
 .ut-plan-g span{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--text3)}
 .ut-plan-g b{font-family:'DM Mono',monospace;font-size:14px;color:var(--blue)}
 .ut-plan-g .sl b{color:var(--bear)}.ut-plan-g .tp b{color:var(--bull)}
+.ut-plan-net{margin-top:8px;font-size:11.5px;color:var(--text3);font-family:'DM Mono',monospace;line-height:1.5}
+.ut-plan-net b{color:var(--text2)}
+.ut-cost{border:1px dashed var(--border2);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.ut-cost-h{font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--text2)}
+.ut-cost-h em{text-transform:none;letter-spacing:0;color:var(--text3);font-style:normal;font-weight:400}
+.ut-cost select{padding:12px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg4);color:var(--text);font-size:15px;font-family:'DM Sans',sans-serif;width:100%}
+.ut-size{border:1px solid rgba(42,143,227,0.3);border-radius:12px;padding:12px 14px;background:rgba(42,143,227,0.05);display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text2);line-height:1.55}
+.ut-idea .ut-size{margin:8px 20px 0}
+.ut-size-h{font-family:'DM Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.08em;color:var(--blue)}
+.ut-size b{color:var(--text)} .ut-size b.no{color:var(--bear)}
+.ut-size small{font-size:11px;color:var(--text3);line-height:1.5}
+.ut-size-g{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.ut-size-g div{display:flex;flex-direction:column;gap:1px;min-width:0}
+.ut-size-g span{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--text3)}
+.ut-size-g b{font-family:'DM Mono',monospace;font-size:13.5px;color:var(--text)}
+.ut-size-g .sl b{color:var(--bear)} .ut-size-g .tp b{color:var(--bull)}
+.ut-fx{width:90px;padding:6px 8px;border-radius:8px;border:1px solid var(--border2);background:var(--bg4);color:var(--text);font-family:'DM Mono',monospace}
 .ut-plan-fix{margin-top:8px;font-size:12px;color:#F5B841;line-height:1.5}
 .ut-ticks{border-top:1px solid var(--border);padding-top:10px}
 .ut-ticks summary{cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;color:var(--text2);text-transform:uppercase;font-weight:700;margin-bottom:6px}
@@ -951,6 +1135,8 @@ REASONING: …
   .ut-intro{padding:14px 16px}.ut-intro-name{font-size:19px}
   .ut-res{padding:16px 14px}.ut-res-h{font-size:20px}
   .ut-plan-g{grid-template-columns:repeat(2,1fr)}
+  .ut-size-g{grid-template-columns:repeat(2,1fr)}
+  .ut-idea .ut-size{margin-left:14px;margin-right:14px}
   .ut-idea-b{padding:14px 14px 4px}.ut-idea-h{padding:14px}
   .ut-rules,.ut-idea-row{margin-left:14px;margin-right:14px}
   .ut-ladder{width:70px}
