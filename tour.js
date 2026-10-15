@@ -228,12 +228,13 @@ window.BMT = (function(){
   function appReady(){
     const shown = id => { const e = document.getElementById(id); return e && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden'; };
     if(['auth-gate', 'quiz-gate', 'disclaimer-gate', 'splash'].some(shown)) return false;
+    if(window.BMS && BMS.loading) return false;   // profile still loading
     if(document.querySelector('.quiz-overlay.open, .modal-overlay.open, .ut-learn.on')) return false;
     return !!document.querySelector('.page.on');
   }
   function watch(){
     helpButton();
-    if(done()) return;
+    if(done() && !window.BMS) return;   // with profiles, wait: a new member's data may still be loading
     let n = 0;
     const t = setInterval(() => {
       if(done() || ++n > 600){ clearInterval(t); return; }

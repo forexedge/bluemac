@@ -4217,13 +4217,22 @@ async function takeThisTrade(tradeStatus = 'active'){
 // ── Session Check ──
   // Runs once per login: hide the gate, then placement test → disclaimer → app
   let _bootDone = false;
-  function onSignedIn(session) {
+  async function onSignedIn(session) {
     document.getElementById('auth-gate').style.display = 'none';
     showUserBar(session);
     if (_bootDone) return;
     _bootDone = true;
+    await loadMemberProfile(session);   // profile.js: free-list check + their saved spot
     checkQuizNeeded(session);   // shows the placement test, or goes straight to the disclaimer
     loadJournal();
+  }
+
+  // Waits for the page (and profile.js) to finish loading, then restores the member's profile
+  function loadMemberProfile(session) {
+    return new Promise(done => {
+      const go = () => (window.BMS ? BMS.load(session) : Promise.resolve()).then(done, done);
+      if (document.readyState === 'complete') go(); else window.addEventListener('load', go, { once: true });
+    });
   }
 
   async function checkSession() {
@@ -4291,6 +4300,7 @@ async function takeThisTrade(tradeStatus = 'active'){
   }
 
   async function handleLogout() {
+    if (window.BMS) { await BMS.flush(); BMS.clear(); }   // save their spot, then wipe it from this device
     await _supabase.auth.signOut();
     localStorage.removeItem('tv_disclaimer_accepted');
     document.getElementById('user-bar').style.display = 'none';
@@ -4973,5 +4983,6 @@ function filterExamples(cat, btn){
 <script src="utrade-position.js"></script>
 <script src="utrade-key.js"></script>
 <script src="tour.js"></script>
+<script src="profile.js"></script>
 </body>
 </html>

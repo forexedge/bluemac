@@ -503,6 +503,7 @@ window.UT = (function(){
     const panel = document.getElementById('guided-panel'); if(!panel) return;
     const s = cur(); if(!s) return;
     if(st.style !== S.style) reset();
+    if(window.BMS) BMS.utChanged();   // profile.js remembers the question + answers
     panel.classList.add('active', 'ut-panel');
     if(st.step >= s.questions.length) return renderResult();
     const q = s.questions[st.step], sg = stageOf(q), total = s.questions.length;

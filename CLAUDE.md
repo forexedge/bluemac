@@ -39,6 +39,7 @@ uTrade Ideas page shell, Journal, Rules page shell, auth, glossary, setup guide.
 | `utrade-key.js` | Blue Mac Key — "Key Range" session system: 15m range after the Asia/London/NY open → 15m close outside (Key Break) → retest entry. Old 9-TF MA version is in git (bfd090b) |
 | | Each strategy file = questions + diagrams + `rules` (Rules page is generated from it) + `levelMap()` + `prompt()` |
 | `tour.js` | `window.BMT` — spotlight app tour of every tab. Auto-runs once (after auth, placement and disclaimer) via `localStorage['bm_tour_v1']`; floating "?" button → "Tour this page" / "Full app tour". Steps live in `PAGES`; `ifMissing`/`demo` show mock-ups when the real screen isn't there. Last step is personalised from the placement test (level + suggested style buttons) |
+| `profile.js` | `window.BMS` — **member profile** (loaded last). Free-list check + "Free member" badge, and each member's saved spot synced to Supabase (see below) |
 | `logo.png` | Single logo file (used to be embedded 4× as base64) |
 
 ### Key conventions
@@ -59,11 +60,24 @@ uTrade Ideas page shell, Journal, Rules page shell, auth, glossary, setup guide.
   Hard-blocked setups never call the AI. `takeThisTrade()` saves `window._lastTradePlan` (set by UT).
 - Journal table: `trade_journal` (outcomes: pending / win / loss / be).
 
+### Member profiles & free access (15 Oct 2026)
+- Supabase project **TradeVault** (`tcnyjxfcexjswatkeeot`). `public.free_access(email)` = members who never pay (Brahm edits it in
+  the dashboard, lowercase emails; no API access). Counts only once the account's email is confirmed.
+- `public.profiles` gained `state jsonb` + `state_updated_at`. Members can only **read** their row; writes go through
+  security-definer RPCs: `bm_load()` → `{comp, tier, state, ts}` and `bm_save_state(s)`. `tier` is server-only (PayFast later).
+- `profile.js` syncs the per-member localStorage keys (`BMS.SYNC`: University, costs/balance, know-cards, tour, placement,
+  disclaimer, welcome/setup flags, `bm_nav_v1`) by watching `localStorage` writes → saved 1.5 s later / on tab hide.
+  `bm_nav_v1` = last page, style, uTrade question + answers (no screenshots), Examples tab. Newest copy wins (client `t`).
+- Login: `onSignedIn()` awaits `BMS.load()` before placement/disclaimer. Another member's data on the device (`bm_owner`) is wiped
+  first. Logout flushes then wipes. The disclaimer is now accepted once per member (saved), not every login.
+- PayFast later: check `BMS.isFree()` (and `BMS.access.tier`) before asking anyone to pay.
+
 ### Testing approach used so far
 Headless Chromium via Playwright (`/opt/pw-browsers`). Stub the Supabase CDN, hide the gates
 (`auth-gate`, `quiz-gate`, `disclaimer-gate`), then check every page, style, filter and flow for
 zero page errors. Render diagrams to PNG contact sheets and look at them before shipping.
 Dead-code checks were done with acorn (reachability from HTML/onclick/other JS files).
+Harness is now in `tests/` (see tests/README.md) — fake Supabase + Python Playwright.
 
 ## Done on 13 Oct 2026 (all on `revamp`)
 1. Examples: Patterns (53), Fibonacci (17), Smart Money (19), Indicators (17), Trade Management (8) → 134 lessons total
@@ -127,7 +141,7 @@ Swing 1:3 & 1:4, Position 1:3 & 1:5 · old tick-box sections removed — guided 
 - Brahm to test the new Blue Mac Key + Key Range layers on the `revamp` preview (phone first) and give feedback.
 - Agreed later list (15 Oct review): let members use it 4–6 weeks and log everything → FSCA/FAIS compliance check
   before charging (specific entries/SL/TP may count as advice) → PayFast → password reset → University progress to
-  Supabase → manual journal entry button → merge to main. Idea: let the AI check answers against chart screenshots.
+  Supabase (✅ done early via profiles) → manual journal entry button → merge to main. Idea: let the AI check answers against chart screenshots.
 - Leftovers for the redesign pass: old `.guided-*` / tick-box CSS is now unused; the manual "log trade" modal
   (`#log-modal`, `confirmLog`) has no opener anymore — decide whether to bring back a manual journal entry button.
 - **Redesign pass** (agreed): Examples filter bar now wraps to 2 rows → grouped menu;

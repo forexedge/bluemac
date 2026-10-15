@@ -460,7 +460,7 @@ window.BMU = (function(){
   }`;
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
 
-  return { home, module, lesson, complete, quiz, answer, nextQ, cert, reset, locked, onShow, applyPlacement, _p:() => P, isUnlocked: mid => { const m = MODULES.find(x => x.id === mid); return !!m && unlocked(m); }, MODULES, LEVELS, TOTAL };
+  return { reload: () => { P = load(); }, home, module, lesson, complete, quiz, answer, nextQ, cert, reset, locked, onShow, applyPlacement, _p:() => P, isUnlocked: mid => { const m = MODULES.find(x => x.id === mid); return !!m && unlocked(m); }, MODULES, LEVELS, TOTAL };
 })();
 
 // Render the degree as soon as the page exists
