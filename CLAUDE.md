@@ -119,7 +119,7 @@ Swing 1:3 & 1:4, Position 1:3 & 1:5 · old tick-box sections removed — guided 
   tradeable for 2 h. E1 = broken edge (limit), E2 = range mid, SL = far side ± 5% of range, targets 1×/2×/3× range + PDH/PDL.
 - **Hybrid (Brahm's choice):** every other style keeps its logic and gets a `krange` question + optional `kr_hi`/`kr_lo` level fields,
   fed to `stdLevels(..., { range:['kr_hi','kr_lo',name] })` (adds the edge + 2× range target):
-  Scalp = first 5 min (critical; a fake break supports the opposite side) · Day = first hour (critical, fake = wait) ·
+  Scalp = first 5 min (critical; a fake break supports the opposite side; a real break is allowed at `halfRisk`) · Day = first hour (critical, fake = wait) ·
   Swing = Monday's range (soft) · Position = first week of the month (soft).
 - Examples now 138 lessons. Know-cards, rules and prompts mention the Key Range per style.
 
