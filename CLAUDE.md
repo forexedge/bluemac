@@ -30,6 +30,8 @@ pages, guided mode, AI calls, auth). New features live in separate JS files load
 | `curriculum-1/2/3.js` | University content: 7 levels → 20 modules → 97 lessons + 100 quiz questions (`window.BMU_LEVELS`) |
 | `placement.js` | `window.BMP` — placement test shown once after registration (lives in `#quiz-gate`) |
 | `university.js` | `window.BMU` — Education tab: degree dashboard, modules, lessons, quizzes, certificates |
+| `utrade.js` | `window.UT` — **uTrade Ideas engine** (replaces the old Checklist guided flow per style): code-based answers, gates, scoring/grades, engine-calculated price plan, AI prompt + output cards, Learn modal, SAST kill-zone clock |
+| `utrade-scalp.js` | Scalp strategy for UT ("Session Liquidity Scalp": H1 bias → 15m sweep into OB/FVG/flip → 5m CHoCH/engulf). Each strategy file = questions + diagrams + `levelMap()` + `prompt()` |
 | `logo.png` | Single logo file (used to be embedded 4× as base64) |
 
 ### Key conventions
@@ -64,13 +66,27 @@ Dead-code checks were done with acorn (reachability from HTML/onclick/other JS f
    blocked setups can't generate ideas, journal db_id + plan-adherence reload fixed,
    Blue Mac Key added to Rules/Journal, offline-safe Supabase, Sessions card shows both seasons (SAST)
 
-## Open decisions (waiting on Brahm)
-1. **Scalp definition is inconsistent**: style tab says 15m/30m charts; Rules page says H4 bias + 15m entry;
-   guided questions + AI prompt use D1 bias, H1 structure, 5m 9/21 EMA entries. Which is correct?
-2. **Risk rule**: "TP1 ≥ 1:2, TP2 ≥ 1:3, Entry 2 never beyond SL" is only enforced for Key.
-   Apply to all styles (on top of their own minimums: Scalp/Day 1:2, Swing 1:3, Position 1:5)?
+## uTrade Ideas rebuild (started 15 Oct 2026)
+"Checklist" is renamed **uTrade Ideas** (page id stays `pg-checklist`). Every style is being rebuilt from
+scratch on the UT engine, one at a time, with Brahm's OK between each:
+1. ✅ Engine + rename + **Scalp** 2. Day 3. Swing 4. Position 5. Blue Mac Key 6. Rules page + delete all old guided code
+Decisions (Brahm, 15 Oct): all 5 styles rebuilt incl. Key · Claude designs the strategies from the Examples library ·
+risk rule applies to **every** style (TP1 ≥ 1:2, TP2 ≥ 1:3, Entry 2 between Entry 1 and SL, plus style minimums:
+Swing 1:3, Position 1:5) · old tick-box sections removed — guided only · every question shows example diagrams.
+
+### UT conventions
+- Option codes: `dir` (+1/-1/0), `pts`, `gate:'block'` (no trade, AI never called) / `'wait'` (Watchlist idea, Monitor only),
+  `bias:true` on bias-layer questions, `align:'critical'` (against bias → wait) or soft (→ warning). No text matching.
+- Grades: A+ ≥ 85 · A ≥ 72 · B ≥ 60 · below 60 = No Trade.
+- **Prices come from the engine** (`levelMap` + `plan()`), never the AI. The AI only writes signal / wait / invalidation /
+  management / reasoning. Counter-trend idea score = 45% of the main score (max 45).
+- Diagrams: write the bull version in `DG`; `UT.D.chart(spec, -1)` mirrors to bear. Reuse Examples diagrams with
+  `UT.D.ref('<data-id>')`. Every `ref:` opens that Examples card in the Learn modal.
+- Session times are computed live in SAST from London/New York local time (DST-safe): London KZ 08:00–11:00 London,
+  NY KZ 08:30–11:00 New York.
 
 ## Next up
+- **uTrade Ideas step 2: Day Trade** (then Swing, Position, Key, Rules page). Rules page Scalp tab still describes the OLD scalp.
 - **Redesign pass** (agreed): Examples filter bar now wraps to 2 rows → grouped menu;
   rebuild bias detection on fixed answer codes instead of text matching; overall visual refresh.
 - Later: Supabase redirect URLs for preview logins (`https://*-abrahams-projects-2cf14794.vercel.app/**`),

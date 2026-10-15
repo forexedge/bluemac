@@ -1648,7 +1648,7 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
     </div>
   </div>
   <div class="hdr-nav">
-    <button class="nav-item on" onclick="goPage('checklist',this)">Checklist</button>
+    <button class="nav-item on" onclick="goPage('checklist',this)">uTrade Ideas</button>
     <button class="nav-item" onclick="goPage('journal',this)">Journal</button>
     <button class="nav-item" onclick="goPage('rules',this)">Rules</button> <button class="nav-item" onclick="goPage('examples',this)">Examples</button>
 <button class="nav-item" onclick="goPage('education',this)"><span class="nav-emoji">🎓 </span>Education</button>
@@ -1935,9 +1935,9 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#E4E8EE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
       </div>
       <div class="tab-name">Scalp</div>
-      <div class="tab-sub">Minutes · Fast</div>
-      <div class="tab-tooltip">1–15 min trades · 15m &amp; 30m charts · Needs active screen time</div>
-      <div class="tab-tfs">15m / 30m</div>
+      <div class="tab-sub">Minutes · Kill zones</div>
+      <div class="tab-tooltip">5–90 min trades · H1 bias, 15m sweep, 5m entry · London &amp; NY only</div>
+      <div class="tab-tfs">H1 · 15m · 5m</div>
     </div>
     <div class="style-tab day" onclick="setStyle('day',this)">
       <div class="tab-icon">
@@ -2001,10 +2001,10 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
           <div class="guided-toggle-icon-box">🧭</div>
           <div class="guided-toggle-text">
             <div class="guided-toggle-title">
-              Guided Mode — AI walks you through the setup
+              uTrade Ideas — guided strategy
               <span class="guided-toggle-badge">✦ Active</span>
             </div>
-            <div class="guided-toggle-sub">AI asks the questions · Auto-fills your checklist · No guesswork · Then generates your full trade plan below</div>
+            <div class="guided-toggle-sub">Answer each question using the example diagrams · Blue Mac scores your setup · Then builds your exact trade plan</div>
             <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:4px;letter-spacing:0.03em;">⏱ Takes ~3–5 minutes · Recommended for all traders · Beginner friendly</div>
           </div>
         </div>
@@ -3113,12 +3113,12 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
 const STYLES = {
   scalp: {
     name:'Scalp Trading', icon:'⚡', color:'var(--gold)',
-    biasTF:'H4 (4-Hour) Chart', entryTF:'15m Charts',
-    biasHeading:'H4 Structure Bias',
-    biasNote:'Open your H4 (4-hour) chart. What direction is the trend?',
-    holdTime:'Minutes to 2 hours', minRR:'1:2',
-    ctxDesc:'Fast execution · High frequency · Session-dependent',
-    pills:[{t:'H4 Bias',c:'var(--gold)'},{t:'15m/30m Entry',c:'var(--text2)'},{t:'RR ≥ 1:2',c:'var(--bull)'}],
+    biasTF:'H1 (1-Hour) Chart', entryTF:'5m Chart',
+    biasHeading:'H1 Structure Bias',
+    biasNote:'Open your H1 (1-hour) chart. What direction is the trend?',
+    holdTime:'5 to 90 minutes', minRR:'1:2',
+    ctxDesc:'Session liquidity scalp · London & NY kill zones',
+    pills:[{t:'H1 Bias',c:'var(--gold)'},{t:'15m Sweep · 5m Entry',c:'var(--text2)'},{t:'TP1 ≥ 1:2 · TP2 ≥ 1:3',c:'var(--bull)'}],
    tfInstruction:'Answer on your <strong>15m chart</strong> — your scalp entry timeframe. Both the 50 MA and 200 MA must be visible on this chart.',
     candleInstruction:'Look at the <strong>most recently closed candle on your 15m or 30m chart</strong>. Only tick what has fully closed.',
     confInstruction:'Each factor is an additional layer of evidence. <strong>More confluence = higher probability.</strong>',
@@ -3258,7 +3258,7 @@ window.addEventListener('load',()=>{
 function tick_clock(){const el=document.getElementById('clk');if(!el)return;const n=new Date();const p=v=>String(v).padStart(2,'0');el.textContent=`UTC ${p(n.getUTCHours())}:${p(n.getUTCMinutes())}:${p(n.getUTCSeconds())}`;}
 
 function build_ticker(){
-  const items=[['50 MA','Entry Zone','up'],['200 MA','War Zone','dn'],['H4 Bias','Scalp anchor','neu'],['D1 Bias','Day trade anchor','neu'],['W1 Bias','Swing anchor','neu'],['Monthly','Position anchor','neu'],['Pin Bar','Rejection signal','up'],['Engulfing','Strong pattern','up'],['1:2 RR','Scalp minimum','up'],['1:5 RR','Position minimum','up'],['News Events','Check calendar','dn'],['London Open','Prime scalp window','up'],['Daily Close','Swing signal','up'],['Patience','Your edge','up'],['A-Grade','80%+ setups only','up'],['Capital First','Rule above all','neu']];
+  const items=[['50 MA','Entry Zone','up'],['200 MA','War Zone','dn'],['H1 Bias','Scalp anchor','neu'],['D1 Bias','Day trade anchor','neu'],['W1 Bias','Swing anchor','neu'],['Monthly','Position anchor','neu'],['Pin Bar','Rejection signal','up'],['Engulfing','Strong pattern','up'],['1:2 RR','Scalp minimum','up'],['1:5 RR','Position minimum','up'],['News Events','Check calendar','dn'],['London Open','Prime scalp window','up'],['Daily Close','Swing signal','up'],['Patience','Your edge','up'],['A-Grade','80%+ setups only','up'],['Capital First','Rule above all','neu']];
   const dbl=[...items,...items];
   document.getElementById('ticker').innerHTML=dbl.map(([k,v,d])=>`<div class="t-item"><span class="t-key">${k}</span><span class="t-${d}">${v}</span></div>`).join('');
 }
@@ -5958,6 +5958,7 @@ const GM = {
 
 // ── Reset guided mode cleanly ──────────────────────
 function resetGuidedMode(){
+  if(window.UT) UT.reset();
   GM.blocked = false;
   GM.step = 0;
   GM.answers = {};
@@ -6038,160 +6039,6 @@ function onStyleChange(){
   if(panel){ panel.classList.add('active'); panel.innerHTML = ''; }
   renderGuidedStep();
 }
-
-// ── SCALP GUIDED QUESTIONS ─────────────────────────
-const GUIDED_SCALP = [
-  {
-    id:'instrument', step:'Question 1 of 7',
-    q:'What instrument are you scalping right now?',
-    hint:null, type:'select', selectId:'gm-instrument',
-    options:[
-      {v:'',l:'— Select instrument —'},
-      {v:'XAUUSD (Gold)',l:'XAUUSD — Gold'},
-      {v:'XAGUSD (Silver)',l:'XAGUSD — Silver'},
-      {v:'US30 (Dow Jones)',l:'US30 — Dow Jones'},
-      {v:'NAS100 (Nasdaq)',l:'NAS100 — Nasdaq'},
-      {v:'SPX500 (S&P 500)',l:'SPX500 — S&P 500'},
-      {v:'GER40 (DAX)',l:'GER40 — DAX'},
-      {v:'UK100 (FTSE)',l:'UK100 — FTSE 100'},
-      {v:'EURUSD',l:'EURUSD'},{v:'GBPUSD',l:'GBPUSD'},
-      {v:'USDJPY',l:'USDJPY'},{v:'GBPJPY',l:'GBPJPY'},
-      {v:'EURJPY',l:'EURJPY'},{v:'AUDUSD',l:'AUDUSD'},
-      {v:'USDCAD',l:'USDCAD'},
-      {v:'USOIL (WTI Crude Oil)',l:'USOIL — WTI Oil'},
-      {v:'BTCUSD (Bitcoin)',l:'BTCUSD — Bitcoin'},
-    ]
-  },
-  {
-    id:'session', step:'Question 2 of 7',
-    q:'Which session are you in — and is there high-impact news in the next 30 minutes?',
-    hint:'🕐 <strong>Session + news = your first gate.</strong> London (07:00–12:00 UTC) and New York (13:00–17:00 UTC) are the only two sessions with enough volume and directional follow-through for scalping. The Asian session produces false breakouts and choppy price action — accounts get ground down. News events (NFP, CPI, rate decisions) cause spreads to spike and stop hunts to run — never scalp 30 minutes before or during a high-impact release. If you are in the Asian session or news is imminent — stop here.',
-    type:'pills',
-    options:[
-      {v:'London session 07:00-12:00 UTC — prime scalp window, no imminent news',l:'🇬🇧 London — Clear to proceed',cls:'sel-bull'},
-      {v:'New York session 13:00-17:00 UTC — prime scalp window, no imminent news',l:'🇺🇸 New York — Clear to proceed',cls:'sel-bull'},
-      {v:'London or New York session BUT high-impact news within 30 minutes — wait',l:'⚠ Prime session but news imminent — Wait',cls:'sel-warn'},
-      {v:'TRADE BLOCKED — Asian session, low volume, do not scalp',l:'🛑 Asian Session — Do Not Trade',cls:'sel-block'},
-    ]
-  },
-  {
-    id:'d1_bias', step:'Question 3 of 7',
-    q:'Open your DAILY chart. What did yesterday\'s candle close tell you — and what is the D1 50 MA doing?',
-    hint:`<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
-      <div style="flex:1;min-width:180px;">
-        <strong>The D1 candle is your institutional bias for the day.</strong> A strong bullish close means institutions were net buyers — only look for long scalps. A strong bearish close means net sellers — only look for short scalps. Then check the D1 50 MA: if price is far above it on a bull bias, you are buying into extended supply — quality is lower. The best scalp days are when D1 closes bullish AND price is near or just above the D1 50 MA pulling back — that is institutional demand being defended. Never scalp against the daily candle direction.
-      </div>
-      <div style="display:flex;gap:8px;flex-shrink:0;">
-        <div style="text-align:center;">
-          <svg width="52" height="80" viewBox="0 0 52 80" xmlns="http://www.w3.org/2000/svg">
-            <text x="26" y="8" text-anchor="middle" font-family="monospace" font-size="6" fill="#22D67A">BULL</text>
-            <line x1="26" y1="12" x2="26" y2="16" stroke="#22D67A" stroke-width="1.5"/>
-            <rect x="18" y="16" width="16" height="48" fill="#22D67A" rx="2"/>
-            <line x1="26" y1="64" x2="26" y2="68" stroke="#22D67A" stroke-width="1.5"/>
-            <text x="26" y="76" text-anchor="middle" font-family="monospace" font-size="6" fill="#22D67A">LONGS ✓</text>
-          </svg>
-        </div>
-        <div style="text-align:center;">
-          <svg width="52" height="80" viewBox="0 0 52 80" xmlns="http://www.w3.org/2000/svg">
-            <text x="26" y="8" text-anchor="middle" font-family="monospace" font-size="6" fill="#FF5C5C">BEAR</text>
-            <line x1="26" y1="12" x2="26" y2="16" stroke="#FF5C5C" stroke-width="1.5"/>
-            <rect x="18" y="16" width="16" height="48" fill="#FF5C5C" rx="2"/>
-            <line x1="26" y1="64" x2="26" y2="68" stroke="#FF5C5C" stroke-width="1.5"/>
-            <text x="26" y="76" text-anchor="middle" font-family="monospace" font-size="6" fill="#FF5C5C">SHORTS ✓</text>
-          </svg>
-        </div>
-        <div style="text-align:center;">
-          <svg width="52" height="80" viewBox="0 0 52 80" xmlns="http://www.w3.org/2000/svg">
-            <text x="26" y="8" text-anchor="middle" font-family="monospace" font-size="6" fill="#E4E8EE">DOJI</text>
-            <line x1="26" y1="20" x2="26" y2="36" stroke="#E4E8EE" stroke-width="1.5"/>
-            <rect x="18" y="36" width="16" height="4" fill="#E4E8EE" rx="1"/>
-            <line x1="26" y1="40" x2="26" y2="56" stroke="#E4E8EE" stroke-width="1.5"/>
-            <text x="26" y="76" text-anchor="middle" font-family="monospace" font-size="6" fill="#E4E8EE">⚠ WAIT</text>
-          </svg>
-        </div>
-      </div>
-    </div>`,
-    type:'pills',
-    options:[
-      {v:'Bullish daily close — strong green candle, D1 50 MA below price acting as support — look for longs',l:'📈 Strong bull close — D1 MA supporting — Longs',cls:'sel-bull'},
-      {v:'Bullish daily close — green candle but price extended far above D1 50 MA — lower quality longs only',l:'📈 Bull close but extended — Lower quality',cls:'sel-warn'},
-      {v:'Bearish daily close — strong red candle, D1 50 MA above price acting as resistance — look for shorts',l:'📉 Strong bear close — D1 MA resisting — Shorts',cls:'sel-bear'},
-      {v:'Bearish daily close — red candle but price extended far below D1 50 MA — lower quality shorts only',l:'📉 Bear close but extended — Lower quality',cls:'sel-warn'},
-      {v:'Doji or indecision candle — market undecided, only the absolute clearest setups',l:'⚠ Doji / indecision — Extreme caution',cls:'sel-warn'},
-    ]
-  },
-  {
-    id:'h1_structure', step:'Question 4 of 7',
-    q:'Switch to your H1 chart. What is the market structure — and does it AGREE with your D1 bias?',
-    hint:`<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
-      <div style="flex:1;min-width:180px;">
-        <strong>H1 structure is your direction filter — it must agree with D1.</strong> <strong style="color:#E4E8EE;">⚠ IMPORTANT — How many candles to look at:</strong> <em style="color:#fff;font-style:normal;">Only look at the most recent 8–12 H1 candles — roughly the last 8–12 hours, or today's session plus the one before it.</em> Ignore everything older. Scalping is about what price is doing RIGHT NOW — not what happened 3 days ago. <em style="color:#22D67A;font-style:normal;">HH/HL on these recent candles</em> = H1 uptrend — only take long scalps. <em style="color:#FF5C5C;font-style:normal;">LL/LH on these recent candles</em> = H1 downtrend — only take short scalps. <strong style="color:#E4E8EE;">What if recent H1 shows HH/HL but the last few days shows LL/LH?</strong> <em style="color:#fff;font-style:normal;">Answer based on the most recent 8–12 candles only — you are scalping a short-term bounce. Keep your target tight because the bigger intraday structure is against you.</em> You need both D1 bias AND H1 structure pointing the same way before looking at the 5-minute chart — non-negotiable.
-      </div>
-      <div style="display:flex;gap:10px;flex-shrink:0;">
-        <div style="text-align:center;">
-          <svg width="80" height="84" viewBox="0 0 80 84" xmlns="http://www.w3.org/2000/svg">
-            <text x="40" y="8" text-anchor="middle" font-family="monospace" font-size="6.5" fill="#22D67A" font-weight="bold">HH / HL</text>
-            <polyline points="4,70 16,56 26,62 44,42 56,48 72,28" fill="none" stroke="#22D67A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <text x="14" y="53" font-family="monospace" font-size="6" fill="#22D67A">HL</text>
-            <text x="44" y="38" font-family="monospace" font-size="6" fill="#22D67A">HH</text>
-            <text x="40" y="80" text-anchor="middle" font-family="monospace" font-size="6" fill="#22D67A">LONGS ONLY ✓</text>
-          </svg>
-        </div>
-        <div style="text-align:center;">
-          <svg width="80" height="84" viewBox="0 0 80 84" xmlns="http://www.w3.org/2000/svg">
-            <text x="40" y="8" text-anchor="middle" font-family="monospace" font-size="6.5" fill="#FF5C5C" font-weight="bold">LL / LH</text>
-            <polyline points="4,20 16,34 26,28 44,50 56,44 72,64" fill="none" stroke="#FF5C5C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <text x="14" y="38" font-family="monospace" font-size="6" fill="#FF5C5C">LH</text>
-            <text x="44" y="62" font-family="monospace" font-size="6" fill="#FF5C5C">LL</text>
-            <text x="40" y="80" text-anchor="middle" font-family="monospace" font-size="6" fill="#FF5C5C">SHORTS ONLY ✓</text>
-          </svg>
-        </div>
-      </div>
-    </div>`,
-    type:'pills',
-    options:[
-      {v:'H1 uptrend confirmed — higher highs and higher lows — AGREES with bullish D1 bias — proceed',l:'📈 H1 Uptrend — Agrees with D1 bull bias — Proceed',cls:'sel-bull'},
-      {v:'H1 downtrend confirmed — lower lows and lower highs — AGREES with bearish D1 bias — proceed',l:'📉 H1 Downtrend — Agrees with D1 bear bias — Proceed',cls:'sel-bear'},
-      {v:'H1 structure CONFLICTS with D1 bias — opposing directions — do not trade yet',l:'⚠ H1 Conflicts with D1 — Wait for alignment',cls:'sel-warn'},
-      {v:'H1 ranging — no clear higher highs or lower lows — market is undecided — skip',l:'↔ H1 Ranging — Skip this session',cls:'sel-block'},
-    ]
-  },
-  {
-    id:'key_level', step:'Question 5 of 7',
-    q:'Is price currently AT a key level — or is it floating in the middle of a range?',
-    hint:'📍 <strong>This is the question most retail traders never ask — and it is why they lose.</strong> A scalp entry is only worth taking when price is AT a significant level that has meaning on the chart: the H1 50 MA pullback zone, yesterday\'s high or low (PDH/PDL), a clear H1 swing high or low, a round number, or the session open price. If price is in the middle of open space between two levels — that is called mid-range, and mid-range entries have no edge. You are buying into nothing. Wait for price to come to YOU at a level. Patience at this step alone will cut your losing trades by 40%.',
-    type:'pills',
-    options:[
-      {v:'Price is AT the H1 50 MA pullback zone — the primary scalp entry trigger',l:'🎯 At H1 50 MA pullback — Prime entry',cls:'sel-bull'},
-      {v:'Price is AT yesterdays high (PDH) or low (PDL) — key intraday level',l:'🎯 At PDH or PDL — Key intraday level',cls:'sel-bull'},
-      {v:'Price is AT a clear H1 swing high or swing low — structure level',l:'🎯 At H1 swing high or low — Structure level',cls:'sel-bull'},
-      {v:'Price is mid-range — floating between levels with no clear anchor — skip this entry',l:'🛑 Mid-range — No edge here — Wait',cls:'sel-block'},
-    ]
-  },
-  {
-    id:'ma_15m', step:'Question 6 of 7',
-    q:'Switch to your 5-MINUTE chart. Has a signal candle CLOSED at the key level — confirming the entry?',
-    hint:'🕯 <strong>The 5-minute chart is your trigger — never your reason.</strong> You have already confirmed D1 bias, H1 structure alignment, and a key level. Now you need one more thing: a closed 5-minute signal candle at that level that proves price has rejected it. Valid signals: a bullish engulfing candle closing above the open at a support level, a pin bar or hammer with a long lower wick rejecting a level for longs, or a bearish engulfing / shooting star closing below the open at resistance for shorts. <strong>CRITICAL: Never enter on a candle that is still forming. Wait for the candle to fully close before committing. A half-formed candle is not a signal.</strong>',
-    type:'pills',
-    options:[
-      {v:'Bullish engulfing candle CLOSED at key level — strong momentum candle reclaiming level — long signal confirmed',l:'🟢 Bullish engulfing closed at level — Long confirmed',cls:'sel-bull'},
-      {v:'Pin bar or hammer CLOSED at key level — long wick rejecting support — long signal confirmed',l:'🟢 Pin bar / hammer closed at level — Long confirmed',cls:'sel-bull'},
-      {v:'Bearish engulfing candle CLOSED at key level — strong momentum candle failing resistance — short signal confirmed',l:'🔴 Bearish engulfing closed at level — Short confirmed',cls:'sel-bear'},
-      {v:'Shooting star or bearish pin bar CLOSED at key level — upper wick rejecting resistance — short signal confirmed',l:'🔴 Shooting star closed at level — Short confirmed',cls:'sel-bear'},
-      {v:'No closed signal candle yet — candle still forming or no rejection present — wait',l:'⏳ No confirmed signal candle — Wait',cls:'sel-warn'},
-    ]
-  },
-  {
-    id:'sl_rr', step:'Question 7 of 7',
-    q:'Final gate — is your Stop Loss placed at the nearest structure extreme, and does the trade give a minimum 1:2 R:R?',
-    hint:'🛑 <strong>The R:R check is non-negotiable and must be calculated before you click buy or sell.</strong> For longs: SL goes below the lowest wick of the signal candle — not below the body, below the wick. For shorts: SL goes above the highest wick of the signal candle. Then measure: TP must be at least 2× the distance of your SL. Your TP should sit at the next key level on the chart — the nearest PDH, swing high, or round number. If the next resistance is too close to give you 1:2 — the trade does not qualify. Move on. One winning 1:3 trade recovers three 1:1 losses. Protect your ratio obsessively.',
-    type:'pills',
-    options:[
-      {v:'SL below signal candle wick at structure AND R:R is 1:2 or better — trade qualifies — execute',l:'✅ SL at structure + R:R 1:2 or better — Execute',cls:'sel-bull'},
-      {v:'TRADE BLOCKED — SL not at structure OR R:R below 1:2 — trade does not qualify — do not enter',l:'🛑 No valid SL or R:R below 1:2 — Do Not Enter',cls:'sel-block'},
-    ]
-  },
-];
 
 // ── DAY TRADE GUIDED QUESTIONS ─────────────────────
 const GUIDED_DAY = [
@@ -7790,15 +7637,15 @@ const GUIDED_KEY = [
 
 // ── RENDER ENGINE ──────────────────────────────────
 function getGuidedQuestions(){
-  if(S.style==='scalp')    return GUIDED_SCALP;
   if(S.style==='day')      return GUIDED_DAY;
   if(S.style==='swing')    return GUIDED_SWING;
   if(S.style==='position') return GUIDED_POSITION;
   if(S.style==='key')      return GUIDED_KEY;
-  return GUIDED_SCALP;
+  return GUIDED_DAY;
 }
 
 function renderGuidedStep(){
+  if(window.UT && UT.has(S.style)) return UT.render();   // uTrade Ideas strategies
   const qs    = getGuidedQuestions();
   const total = qs.length;
   const panel = document.getElementById('guided-panel');
@@ -7806,7 +7653,7 @@ function renderGuidedStep(){
   const pct   = Math.round((GM.step / total) * 100);
 
   if(GM.step >= total){
-    if(S.style === 'scalp' || S.style === 'day' || S.style === 'swing' || S.style === 'position'){
+    if(S.style === 'day' || S.style === 'swing' || S.style === 'position'){
       // These styles fire AI directly — no screenshot step needed
       renderGuidedResult();
     } else if(GM.awaitingChartScreenshots){
@@ -7891,7 +7738,6 @@ function renderGuidedStep(){
   const stageInfo = (() => {
     const s = S.style; const step = GM.step;
     if(s==='key'){if(step<3)return{label:'Stage 1 — Timeframe Scan',color:'var(--gold)'};if(step<10)return{label:'Stage 2 — MA Levels',color:'var(--blue)'};if(step<20)return{label:'Stage 3 — Structure & Bias',color:'var(--bull)'};return{label:'Stage 4 — Final Gate',color:'var(--purple)'};}
-    if(s==='scalp'){if(step<2)return{label:'Stage 1 — Chart Setup',color:'var(--gold)'};if(step<5)return{label:'Stage 2 — Entry Check',color:'var(--blue)'};return{label:'Stage 3 — Final Gate',color:'var(--bull)'};}
     if(s==='day'){if(step<3)return{label:'Stage 1 — Daily Bias',color:'var(--gold)'};if(step<6)return{label:'Stage 2 — H4 Structure',color:'var(--blue)'};if(step<9)return{label:'Stage 3 — Entry Trigger',color:'var(--bull)'};return{label:'Stage 4 — Final Gate',color:'var(--purple)'};}
     if(s==='swing'){if(step<3)return{label:'Stage 1 — Weekly Bias',color:'var(--gold)'};if(step<6)return{label:'Stage 2 — Daily Structure',color:'var(--blue)'};if(step<9)return{label:'Stage 3 — Entry Signal',color:'var(--bull)'};return{label:'Stage 4 — Final Gate',color:'var(--purple)'};}
     if(s==='position'){if(step<4)return{label:'Stage 1 — Monthly Structure',color:'var(--gold)'};if(step<7)return{label:'Stage 2 — Weekly Confirmation',color:'var(--blue)'};if(step<9)return{label:'Stage 3 — Fundamentals',color:'var(--bull)'};return{label:'Stage 4 — Final Gate',color:'var(--purple)'};}
@@ -8395,36 +8241,7 @@ function renderGuidedResult(){
   let bias = null;
   let biasReason = '';
 
-  if(S.style === 'scalp'){
-    const d1      = a.d1_bias       || '';
-    const h1str   = a.h1_structure  || '';
-    const keyLvl  = a.key_level     || '';
-    const ma15    = a.ma_15m        || '';
-    const session = a.session       || '';
-    const slrr    = a.sl_rr         || '';
-    // Session gate — blocked if Asian session selected
-    const sessionBlocked = session.includes('Asian') || session.includes('BLOCKED');
-    // Mid-range gate — blocked if no key level
-    const midRangeBlocked = keyLvl.includes('mid-range') || keyLvl.includes('No edge');
-    // SL/RR gate
-    const rrBlocked = slrr.includes('BLOCKED') || slrr.includes('below 1:2') || slrr.includes('Do Not Enter');
-    // Direction reads
-    const isBullD1  = d1.includes('bullish') || d1.includes('bull') || d1.includes('Longs');
-    const isBearD1  = d1.includes('bearish') || d1.includes('bear') || d1.includes('Shorts');
-    const h1Bull    = h1str.includes('Uptrend') || h1str.includes('uptrend') || h1str.includes('higher highs');
-    const h1Bear    = h1str.includes('Downtrend') || h1str.includes('downtrend') || h1str.includes('lower lows');
-    const sig5mBull = ma15.includes('engulfing') && (ma15.includes('Long') || ma15.includes('long')) || ma15.includes('hammer') || ma15.includes('Pin bar') && ma15.includes('Long');
-    const sig5mBear = ma15.includes('engulfing') && (ma15.includes('Short') || ma15.includes('short')) || ma15.includes('Shooting') || ma15.includes('shooting');
-    if(sessionBlocked){ bias='neut'; biasReason='Trade blocked — Asian session selected. Only scalp during London or New York sessions.'; }
-    else if(midRangeBlocked){ bias='neut'; biasReason='Trade blocked — price is mid-range with no key level anchor. Wait for price to reach a significant level before entering.'; }
-    else if(rrBlocked){ bias='neut'; biasReason='Trade blocked — SL not at structure or R:R is below the required 1:2 minimum. Do not enter.'; }
-    else if(isBullD1 && h1Bull && sig5mBull){ bias='bull'; biasReason='Full scalp alignment confirmed: Bullish D1 bias, H1 uptrend structure, key level identified, bullish 5m signal candle closed — A-grade long setup'; }
-    else if(isBearD1 && h1Bear && sig5mBear){ bias='bear'; biasReason='Full scalp alignment confirmed: Bearish D1 bias, H1 downtrend structure, key level identified, bearish 5m signal candle closed — A-grade short setup'; }
-    else if(isBullD1 && h1Bull){ bias='bull'; biasReason='Bullish D1 and H1 uptrend aligned — waiting for 5m signal candle confirmation at key level before entry'; }
-    else if(isBearD1 && h1Bear){ bias='bear'; biasReason='Bearish D1 and H1 downtrend aligned — waiting for 5m signal candle confirmation at key level before entry'; }
-    else { bias='neut'; biasReason='Mixed or conflicting signals across D1 and H1 — alignment is not confirmed. Wait for cleaner top-down agreement.'; }
-
-  } else if(S.style === 'day'){
+if(S.style === 'day'){
     const d1c     = a.d1_candle      || '';
     const h4str   = a.h4_structure   || '';
     const h4ma    = a.h4_ma          || '';
@@ -8682,17 +8499,7 @@ function renderGuidedResult(){
     if(instrEl && a.instrument) instrEl.value = a.instrument;
 
     // Levels by style
-    if(S.style === 'scalp'){
-      setVal('s-current','gl-current'); setVal('s-ma50','gl-ma50'); setVal('s-ma200','gl-ma200');
-      setVal('s-swing-high','gl-swing-high'); setVal('s-swing-low','gl-swing-low');
-      setVal('s-sr','gl-sr'); setVal('s-pdh','gl-pdh'); setVal('s-pdl','gl-pdl');
-      const sessEl = document.getElementById('s-session');
-      if(sessEl && a.session) sessEl.value = a.session;
-      const candleEl = document.getElementById('s-last-candle');
-      if(candleEl) candleEl.value = mapCandleToOption(a.candle||'','scalp');
-      const newsEl = document.getElementById('s-news');
-      if(newsEl && a.news) newsEl.value = a.news;
-    } else if(S.style === 'day'){
+if(S.style === 'day'){
       setVal('idea-current','gl-current'); setVal('idea-ma50','gl-ma50'); setVal('idea-ma200','gl-ma200');
       setVal('idea-prev-high','gl-pdh'); setVal('idea-prev-low','gl-pdl');
       setVal('d-h4-swing-high','gl-h4-high'); setVal('d-h4-swing-low','gl-h4-low');
@@ -8771,7 +8578,7 @@ function renderGuidedResult(){
           <div class="guided-result-val" style="color:${biasColor};">${biasLabel}</div>
         </div>
         <div class="guided-result-item">
-          <div class="guided-result-label">Checklist</div>
+          <div class="guided-result-label">Setup</div>
           <div class="guided-result-val" style="color:${col};">Auto-filled ✓</div>
         </div>
       </div>
@@ -8891,56 +8698,7 @@ async function runStyleAI(){
   // Sanitize answers to prevent backtick/template literal issues
   const san = (v) => (v||'').replace(/`/g,"'").replace(/\${/g,'$(');
 
-  if(S.style === 'scalp'){
-    aiPrompt = `You are an elite scalp trader with 20 years experience. You specialise in precision 5-minute entries using the 9 EMA and 21 EMA as dynamic support and resistance. Your job is to deliver TWO complete scalp ideas — one LONG and one SHORT — so the trader is ready for whichever setup forms first in the session.
-
-INSTRUMENT: ${san(instr)}
-SESSION: ${san(a.session)}
-DAILY BIAS (D1 candle): ${san(a.d1_bias)}
-H1 MARKET STRUCTURE: ${san(a.h1_structure)}
-5M EMA STATUS: ${san(a.ma_15m)}
-SL AND R:R CHECK: ${san(a.sl_rr)}
-
-RULES — NO EXCEPTIONS:
-1. Output EXACTLY two ideas — one [LONG_IDEA] and one [SHORT_IDEA]. Never skip either.
-2. The idea matching the D1 bias gets the HIGHER probability score — that is the bias-aligned trade.
-3. The counter-trend idea gets a LOWER probability score and a clear warning in its reasoning.
-4. LONG entry = price pulls back to the 9 EMA on the 5m chart in an H1 uptrend.
-5. SHORT entry = price bounces up to the 9 EMA on the 5m chart in an H1 downtrend.
-6. SL for longs = below the signal candle low on 5m. SL for shorts = above the signal candle high on 5m.
-7. TP1 = nearest H1 swing high (long) or swing low (short). TP2 = session high/low or next key level.
-8. Minimum R:R is 1:2 — if structure does not allow 1:2, state it clearly in the wait condition.
-9. No markdown. No asterisks. Plain text only.
-10. SIGNAL_CANDLE: the exact candle pattern to wait for on the 5m before entering — max 10 words.
-11. WAIT_CONDITION: if price is not yet at the 9 EMA — what must happen first before entry is valid.
-
-[LONG_IDEA]
-DIRECTION: LONG
-PROBABILITY_SCORE: [higher % if D1 bias is bullish, lower % if D1 bias is bearish]
-SESSION_NOTE: [1 line — is this session good for longs right now]
-ENTRY: 5m pullback to the 9 EMA — wait for price to touch or closely approach the 9 EMA from above
-SIGNAL_CANDLE: [bullish candle type to wait for on the 5m — max 10 words]
-STOP_LOSS: below the signal candle low on 5m — outside the 9 EMA zone
-TAKE_PROFIT_1: [nearest H1 swing high or intraday resistance — describe the level]
-TAKE_PROFIT_2: [session high or next major H1 resistance — describe the level]
-WAIT_CONDITION: [if H1 structure is not yet in uptrend or price is not near 9 EMA — what must happen first]
-REASONING: [2 sentences — why this long works given the D1 and H1 context. If counter-trend, state warning clearly.]
-[/LONG_IDEA]
-
-[SHORT_IDEA]
-DIRECTION: SHORT
-PROBABILITY_SCORE: [higher % if D1 bias is bearish, lower % if D1 bias is bullish]
-SESSION_NOTE: [1 line — is this session good for shorts right now]
-ENTRY: 5m bounce to the 9 EMA — wait for price to touch or closely approach the 9 EMA from below
-SIGNAL_CANDLE: [bearish candle type to wait for on the 5m — max 10 words]
-STOP_LOSS: above the signal candle high on 5m — outside the 9 EMA zone
-TAKE_PROFIT_1: [nearest H1 swing low or intraday support — describe the level]
-TAKE_PROFIT_2: [session low or next major H1 support — describe the level]
-WAIT_CONDITION: [if H1 structure is not yet in downtrend or price is not near 9 EMA — what must happen first]
-REASONING: [2 sentences — why this short works given the D1 and H1 context. If counter-trend, state warning clearly.]
-[/SHORT_IDEA]`;
-
-  } else if(S.style === 'day'){
+if(S.style === 'day'){
     aiPrompt = `You are an elite day trader with 20 years experience. You specialise in top-down H1 entries using the Daily candle for bias, H4 structure for confirmation, and the H1 50 MA as your precise entry trigger. Your job is to deliver TWO complete day trade ideas — one LONG and one SHORT — so the trader is ready for whichever setup forms first today.
 
 INSTRUMENT: ${san(instr)}
@@ -9116,7 +8874,6 @@ REASONING: [2 sentences — why this short works from the monthly and macro cont
     const priceLines = priceQ ? priceQ.fields.filter(f => (GM.answers[f.id] || '').toString().trim())
                                               .map(f => `${f.label}: ${san(GM.answers[f.id])}`) : [];
     const extra = [];
-    if(S.style === 'scalp' && a.key_level) extra.push(`KEY LEVEL: ${san(a.key_level)}`);
     if(priceLines.length){
       extra.push('', 'EXACT PRICE LEVELS FROM THE TRADER\'S CHART:', ...priceLines, '',
         'Use these exact numbers. Give ENTRY, STOP_LOSS, TAKE_PROFIT_1 and TAKE_PROFIT_2 as specific prices based on these levels, and make sure the stated R:R is calculated from those prices.');
@@ -9248,56 +9005,7 @@ async function runKeyAI(){
   // ── Build prompt per style ──────────────────────
   let aiPrompt = '';
 
-  if(S.style === 'scalp'){
-    aiPrompt = `You are an elite scalp trader with 20 years experience. You specialise in precision 5-minute entries using the 9 EMA and 21 EMA as dynamic support and resistance. Your job is to deliver TWO complete scalp ideas — one LONG and one SHORT — so the trader is ready for whichever setup forms first in the session.
-
-INSTRUMENT: ${instr}
-SESSION: ${a.session || 'Not specified'}
-DAILY BIAS (D1 candle): ${a.d1_bias || 'Not specified'}
-H1 MARKET STRUCTURE: ${a.h1_structure || 'Not specified'}
-5M EMA STATUS: ${a.ma_15m || 'Not specified'}
-SL AND R:R CHECK: ${a.sl_rr || 'Not specified'}
-
-RULES — NO EXCEPTIONS:
-1. Output EXACTLY two ideas — one [LONG_IDEA] and one [SHORT_IDEA]. Never skip either.
-2. The idea matching the D1 bias gets the HIGHER probability score — that is the bias-aligned trade.
-3. The counter-trend idea gets a LOWER probability score and a clear warning in its reasoning.
-4. LONG entry = price pulls back to the 9 EMA on the 5m chart in an H1 uptrend.
-5. SHORT entry = price bounces up to the 9 EMA on the 5m chart in an H1 downtrend.
-6. SL for longs = below the signal candle low on 5m. SL for shorts = above the signal candle high on 5m.
-7. TP1 = nearest H1 swing high (long) or swing low (short). TP2 = session high/low or next key level.
-8. Minimum R:R is 1:2 — if structure does not allow 1:2, state it clearly in the wait condition.
-9. No markdown. No asterisks. Plain text only.
-10. SIGNAL_CANDLE: the exact candle pattern to wait for on the 5m before entering — max 10 words.
-11. WAIT_CONDITION: if price is not yet at the 9 EMA — what must happen first before entry is valid.
-
-[LONG_IDEA]
-DIRECTION: LONG
-PROBABILITY_SCORE: [higher % if D1 bias is bullish, lower % if D1 bias is bearish]
-SESSION_NOTE: [1 line — is this session good for longs right now]
-ENTRY: 5m pullback to the 9 EMA — wait for price to touch or closely approach the 9 EMA from above
-SIGNAL_CANDLE: [bullish candle type to wait for on the 5m — max 10 words]
-STOP_LOSS: below the signal candle low on 5m — outside the 9 EMA zone
-TAKE_PROFIT_1: [nearest H1 swing high or intraday resistance — describe the level]
-TAKE_PROFIT_2: [session high or next major H1 resistance — describe the level]
-WAIT_CONDITION: [if H1 structure is not yet in uptrend or price is not near 9 EMA — what must happen first]
-REASONING: [2 sentences — why this long works given the D1 and H1 context. If counter-trend, state warning clearly.]
-[/LONG_IDEA]
-
-[SHORT_IDEA]
-DIRECTION: SHORT
-PROBABILITY_SCORE: [higher % if D1 bias is bearish, lower % if D1 bias is bullish]
-SESSION_NOTE: [1 line — is this session good for shorts right now]
-ENTRY: 5m bounce to the 9 EMA — wait for price to touch or closely approach the 9 EMA from below
-SIGNAL_CANDLE: [bearish candle type to wait for on the 5m — max 10 words]
-STOP_LOSS: above the signal candle high on 5m — outside the 9 EMA zone
-TAKE_PROFIT_1: [nearest H1 swing low or intraday support — describe the level]
-TAKE_PROFIT_2: [session low or next major H1 support — describe the level]
-WAIT_CONDITION: [if H1 structure is not yet in downtrend or price is not near 9 EMA — what must happen first]
-REASONING: [2 sentences — why this short works given the D1 and H1 context. If counter-trend, state warning clearly.]
-[/SHORT_IDEA]`;
-
-  } else if(S.style === 'day'){
+if(S.style === 'day'){
     aiPrompt = `You are the world's most elite day trader. You have 20+ years executing high-probability intraday trades using top-down analysis from the Daily chart through H4 and H1. You are an expert in institutional order flow, multi-timeframe structure, and the H4 50/200 MA system. You are a true 1% trader — patient, disciplined, and systematic.
 
 INSTRUMENT: ${instr}
@@ -10653,5 +10361,7 @@ function filterExamples(cat, btn){
 <script src="curriculum-3.js"></script>
 <script src="placement.js"></script>
 <script src="university.js"></script>
+<script src="utrade.js"></script>
+<script src="utrade-scalp.js"></script>
 </body>
 </html>
