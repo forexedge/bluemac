@@ -92,6 +92,9 @@ Swing 1:3 & 1:4, Position 1:3 & 1:5 · old tick-box sections removed — guided 
   management / reasoning. Counter-trend idea score = 45% of the main score (max 45).
 - Diagrams: write the bull version in `DG`; `UT.D.chart(spec, -1)` mirrors to bear. Reuse Examples diagrams with
   `UT.D.ref('<data-id>')`. Every `ref:` opens that Examples card in the Learn modal.
+- Text fields (`q`, `help`, `tf`, `heroCap`, field `label`/`hint`) may be functions of the answers (`A => …`).
+  The Key uses this: the trader picks ONE entry chart (5m/15m/H1/H4/D1) and every later question and price box names it
+  ("H4 50 SMA value"). MAs everywhere are 50 & 200 **Simple (SMA) on Close** — matches the Setup Guide.
 - Session times are computed live in SAST from London/New York local time (DST-safe): London KZ 08:00–11:00 London,
   NY KZ 08:30–11:00 New York.
 

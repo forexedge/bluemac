@@ -10,6 +10,10 @@
   if(!window.UT) return;
   const D = UT.D, C = UT.C;
   const B = () => UT.bias() || 1;   // draw zone diagrams in the direction of the bias
+  // the ONE chart the trader enters on — every later question and price box names it
+  const TFN = { m5:'5m', m15:'15m', h1:'H1', h4:'H4', d1:'Daily' };
+  const TF = A => TFN[(A || UT._st.ans).entry_tf] || 'entry';
+  const MA_HOW = '<b>MA settings (same on every chart):</b> 50 and 200 period · <b>Simple (SMA)</b> · applied to <b>Close</b>. Set it up once in the Platform Setup Guide → "Setting Up MAs".';
 
   UT.register('key', {
     name: 'Key MA System+',
@@ -26,7 +30,7 @@
     rules: {
       icon:'🔑', sub:'50 & 200 MA confluence · higher timeframes lead',
       preflight:[
-        ['All 9 timeframes scanned.', 'Monthly, weekly, daily, H4, H1, 30m, 15m, 5m and 1m — each one is a bull stack, bear stack or mixed.'],
+        ['All 9 timeframes scanned.', 'Monthly, weekly, daily, H4, H1, 30m, 15m, 5m and 1m — each one is a bull stack, bear stack or mixed. Same MAs everywhere: 50 & 200 Simple (SMA) on Close.'],
         ['Higher timeframes lead.', 'MN, W1, D1 and H4 set the bias and carry the most weight. The lower ones fine-tune the entry.'],
         ['62%+ weighted confluence.', 'Below that the stack is split and there is no edge — uTrade Ideas blocks the trade.'],
         ['Calendar checked.', 'No entries within 30 minutes of red news on the lower timeframes; avoid the 48 hours before a central-bank decision on the higher ones.'],
@@ -34,7 +38,7 @@
       ],
       steps:[
         ['Read the stack', 'Mark each timeframe: price above both MAs with the 50 above the 200 = bull stack; the mirror = bear stack; anything else = mixed.'],
-        ['Pick your entry timeframe', 'Scalp speed (1m–15m), intraday (H1–H4) or swing (D1+). Your stop and targets come from that chart.'],
+        ['Pick ONE entry chart', '5m, 15m, H1, H4 or Daily. Every price you use — 50 SMA, 200 SMA, swing high and low — comes from that one chart. Never mix charts.'],
         ['Wait for the 50 MA', 'Price must pull back to the 50 MA on the entry timeframe (or deeper to the 200 — the war zone). Extended price = wait.'],
         ['Find the zone at the MA', 'An order block, FVG, golden pocket or S/R flip sitting on the MA turns a line into a level.'],
         ['Trigger candle', 'A closed engulfing / pin bar or a CHoCH off the MA. Then type your levels — Entry 1 at the 50 MA, Entry 2 at the 200 MA when it sits above the stop.']
@@ -62,14 +66,17 @@
         help:'The Key works on every market and every timeframe. Pick the chart you have open.',
         groups: UT.INSTR },
 
-      { id:'entry_tf', stage:0, type:'single', short:'Entry timeframe', compact:true,
-        q:'Which timeframe will you enter on?',
-        help:'This is the chart your <b>stop, entries and targets</b> come from. Faster timeframes need the London or New York session; slower ones need patience.',
+      { id:'entry_tf', stage:0, type:'single', short:'Entry chart', compact:true,
+        q:'Which ONE chart will you enter on?',
+        help:'Pick a single timeframe and stay on it. Every price you type later — the <b>50 SMA, 200 SMA, swing high and swing low</b> — comes from <b>this chart only</b>. Mixing values from different charts gives wrong entries and stops.<br><br>Not sure? <b>H1</b> suits most people: a few checks a day, trades last hours to a couple of days.',
         options:[
-          { v:'ltf', l:'1m – 15m (scalp speed)', sub:'Minutes to an hour. London & NY kill zones only.', dir:0, pts:5, ai:'entry timeframe 1m–15m (scalp speed)',
-            check: s => s.cur ? null : `Clock says ${s.nowTxt} SAST — fast Key entries belong in the kill zones (London ${s.fmt(s.lo)}, New York ${s.fmt(s.ny)}).` },
-          { v:'mtf', l:'H1 – H4 (intraday)', sub:'Hours to a couple of days.', dir:0, pts:5, ai:'entry timeframe H1–H4 (intraday)' },
-          { v:'htf', l:'Daily + (swing / position)', sub:'Days to weeks.', dir:0, pts:5, ai:'entry timeframe daily or higher (swing / position)' }
+          { v:'m5', l:'5-minute', sub:'Scalp speed · minutes to an hour · London & NY kill zones only.', dir:0, pts:5, ai:'entry chart: 5-minute (scalp speed)',
+            check: s => s.cur ? null : `Clock says ${s.nowTxt} SAST — 5m Key entries belong in the kill zones (London ${s.fmt(s.lo)}, New York ${s.fmt(s.ny)}).` },
+          { v:'m15', l:'15-minute', sub:'Fast intraday · up to a few hours · London & NY only.', dir:0, pts:5, ai:'entry chart: 15-minute (fast intraday)',
+            check: s => s.cur ? null : `Clock says ${s.nowTxt} SAST — 15m Key entries belong in the kill zones (London ${s.fmt(s.lo)}, New York ${s.fmt(s.ny)}).` },
+          { v:'h1', l:'1-hour (H1)', sub:'Most popular · hours to 2 days · check a few times a day.', dir:0, pts:5, ai:'entry chart: H1 (intraday)' },
+          { v:'h4', l:'4-hour (H4)', sub:'Days · check morning and evening.', dir:0, pts:5, ai:'entry chart: H4 (short swing)' },
+          { v:'d1', l:'Daily (D1)', sub:'Days to weeks · check once a day.', dir:0, pts:5, ai:'entry chart: Daily (swing / position)' }
         ] },
 
       { id:'news', stage:0, type:'single', short:'News', compact:true,
@@ -83,15 +90,15 @@
 
       { id:'stack', stage:1, type:'matrix', short:'9-TF MA stack', bias:true, pts:35, min:0.62,
         q:'Scan all 9 timeframes. How are the 50 and 200 MAs stacked on each?',
-        help:'<b>▲ Bull stack</b> = price above both MAs and the 50 above the 200. <b>▼ Bear stack</b> = price below both, 50 below 200. <b>◆ Mixed</b> = anything else. The top four timeframes set the bias.',
+        help:() => '<b>▲ Bull stack</b> = price above both MAs and the 50 above the 200. <b>▼ Bear stack</b> = price below both, 50 below 200. <b>◆ Mixed</b> = anything else. The top four timeframes set the bias.<br><br>' + MA_HOW + ' Flip through the charts one by one — same instrument, same two MAs.',
         hero: () => `<div class="ut-hero-row">${[['maStack',1,'▲ BULL STACK','var(--bull)'],['maStack',-1,'▼ BEAR STACK','var(--bear)'],['maMixed',1,'◆ MIXED','var(--text2)']].map(([k,d,t,c]) =>
           `<div><div>${D.chart(UT.DG[k], d)}</div><b style="color:${c}">${t}</b></div>`).join('')}</div>`,
         heroCap:'Blue = 50 MA · Silver = 200 MA', ref:'ex-ma-stack-50-vs-200',
         rows:[['MN','Monthly',14,true],['W1','Weekly',13,true],['D1','Daily',12,true],['H4','4-hour',11,true],['H1','1-hour',10,false],['30m','30-minute',8,false],['15m','15-minute',8,false],['5m','5-minute',6,false],['1m','1-minute',4,false]],
         cols:[{ v:'bull', l:'▲ Bull', dir:1, ai:'bull stack' }, { v:'bear', l:'▼ Bear', dir:-1, ai:'bear stack' }, { v:'mix', l:'◆ Mixed', dir:0, ai:'mixed' }] },
 
-      { id:'ma_pull', stage:2, type:'single', short:'Price vs 50 MA', tf:'entry TF', align:'critical',
-        q:'On your entry timeframe, where is price compared to the moving averages?',
+      { id:'ma_pull', stage:2, type:'single', short:'Price vs 50 MA', tf:A => TF(A), align:'critical',
+        q:A => `Now open your ${TF(A)} chart. Where is price compared to the 50 and 200 SMA?`,
         help:'The Key buys the <b>pullback to the 50 MA</b> in a bull stack (sells the rally to it in a bear stack). A deeper dip to the <b>200 MA is the war zone</b> — still valid, but the fight is harder.',
         ref:'ex-the-50-ma-pullback-entry',
         options:[
@@ -102,8 +109,8 @@
           { v:'extended', l:'Far away from the MAs', sub:'Price is stretched — no pullback yet.', dg:() => D.chart(UT.DG.maExtended, B()), dir:0, pts:0, gate:'wait', why:'The edge is AT the moving average. Set an alert at the 50 MA and wait for price to come back to it.', ai:'price extended far from the MAs' }
         ] },
 
-      { id:'zone', stage:2, type:'single', short:'Zone at the MA', tf:'entry TF', compact:false,
-        q:'What else is sitting on that moving average?',
+      { id:'zone', stage:2, type:'single', short:'Zone at the MA', tf:A => TF(A), compact:false,
+        q:A => `On the ${TF(A)} chart, what else is sitting on that moving average?`,
         help:'An MA on its own is just a line. When an <b>order block, FVG, golden pocket or old S/R level</b> sits right on it, institutions are defending the same price from two angles.',
         ref:'smc-ob-fvg',
         options:[
@@ -113,9 +120,9 @@
           { v:'none', l:'Just the MA', sub:'No other structure at that price.', dg:() => D.chart(UT.DG.maPull50, B()), dir:0, pts:2, warn:'Only the MA — no zone behind it. Take TP1 quickly.', ai:'only the MA, no other zone' }
         ] },
 
-      { id:'trigger', stage:3, type:'single', short:'Trigger', tf:'entry TF', align:'critical',
-        q:'What has the last closed candle done at the MA?',
-        help:'Wait for the MA to <b>hold</b>. Only count candles that have <b>closed</b> on your entry timeframe.',
+      { id:'trigger', stage:3, type:'single', short:'Trigger', tf:A => TF(A), align:'critical',
+        q:A => `What has the last closed ${TF(A)} candle done at the MA?`,
+        help:A => `Wait for the MA to <b>hold</b>. Only count candles that have <b>closed</b> on the ${TF(A)} chart — a candle that is still forming can change.`,
         ref:'ex-bullish-candlestick-signals',
         options:[
           { v:'choch_bull', l:'Bullish CHoCH off the MA', sub:'Broke the last lower high with a strong candle.', dg:C('trigChoch', 1), dir:1, pts:20, ref:'smc-choch', ai:'bullish change of character off the MA' },
@@ -125,7 +132,7 @@
           { v:'none', l:'No trigger yet', sub:'Price is sitting on the MA, undecided.', dg:C('trigNone', 1), dir:0, pts:0, gate:'wait', why:'The MA has not been defended yet. Wait for a closed trigger candle.', ai:'no trigger candle yet' }
         ] },
 
-      { id:'confluence', stage:3, type:'multi', short:'Confluence', tf:'entry TF', max:12, compact:true,
+      { id:'confluence', stage:3, type:'multi', short:'Confluence', tf:A => TF(A), max:12, compact:true,
         q:'Tick every extra confirmation you can see. (Skip if none.)',
         help:'Extras that strengthen the MA bounce.',
         options:[
@@ -137,20 +144,27 @@
         ] },
 
       { id:'levels', stage:4, type:'levels', short:'Levels',
-        q:'Type the prices from your entry-timeframe chart.',
-        help:'Entry 1 goes at the <b>50 MA</b>. Entry 2 goes at the <b>200 MA</b> when it sits above your stop — otherwise halfway to the stop. The stop goes beyond the swing.',
-        hero: C('maPull50', 1), heroCap:'Entry 1 = 50 MA · Entry 2 = 200 MA (if above the stop) · Stop beyond the swing', ref:'ex-the-50-ma-pullback-entry',
+        q:A => `Type the prices from your ${TF(A)} chart — and only that chart.`,
+        help:A => `Entry 1 goes at the <b>${TF(A)} 50 SMA</b>. Entry 2 goes at the <b>${TF(A)} 200 SMA</b> when it sits above your stop — otherwise halfway to the stop. The stop goes beyond the ${TF(A)} swing.<br><br>
+          <b>How to read an MA value:</b> on <b>TradingView</b>, the value shows next to the indicator name at the top-left of the chart (and on the price scale). On <b>MT4/MT5</b>, open the Data Window (<b>Ctrl+D</b>) and hover the latest candle. ${MA_HOW}`,
+        hero: C('maPull50', 1), heroCap:A => `Entry 1 = ${TF(A)} 50 SMA · Entry 2 = ${TF(A)} 200 SMA (if above the stop) · Stop beyond the ${TF(A)} swing`, ref:'ex-the-50-ma-pullback-entry',
         fields:[
           { id:'price', label:'Current price', req:true, hint:'The live price.' },
-          { id:'ma50', label:'50 MA value', req:true, hint:'Hover the 50 MA on your entry chart and read its price.' },
-          { id:'ma200', label:'200 MA value', req:true, hint:'Same for the 200 MA.' },
-          { id:'swing_hi', label:'Swing high', req:true, hint:'Last swing high on the entry chart. Shorts: stop above it. Longs: first target.' },
-          { id:'swing_lo', label:'Swing low', req:true, hint:'Last swing low on the entry chart. Longs: stop below it. Shorts: first target.' },
-          { id:'t_up', label:'Target above', hint:'Next higher-timeframe level above — long target.' },
-          { id:'t_dn', label:'Target below', hint:'Next higher-timeframe level below — short target.' }
+          { id:'ma50', label:A => `${TF(A)} 50 SMA value`, req:true, hint:A => `The price the 50 SMA is at on the ${TF(A)} chart, on the latest candle.` },
+          { id:'ma200', label:A => `${TF(A)} 200 SMA value`, req:true, hint:A => `The price the 200 SMA is at on the ${TF(A)} chart, on the latest candle.` },
+          { id:'swing_hi', label:A => `${TF(A)} swing high`, req:true, hint:A => `Last swing high on the ${TF(A)} chart. Shorts: stop above it. Longs: first target.` },
+          { id:'swing_lo', label:A => `${TF(A)} swing low`, req:true, hint:A => `Last swing low on the ${TF(A)} chart. Longs: stop below it. Shorts: first target.` },
+          { id:'t_up', label:'Target above', hint:'Next higher-timeframe level above (e.g. a daily or weekly high) — long target.' },
+          { id:'t_dn', label:'Target below', hint:'Next higher-timeframe level below (e.g. a daily or weekly low) — short target.' }
         ],
-        shots:['Higher-timeframe chart', 'Entry-timeframe chart', 'Trigger chart'],
-        check(L, num){ return UT.stdCheck(L, num, 'entry-timeframe'); } }
+        shots:['Higher-timeframe chart', 'Entry chart', 'Entry chart (zoomed in)'],
+        check(L, num){
+          const tf = TF(), m50 = num(L.ma50), m200 = num(L.ma200), p = num(L.price), span = num(L.swing_hi) - num(L.swing_lo);
+          const base = UT.stdCheck(L, num, tf); if(base) return base;
+          // MA values far from price usually mean they were read off a different chart
+          if(Math.abs(m50 - p) > span * 5 || Math.abs(m200 - p) > span * 12) return `Those MA values are far from price — make sure you read the 50 and 200 SMA off the ${tf} chart, not a higher timeframe.`;
+          return null;
+        } }
     ],
 
     // Entry 1 at the 50 MA, Entry 2 at the 200 MA (when it sits between Entry 1 and the stop)
@@ -158,15 +172,16 @@
       const p = num(L.price), hi = num(L.swing_hi), lo = num(L.swing_lo), m50 = num(L.ma50), m200 = num(L.ma200);
       if(![p, hi, lo].every(isFinite)) return null;
       const buf = (hi - lo) * 0.04;
-      let sl = dir > 0 ? lo - buf : hi + buf, slwhy = dir > 0 ? 'below the swing low + buffer' : 'above the swing high + buffer';
+      const tf = TF();
+      let sl = dir > 0 ? lo - buf : hi + buf, slwhy = dir > 0 ? `below the ${tf} swing low + buffer` : `above the ${tf} swing high + buffer`;
       // 50 MA is a valid limit entry when it sits on the pullback side of price and above the stop
       let e1 = p, e1why = 'market price';
-      if(isFinite(m50) && dir * (p - m50) >= 0 && dir * (m50 - sl) > 0){ e1 = m50; e1why = dir * (p - m50) > 0 ? 'limit order at the 50 MA' : 'price is at the 50 MA'; }
+      if(isFinite(m50) && dir * (p - m50) >= 0 && dir * (m50 - sl) > 0){ e1 = m50; e1why = dir * (p - m50) > 0 ? `limit order at the ${tf} 50 SMA` : `price is at the ${tf} 50 SMA`; }
       let e2, e2why;
-      if(isFinite(m200) && dir * (e1 - m200) > 0 && dir * (m200 - sl) > 0){ e2 = m200; e2why = '200 MA — the war zone'; }
+      if(isFinite(m200) && dir * (e1 - m200) > 0 && dir * (m200 - sl) > 0){ e2 = m200; e2why = `${tf} 200 SMA — the war zone`; }
       else { e2 = e1 - dir * (e1 - sl) * 0.5; e2why = 'halfway to the stop (better price)'; }
-      const tg = (dir > 0 ? [[hi, 'entry-timeframe swing high'], [num(L.t_up), 'higher-timeframe level above'], [hi + (hi - lo) * 0.272, 'fib 127.2% extension']]
-                          : [[lo, 'entry-timeframe swing low'], [num(L.t_dn), 'higher-timeframe level below'], [lo - (hi - lo) * 0.272, 'fib 127.2% extension']]);
+      const tg = (dir > 0 ? [[hi, `${tf} swing high`], [num(L.t_up), 'higher-timeframe level above'], [hi + (hi - lo) * 0.272, 'fib 127.2% extension']]
+                          : [[lo, `${tf} swing low`], [num(L.t_dn), 'higher-timeframe level below'], [lo - (hi - lo) * 0.272, 'fib 127.2% extension']]);
       return { e1, e2, sl, e1why, e2why, slwhy, tg };
     },
 

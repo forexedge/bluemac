@@ -22,6 +22,7 @@ window.UT = (function(){
   const st = { style:null, step:0, ans:{}, lv:{}, shots:[], result:null, showAll:{} };
   // [min score, grade, label, % of account to risk]
   const GRADES = [[85,'A+','A+ Setup',1],[72,'A','A-Grade Setup',0.75],[60,'B','B-Grade Setup',0.5]];
+  const V = x => typeof x === 'function' ? x(st.ans) : x;   // text may depend on earlier answers
   const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
   function register(key, def){ def.key = key; STRATS[key] = def; }
@@ -376,11 +377,11 @@ window.UT = (function(){
           <div class="ut-count">Question ${st.step + 1} of ${total}</div>
         </div>
         <div class="ut-card${same ? ' still' : ''}">
-          <div class="ut-kicker">${sg.label}${q.tf ? ` · <span class="ut-tf">${q.tf}</span>` : ''}</div>
-          <div class="ut-q">${q.q}</div>
-          ${q.help ? `<div class="ut-help">${q.help}</div>` : ''}
+          <div class="ut-kicker">${sg.label}${q.tf ? ` · <span class="ut-tf">${V(q.tf)}</span>` : ''}</div>
+          <div class="ut-q">${V(q.q)}</div>
+          ${q.help ? `<div class="ut-help">${V(q.help)}</div>` : ''}
           ${live}
-          ${q.hero ? `<div class="ut-hero">${typeof q.hero === 'function' ? q.hero() : q.hero}${q.heroCap ? `<div class="ut-hero-cap">${q.heroCap}</div>` : ''}${q.ref ? `<button class="ut-learn-btn" onclick="UT.learn('${q.ref}')">📖 Learn this in Examples</button>` : ''}</div>`
+          ${q.hero ? `<div class="ut-hero">${typeof q.hero === 'function' ? q.hero() : q.hero}${q.heroCap ? `<div class="ut-hero-cap">${V(q.heroCap)}</div>` : ''}${q.ref ? `<button class="ut-learn-btn" onclick="UT.learn('${q.ref}')">📖 Learn this in Examples</button>` : ''}</div>`
                    : q.ref ? `<div><button class="ut-learn-btn" onclick="UT.learn('${q.ref}')">📖 New to this? Learn it in Examples</button></div>` : ''}
           ${body}
           <div class="ut-nav">
@@ -455,9 +456,9 @@ window.UT = (function(){
     }).join('');
     return `<div class="ut-lv">${q.fields.map(f => `
       <div class="ut-lv-f${f.req ? ' req' : ''}">
-        <label for="ut-lv-${f.id}">${f.label}${f.req ? ' <i>*</i>' : ' <em>optional</em>'}</label>
+        <label for="ut-lv-${f.id}">${V(f.label)}${f.req ? ' <i>*</i>' : ' <em>optional</em>'}</label>
         <input id="ut-lv-${f.id}" type="text" inputmode="decimal" autocomplete="off" placeholder="${f.ph || 'e.g. 2345.60'}" value="${esc(st.lv[f.id] || '')}">
-        <small>${f.hint}</small>
+        <small>${V(f.hint)}</small>
       </div>`).join('')}</div>
       <div class="ut-lv-err" id="ut-lv-err"></div>
       <div class="ut-shots-l">📷 Chart screenshots <em>optional · helps the AI read your exact chart</em></div>
@@ -499,8 +500,8 @@ window.UT = (function(){
       const el = document.getElementById('ut-lv-' + f.id);
       const raw = (el.value || '').trim();
       el.classList.remove('bad');
-      if(!raw){ delete st.lv[f.id]; if(f.req){ bad.push(f.label); el.classList.add('bad'); } return; }
-      if(isNaN(num(raw)) || num(raw) <= 0){ bad.push(f.label); el.classList.add('bad'); return; }
+      if(!raw){ delete st.lv[f.id]; if(f.req){ bad.push(V(f.label)); el.classList.add('bad'); } return; }
+      if(isNaN(num(raw)) || num(raw) <= 0){ bad.push(V(f.label)); el.classList.add('bad'); return; }
       st.lv[f.id] = raw;
     });
     if(bad.length){ err.textContent = 'Check: ' + bad.join(', '); return; }
@@ -593,13 +594,13 @@ window.UT = (function(){
       if(q.type === 'instrument') return;   // already in the prompt header
       if(q.type === 'matrix'){ const A2 = A[q.id] || {}; out.push(`${q.short}: ` + q.rows.map(([k]) => `${k} ${(q.cols.find(c => c.v === A2[k]) || {}).ai || '—'}`).join(', ')); return; }
       if(q.type === 'multi'){ const ls = (A[q.id] || []).map(v => opt(q, v)).filter(Boolean).map(o => o.ai || o.l); out.push(`${q.short}: ${ls.length ? ls.join('; ') : 'none'}`); return; }
-      const o = opt(q, A[q.id]); if(o) out.push(`${q.short}${q.tf ? ' (' + q.tf + ')' : ''}: ${o.ai || o.l}`);
+      const o = opt(q, A[q.id]); if(o) out.push(`${q.short}${q.tf ? ' (' + V(q.tf) + ')' : ''}: ${o.ai || o.l}`);
     });
     return out.join('\n');
   }
   function levelsText(){
     const q = cur().questions.find(x => x.type === 'levels');
-    return q.fields.filter(f => st.lv[f.id]).map(f => `${f.label}: ${st.lv[f.id]}`).join('\n');
+    return q.fields.filter(f => st.lv[f.id]).map(f => `${V(f.label)}: ${st.lv[f.id]}`).join('\n');
   }
   function planText(p){
     if(!p || p.error) return 'not available';
