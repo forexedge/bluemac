@@ -1629,6 +1629,9 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
         border:1px solid rgba(255,255,255,0.08);
         background:rgba(255,255,255,0.04);
         color:#F2F2F2;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;">
+      <div id="auth-forgot-row" style="text-align:right;margin-top:-4px;">
+        <a href="#" onclick="forgotPassword();return false;" style="font-size:12px;color:#96D0FF;font-family:'DM Mono',monospace;text-decoration:none;">Forgot password?</a>
+      </div>
       <div id="auth-error" style="font-size:12px;color:#D95252;min-height:18px;font-family:'DM Mono',monospace;"></div>
       <button id="auth-btn" onclick="handleAuth()" style="
         width:100%;padding:14px;border-radius:7px;
@@ -4139,6 +4142,7 @@ async function takeThisTrade(tradeStatus = 'active'){
                     signOut:async()=>({ error:null }), updateUser:async()=>({ data:{}, error:msg }) },
              from:()=>q };
   })();
+  const _bmRecovery = /type=recovery/.test(location.hash + location.search);   // opened from a password-reset email
   const _supabase = (window.supabase && window.supabase.createClient) ? supabase.createClient(
     'https://tcnyjxfcexjswatkeeot.supabase.co',
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRjbnlqeGZjZXhqc3dhdGtlZW90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NDM0MDksImV4cCI6MjA4OTIxOTQwOX0._n-vDSfGokFAKCZrOpObH0xTkjnhRTaF4tE8ucULpOA'
@@ -4154,6 +4158,7 @@ async function takeThisTrade(tradeStatus = 'active'){
     document.getElementById('tab-signup').style.background = !isLogin ? 'rgba(30,136,220,0.1)' : 'transparent';
     document.getElementById('tab-signup').style.color = !isLogin ? '#2A8FE3' : '#7C7C82';
     document.getElementById('auth-btn').textContent = isLogin ? 'LOGIN' : 'CREATE ACCOUNT';
+    document.getElementById('auth-forgot-row').style.display = isLogin ? 'block' : 'none';
     document.getElementById('auth-error').textContent = '';
     document.getElementById('auth-success').textContent = '';
   }
@@ -4180,22 +4185,15 @@ async function takeThisTrade(tradeStatus = 'active'){
       if (authMode === 'login') {
         const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        // Explicitly continue after successful login (including mobile browsers).
-        document.getElementById('auth-gate').style.display = 'none';
-        if (data && data.session) {
-          showUserBar(data.session);
-          await checkQuizNeeded(data.session);
-          loadJournal();
-        }
+        // Continue after a successful login (also on mobile) — onSignedIn waits for their profile first
+        if (data && data.session) await onSignedIn(data.session);
+        else document.getElementById('auth-gate').style.display = 'none';
       } else {
-        const { data, error } = await _supabase.auth.signUp({ email, password });
+        const { data, error } = await _supabase.auth.signUp({ email, password, options:{ emailRedirectTo: bmHere() } });
         if (error) throw error;
         if (data && data.session) {
           sucEl.textContent = '✓ Account created and signed in.';
-          document.getElementById('auth-gate').style.display = 'none';
-          showUserBar(data.session);
-          await checkQuizNeeded(data.session);
-          loadJournal();
+          await onSignedIn(data.session);
         } else {
           sucEl.textContent = '✓ Account created! Check your email if confirmation is required, then log in.';
           switchTab('login');
@@ -4208,6 +4206,59 @@ async function takeThisTrade(tradeStatus = 'active'){
       btn.textContent = authMode === 'login' ? 'LOGIN' : 'CREATE ACCOUNT';
       btn.style.opacity = '1';
     }
+  }
+
+// ── PASSWORD RESET ──
+  // The address the member is on now (live site or preview) — emails bring them back here.
+  // Must be listed in Supabase → Authentication → URL Configuration → Redirect URLs.
+  function bmHere() { return location.origin + location.pathname; }
+
+  async function forgotPassword() {
+    const email = document.getElementById('auth-email').value.trim();
+    const errEl = document.getElementById('auth-error'), sucEl = document.getElementById('auth-success');
+    errEl.textContent = ''; sucEl.textContent = '';
+    if (!email) { errEl.textContent = 'Type your email above, then tap "Forgot password?".'; document.getElementById('auth-email').focus(); return; }
+    const { error } = await _supabase.auth.resetPasswordForEmail(email, { redirectTo: bmHere() });
+    if (error) { errEl.textContent = /rate|seconds/i.test(error.message) ? 'Too many tries — wait a minute, then try again.' : error.message; return; }
+    sucEl.textContent = '✓ If that email has an account, a reset link is on its way. Check spam too.';
+  }
+
+  // "Set a new password" screen — shown when they come back from the reset email
+  function showResetGate() {
+    if (document.getElementById('reset-gate')) return;
+    const g = document.createElement('div');
+    g.id = 'reset-gate';
+    g.style.cssText = 'position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(5,7,10,0.92);backdrop-filter:blur(6px);';
+    const inp = 'width:100%;padding:13px 16px;border-radius:7px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#F2F2F2;font-family:\'DM Sans\',sans-serif;font-size:14px;outline:none;box-sizing:border-box;';
+    g.innerHTML = `<div style="width:100%;max-width:380px;background:#0E1116;border:1px solid rgba(42,143,227,0.25);border-radius:14px;padding:26px 22px;display:flex;flex-direction:column;gap:12px;">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#2A8FE3;font-weight:700;">Blue Mac</div>
+        <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;color:#F2F2F2;">Set a new password</div>
+        <div style="font-size:13px;color:#8AA4BF;font-family:'DM Sans',sans-serif;">Pick a new password for your account. At least 8 characters.</div>
+        <input id="reset-pw1" type="password" autocomplete="new-password" placeholder="New password" style="${inp}">
+        <input id="reset-pw2" type="password" autocomplete="new-password" placeholder="Type it again" style="${inp}">
+        <div id="reset-error" style="font-size:12px;color:#D95252;min-height:18px;font-family:'DM Mono',monospace;"></div>
+        <button id="reset-btn" onclick="saveNewPassword()" style="width:100%;padding:14px;border-radius:7px;background:linear-gradient(135deg,#2A8FE3,#96D0FF);color:#080808;border:none;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.05em;font-family:'DM Sans',sans-serif;">SAVE NEW PASSWORD</button>
+      </div>`;
+    document.body.appendChild(g);
+    setTimeout(() => { const f = document.getElementById('reset-pw1'); if (f) f.focus(); }, 50);
+  }
+
+  async function saveNewPassword() {
+    const p1 = document.getElementById('reset-pw1').value, p2 = document.getElementById('reset-pw2').value;
+    const errEl = document.getElementById('reset-error'), btn = document.getElementById('reset-btn');
+    errEl.textContent = '';
+    if (p1.length < 8) { errEl.textContent = 'Use at least 8 characters.'; return; }
+    if (p1 !== p2) { errEl.textContent = "The two passwords don't match."; return; }
+    btn.disabled = true; btn.textContent = 'SAVING...';
+    const { error } = await _supabase.auth.updateUser({ password: p1 });
+    if (error) {
+      errEl.textContent = /expired|invalid|session/i.test(error.message) ? 'This reset link has expired. Go back to the login screen and tap "Forgot password?" again.' : error.message;
+      btn.disabled = false; btn.textContent = 'SAVE NEW PASSWORD'; return;
+    }
+    const g = document.getElementById('reset-gate');
+    g.innerHTML = `<div style="max-width:340px;background:#0E1116;border:1px solid rgba(34,214,122,0.35);border-radius:14px;padding:26px 22px;text-align:center;font-family:'DM Sans',sans-serif;color:#F2F2F2;"><div style="font-size:30px;color:#22D67A;">✓</div><div style="font-size:18px;font-weight:700;margin:6px 0;">Password updated</div><div style="font-size:13px;color:#8AA4BF;">You're logged in. Use the new password next time.</div></div>`;
+    setTimeout(() => g.remove(), 1800);
+    if (history.replaceState) history.replaceState(null, '', bmHere());
   }
 
 // ── LOGIN ──
@@ -4237,6 +4288,7 @@ async function takeThisTrade(tradeStatus = 'active'){
 
   async function checkSession() {
     const { data: { session } } = await _supabase.auth.getSession();
+    if (session && _bmRecovery) showResetGate();
     if (session) {
       onSignedIn(session);
     } else if (SKIP_LOGIN) {
@@ -4248,6 +4300,7 @@ async function takeThisTrade(tradeStatus = 'active'){
   }
 
   _supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') showResetGate();
     if (session) {
       // token refreshes / profile updates must not re-run onboarding or reload the journal
       if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;

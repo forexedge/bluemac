@@ -6,7 +6,11 @@ Headless Chromium (Playwright for Python) against the static site, with a fake S
 ```
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_profile.py . tests
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/smoke_loggedout.py . tests
+PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_auth.py . tests
 ```
+
+`test_auth.py` covers the login form on a new device (profile loads before the disclaimer),
+"Forgot password?", sign-up/reset emails coming back to the current site, and the "Set a new password" screen.
 
 `test_profile.py` covers the member profile (profile.js): free-list badge, refresh keeps the spot,
 new device restores from the server, newest change wins, logout wipes the device,

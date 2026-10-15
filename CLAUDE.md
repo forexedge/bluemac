@@ -71,6 +71,11 @@ uTrade Ideas page shell, Journal, Rules page shell, auth, glossary, setup guide.
 - Login: `onSignedIn()` awaits `BMS.load()` before placement/disclaimer. Another member's data on the device (`bm_owner`) is wiped
   first. Logout flushes then wipes. The disclaimer is now accepted once per member (saved), not every login.
 - PayFast later: check `BMS.isFree()` (and `BMS.access.tier`) before asking anyone to pay.
+- **Password reset (15 Oct):** "Forgot password?" on the Login tab → `resetPasswordForEmail(email, {redirectTo: bmHere()})`.
+  Coming back from the email (`PASSWORD_RECOVERY` event or `_bmRecovery` = `type=recovery` in the URL) shows `#reset-gate`
+  ("Set a new password", min 8 chars) → `updateUser({password})`. Sign-up confirmation also uses `emailRedirectTo: bmHere()`.
+  Both need the site in Supabase → Authentication → URL Configuration → Redirect URLs, or Supabase falls back to the Site URL.
+- Form login and sign-up call `onSignedIn()` (never `checkQuizNeeded()` directly) so the profile loads before the disclaimer.
 
 ### Testing approach used so far
 Headless Chromium via Playwright (`/opt/pw-browsers`). Stub the Supabase CDN, hide the gates
@@ -140,7 +145,7 @@ Swing 1:3 & 1:4, Position 1:3 & 1:5 · old tick-box sections removed — guided 
 ## Next up
 - Brahm to test the new Blue Mac Key + Key Range layers on the `revamp` preview (phone first) and give feedback.
 - Agreed later list (15 Oct review): let members use it 4–6 weeks and log everything → FSCA/FAIS compliance check
-  before charging (specific entries/SL/TP may count as advice) → PayFast → password reset → University progress to
+  before charging (specific entries/SL/TP may count as advice) → PayFast → password reset (✅ done early) → University progress to
   Supabase (✅ done early via profiles) → manual journal entry button → merge to main. Idea: let the AI check answers against chart screenshots.
 - Leftovers for the redesign pass: old `.guided-*` / tick-box CSS is now unused; the manual "log trade" modal
   (`#log-modal`, `confirmLog`) has no opener anymore — decide whether to bring back a manual journal entry button.

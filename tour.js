@@ -227,7 +227,7 @@ window.BMT = (function(){
   // ── first visit: wait until login, placement test and disclaimer are out of the way ──
   function appReady(){
     const shown = id => { const e = document.getElementById(id); return e && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden'; };
-    if(['auth-gate', 'quiz-gate', 'disclaimer-gate', 'splash'].some(shown)) return false;
+    if(['auth-gate', 'quiz-gate', 'disclaimer-gate', 'splash', 'reset-gate'].some(shown)) return false;
     if(window.BMS && BMS.loading) return false;   // profile still loading
     if(document.querySelector('.quiz-overlay.open, .modal-overlay.open, .ut-learn.on')) return false;
     return !!document.querySelector('.page.on');
