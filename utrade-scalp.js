@@ -48,7 +48,7 @@
       steps:[
         ['H1 sets the direction', 'Structure first (HH/HL or LH/LL, or a fresh CHoCH), then the 50 EMA slope, then premium/discount. Buy in discount, sell in premium.'],
         ['15m sweep', 'Wait for price to wick through the Asian high/low, PDH/PDL or equal highs/lows and <strong>close back inside</strong>. That is the Judas swing — the fake move before the real one.'],
-        ['5-min Key Range', 'Mark the first 5 minutes after the London / New York open. The best scalps come from a <strong>fake break</strong> of it that closes back inside. A real break means continuation — smaller size.'],
+        ['5-min Key Range', 'Mark the first 5 minutes after the London / New York open. The best scalps come from a <strong>fake break</strong> of it that closes back inside. A real break means continuation — allowed, but at <strong>half risk</strong>.'],
         ['15m zone', 'Price must react from an order block, FVG or flipped S/R level. No zone = no entry.'],
         ['5m trigger', 'Best: a 5m CHoCH that leaves an FVG. Also valid: a closed engulfing or pin bar inside the zone. No closed signal = Watchlist only.'],
         ['Type your levels', 'Blue Mac calculates Entry 1, Entry 2, stop and targets from your 15m swings, zone and liquidity — and enforces the risk rules.']
@@ -163,8 +163,8 @@
         options:[
           { v:'sweep_lo', l:'Swept below it, closed back inside', sub:'Fake break down — sellers trapped. Supports longs.', dg:C('krFake', -1), dir:1, pts:10, ref:'mgt-fakebreak', ai:'fake break below the 5-minute Key Range (closed back inside) — supports longs' },
           { v:'sweep_hi', l:'Swept above it, closed back inside', sub:'Fake break up — buyers trapped. Supports shorts.', dg:C('krFake', 1), dir:-1, pts:10, ref:'mgt-fakebreak', ai:'fake break above the 5-minute Key Range (closed back inside) — supports shorts' },
-          { v:'break_up', l:'Broke out above and holding', sub:'A real break, not a fake.', dg:C('krBreak', 1), dir:1, pts:4, warn:'The 5-min Key Range broke for real — this is a continuation, not a sweep. Smaller size, take TP1 quickly', ai:'real break above the 5-minute Key Range (continuation)' },
-          { v:'break_dn', l:'Broke out below and holding', sub:'A real break, not a fake.', dg:C('krBreak', -1), dir:-1, pts:4, warn:'The 5-min Key Range broke for real — this is a continuation, not a sweep. Smaller size, take TP1 quickly', ai:'real break below the 5-minute Key Range (continuation)' },
+          { v:'break_up', l:'Broke out above and holding', sub:'A real break, not a fake. Allowed — at half risk.', dg:C('krBreak', 1), dir:1, pts:4, halfRisk:true, warn:'The 5-min Key Range broke for real — this is a continuation, not a sweep. Half risk on this one, take TP1 quickly', ai:'real break above the 5-minute Key Range (continuation)' },
+          { v:'break_dn', l:'Broke out below and holding', sub:'A real break, not a fake. Allowed — at half risk.', dg:C('krBreak', -1), dir:-1, pts:4, halfRisk:true, warn:'The 5-min Key Range broke for real — this is a continuation, not a sweep. Half risk on this one, take TP1 quickly', ai:'real break below the 5-minute Key Range (continuation)' },
           { v:'inside', l:'Still inside (or not set yet)', sub:'Nothing has happened at the range.', dg:C('krInside', 1), dir:0, pts:3, ai:'price still inside the 5-minute Key Range' }
         ] },
 
