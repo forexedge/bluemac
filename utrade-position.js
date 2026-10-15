@@ -20,6 +20,17 @@
     minRR: [3, 5],
     desc: 'Position trades ride the big money for weeks or months. The monthly trend, the weekly 200 SMA and the macro story must all point the same way. We enter where a major weekly pattern or zone completes, confirm on the daily, and build the position in two entries.',
     pills: ['Hold weeks–months', 'Check once a day', 'TP1 ≥ 1:3 · TP2 ≥ 1:5', 'Max 1% risk, 2 entries'],
+    knowIntro: "Position trades ride the big money for weeks or months. These concepts drive every decision.",
+    know: [
+      { t:"Market structure (HH/HL, LH/LL)", ref:'ex-market-structure-hh-hl-vs-ll-lh', why:"Reads the monthly trend." },
+      { t:"Moving average stack (50 / 200)", ref:'ex-ma-stack-50-vs-200', why:"The weekly 200 SMA filter." },
+      { t:"DXY & correlation", ref:'mgt-dxy', why:"The dollar drives gold, indices and USD pairs." },
+      { t:"COT report", ref:'ind-cot', why:"What the big funds are positioned for." },
+      { t:"Cup & handle", ref:'pat-cup', why:"A classic multi-month breakout pattern." },
+      { t:"Head & shoulders", ref:'pat-hs', why:"The major reversal pattern (and its inverse)." },
+      { t:"Wyckoff spring", ref:'pat-spring', why:"The fake-out before a big move." },
+      { t:"Partial profits", ref:'mgt-partials', why:"How to bank gains on a long hold." }
+    ],
     stages: [{ label:'Safety gates' }, { label:'Monthly bias' }, { label:'Macro' }, { label:'Weekly setup' }, { label:'Daily entry' }, { label:'Your levels' }],
 
     rules: {

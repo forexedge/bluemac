@@ -25,6 +25,17 @@
     minRR: [2, 3],
     desc: 'The Blue Mac Key reads the 50 and 200 moving averages on all 9 timeframes at once. When the big timeframes stack the same way, we wait for price to pull back to the 50 MA on your entry timeframe — at a real zone — and enter on the trigger candle. It says "no" most of the time. That is the point.',
     pills: ['9 timeframes', '62%+ weighted confluence', 'TP1 ≥ 1:2 · TP2 ≥ 1:3', 'Entry 2 at the 200 MA'],
+    knowIntro: "The Key is built on moving averages first, zones second. Master these and the 9-timeframe scan becomes quick.",
+    know: [
+      { t:"Price vs the MAs", ref:'ex-price-position-vs-mas', why:"Above or below the 50 & 200 — the first read." },
+      { t:"MA stack (50 / 200)", ref:'ex-ma-stack-50-vs-200', why:"Bull stack, bear stack or mixed — on all 9 timeframes." },
+      { t:"The 50 MA pullback entry", ref:'ex-the-50-ma-pullback-entry', why:"The Key's entry: buy the dip to the 50." },
+      { t:"MAs spreading vs tangled", ref:'ex-mas-spreading-vs-tangled', why:"Tells you if the trend has strength." },
+      { t:"Order blocks + FVGs", ref:'smc-ob-fvg', why:"The zone that turns an MA into a real level." },
+      { t:"Fib + moving average", ref:'fib-ma', why:"Golden pocket lining up with the MA." },
+      { t:"Bullish & bearish candles", ref:'ex-bullish-candlestick-signals', why:"Your trigger candle at the MA." },
+      { t:"Risk-to-reward", ref:'mgt-rr', why:"Why TP1 ≥ 1:2 and TP2 ≥ 1:3 after costs." }
+    ],
     stages: [{ label:'Safety gates' }, { label:'9-TF MA stack' }, { label:'Entry timeframe' }, { label:'Trigger' }, { label:'Your levels' }],
 
     rules: {

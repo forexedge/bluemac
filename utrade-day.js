@@ -18,6 +18,18 @@
     minRR: [2, 3],
     desc: 'The daily chart tells you which way the money is flowing. We wait for the H4 to break structure that way, then buy (or sell) the H1 pullback into a fresh zone — confirmed on the 15m — and we are flat before New York closes.',
     pills: ['Hold 1–8 hours', 'Flat by NY close', 'TP1 ≥ 1:2 · TP2 ≥ 1:3', 'Max 2 trades a day'],
+    knowIntro: "Day trades combine a daily bias with a precise intraday entry. These are the building blocks.",
+    know: [
+      { t:"Market structure (HH/HL, LH/LL)", ref:'ex-market-structure-hh-hl-vs-ll-lh', why:"Reads the daily bias." },
+      { t:"Top-down analysis", ref:'mgt-topdown', why:"How D1, H4, H1 and 15m fit together." },
+      { t:"Break of structure (BOS)", ref:'smc-bos', why:"The H4 confirmation you need before the pullback." },
+      { t:"Premium & discount", ref:'smc-pd', why:"Longs from discount, shorts from premium." },
+      { t:"Fib golden pocket (61.8–65%)", ref:'fib-golden', why:"The A+ pullback zone on the H1." },
+      { t:"Order blocks", ref:'smc-ob-what', why:"H1 entry zone." },
+      { t:"Fair value gaps", ref:'smc-fvg-what', why:"H1 entry zone." },
+      { t:"Change of character (CHoCH)", ref:'smc-choch', why:"Your 15m trigger out of the zone." },
+      { t:"Previous day high & low", ref:'ind-pdhl', why:"Today's targets and liquidity pools." }
+    ],
     stages: [{ label:'Safety gates' }, { label:'D1 bias' }, { label:'H4 structure' }, { label:'H1 zone' }, { label:'15m trigger' }, { label:'Your levels' }],
 
     rules: {

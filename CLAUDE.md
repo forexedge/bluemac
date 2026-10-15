@@ -38,6 +38,7 @@ uTrade Ideas page shell, Journal, Rules page shell, auth, glossary, setup guide.
 | `utrade-position.js` | Position — "Macro Trend Position": MN + W1 200 SMA + trend age + macro + COT → weekly major pattern → D1 entry |
 | `utrade-key.js` | Blue Mac Key — "Key MA System+": 9-TF 50/200 matrix (62%+ weighted) → 50/200 MA pullback → zone at MA → trigger |
 | | Each strategy file = questions + diagrams + `rules` (Rules page is generated from it) + `levelMap()` + `prompt()` |
+| `tour.js` | `window.BMT` — spotlight app tour of every tab. Auto-runs once (after auth, placement and disclaimer) via `localStorage['bm_tour_v1']`; floating "?" button → "Tour this page" / "Full app tour". Steps live in `PAGES`; `ifMissing`/`demo` show mock-ups when the real screen isn't there |
 | `logo.png` | Single logo file (used to be embedded 4× as base64) |
 
 ### Key conventions
@@ -97,6 +98,10 @@ Swing 1:3 & 1:4, Position 1:3 & 1:5 · old tick-box sections removed — guided 
   If a nearer level sits in the way, a warning suggests partials there. Targets are never stretched into empty space.
 - **Journal Edge Report** (`buildEdgeReport` in index.html): win rate, avg planned R on wins, break-even win rate and
   expectancy (R per trade) by uTrade grade and by style; verdict needs 20+ closed trades.
+- **"What you need to know" card:** each strategy has `know: [{t, ref, why}]` + `knowIntro`. Shown before question 1
+  the first time a style is opened (questions wait for "I'm ready"), then as a collapsible bar (`bm_know_v1`).
+  Each concept links to its Examples card and to the University lesson with the same `ref` (status via
+  `BMU._p().done` and `BMU.isUnlocked(mid)`; locked modules show 🔒 and open the University home with the lock note).
 - **Prices come from the engine** (`levelMap` + `plan()`), never the AI. The AI only writes signal / wait / invalidation /
   management / reasoning. Counter-trend idea score = 45% of the main score (max 45).
 - Diagrams: write the bull version in `DG`; `UT.D.chart(spec, -1)` mirrors to bear. Reuse Examples diagrams with

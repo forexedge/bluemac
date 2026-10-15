@@ -21,6 +21,18 @@
     minRR: [2, 3],
     desc: 'Banks hunt the stops sitting above and below the Asian range and yesterday\'s high/low. We wait for that sweep, then scalp the snap-back from an order block or FVG — only with the H1 trend, only in the London or New York kill zone.',
     pills: ['Hold 5–90 min', 'London & NY kill zones', 'TP1 ≥ 1:2 · TP2 ≥ 1:3', 'Max 3 losses a day'],
+    knowIntro: "Scalping is fast, so you must recognise these on sight. Every question in this style is built on them.",
+    know: [
+      { t:"Market structure (HH/HL, LH/LL)", ref:'ex-market-structure-hh-hl-vs-ll-lh', why:"How you read the H1 bias — only scalp with it." },
+      { t:"Premium & discount", ref:'smc-pd', why:"Buy cheap, sell expensive — where price sits in the H1 range." },
+      { t:"Liquidity & the Judas swing", ref:'smc-judas', why:"The core of this style: banks sweep the Asian high/low first." },
+      { t:"Liquidity sweeps", ref:'smc-sweep', why:"A wick through a level that closes back inside — your setup." },
+      { t:"Order blocks", ref:'smc-ob-what', why:"The 15m zone you enter from after the sweep." },
+      { t:"Fair value gaps", ref:'smc-fvg-what', why:"The other entry zone — gaps price tends to fill." },
+      { t:"Change of character (CHoCH)", ref:'smc-choch', why:"Your 5m trigger: the first break the other way." },
+      { t:"Sessions & kill zones (SAST)", ref:'ex-trading-session-times-sast', why:"Scalps only happen in the London & New York kill zones." },
+      { t:"Risk-to-reward", ref:'mgt-rr', why:"Why every trade needs TP1 ≥ 1:2 after costs." }
+    ],
     stages: [{ label:'Safety gates' }, { label:'H1 bias' }, { label:'15m setup' }, { label:'5m trigger' }, { label:'Your levels' }],
 
     rules: {

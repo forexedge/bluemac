@@ -72,7 +72,7 @@ window.UT = (function(){
   function register(key, def){ def.key = key; STRATS[key] = def; }
   function has(key){ return !!STRATS[key]; }
   function cur(){ return STRATS[S.style]; }
-  function reset(){ st._drawn = -1; st.style = S.style; st.step = 0; st.ans = {}; st.lv = {}; st.shots = []; st.result = null; st.showAll = {}; }
+  function reset(){ st.knowOpen = false; st._drawn = -1; st.style = S.style; st.step = 0; st.ans = {}; st.lv = {}; st.shots = []; st.result = null; st.showAll = {}; }
 
   // ── Diagram helpers (shared by every strategy) ──────────
   // dir-aware candle charts on top of BMX.render. Write the BULL version;
@@ -485,9 +485,15 @@ window.UT = (function(){
     else if(q.type === 'matrix') body = matrixHTML(q);
     const live = typeof q.live === 'function' ? q.live(sessions()) : '';
     const same = st._drawn === st.step; st._drawn = st.step;   // re-render of the same question → no entrance animation
+    const firstTime = st.step === 0 && (s.know || []).length && !knowSeen()[S.style];
+    const knowOpen = firstTime || st.knowOpen;
+    if(st.step === 0 && knowOpen){
+      panel.innerHTML = `<div class="ut-wrap" style="--ut:${s.color};">${introHTML(s)}${knowHTML(s, true)}</div>`;
+      return;
+    }
     panel.innerHTML = `
       <div class="ut-wrap" style="--ut:${s.color};">
-        ${st.step === 0 ? introHTML(s) : ''}
+        ${st.step === 0 ? introHTML(s) + knowHTML(s, false) : ''}
         <div class="ut-prog">
           <div class="ut-stages">${s.stages.map((g, i) => `<span class="ut-stage${i === q.stage ? ' on' : i < q.stage ? ' done' : ''}">${i < q.stage ? '✓ ' : ''}${g.label}</span>`).join('')}</div>
           <div class="ut-bar"><i style="width:${pct}%"></i></div>
@@ -511,6 +517,53 @@ window.UT = (function(){
         </div>
       </div>`;
   }
+  // ── "What you need to know" — concepts this style relies on, linked to Examples + University ──
+  const KNOW_KEY = 'bm_know_v1';
+  const knowSeen = () => { try { return JSON.parse(localStorage.getItem(KNOW_KEY) || '{}'); } catch(e){ return {}; } };
+  function uniFor(ref){
+    if(!window.BMU || !BMU.MODULES) return null;
+    for(const m of BMU.MODULES){ const l = m.lessons.find(x => x.ref === ref); if(l) return { m, l }; }
+    return null;
+  }
+  function uniState(ref){
+    const u = uniFor(ref); if(!u) return null;
+    const P = BMU._p ? BMU._p() : { done:{} };
+    if(P.done && P.done[u.l.id]) return { u, k:'done' };
+    return { u, k: BMU.isUnlocked && BMU.isUnlocked(u.m.id) ? 'open' : 'locked' };
+  }
+  function openUni(ref){
+    const x = uniState(ref); if(!x) return learn(ref);
+    const b = [...document.querySelectorAll('.nav-item')].find(n => (n.getAttribute('onclick') || '').includes("'education'"));
+    if(b) goPage('education', b);
+    if(x.k === 'locked'){ BMU.home(); setTimeout(() => BMU.locked(x.u.m.id), 60); }
+    else BMU.lesson(x.u.m.id, x.u.l.id);
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+  function knowHTML(s, open){
+    const K = s.know || []; if(!K.length) return '';
+    const states = K.map(k => uniState(k.ref));
+    const done = states.filter(x => x && x.k === 'done').length, withUni = states.filter(Boolean).length;
+    if(!open) return `<button class="ut-know-bar" id="ut-know" onclick="UT.knowToggle(true)">📚 <b>What you need to know</b> for ${esc(s.short)} · ${K.length} concepts${withUni ? ` · ${done}/${withUni} done in University` : ''} <span>Show ›</span></button>`;
+    return `<div class="ut-know" id="ut-know">
+      <div class="ut-know-h"><div><div class="ut-kicker">📚 Before you start</div><div class="ut-know-t">What you need to know for ${esc(s.short)}</div></div>
+        ${withUni ? `<div class="ut-know-p"><b>${done}/${withUni}</b><span>done in University</span></div>` : ''}</div>
+      <div class="ut-know-d">${esc(s.knowIntro || 'This style uses the concepts below. If any of them are new to you, open the example first — every question will make sense afterwards.')}</div>
+      <div class="ut-know-l">${K.map((k, i) => { const x = states[i];
+        const uni = !x ? '' : x.k === 'done' ? `<button class="ut-k-uni done" onclick="UT.uni('${k.ref}')">🎓 Done ✓</button>`
+          : x.k === 'open' ? `<button class="ut-k-uni" onclick="UT.uni('${k.ref}')">🎓 Module ${x.u.m.code}</button>`
+          : `<button class="ut-k-uni locked" onclick="UT.uni('${k.ref}')" title="Unlocks as you progress through the degree">🔒 Module ${x.u.m.code}</button>`;
+        return `<div class="ut-k${x && x.k === 'done' ? ' done' : ''}"><div class="ut-k-txt"><b>${esc(k.t)}</b><span>${esc(k.why)}</span></div>
+          <div class="ut-k-btns"><button class="ut-k-ex" onclick="UT.learn('${k.ref}')">📖 Example</button>${uni}</div></div>`; }).join('')}</div>
+      <div class="ut-know-f"><span>New to some of these? Open the examples now — it takes 2 minutes and the questions will be easy.</span>
+        <button class="ut-next" onclick="UT.knowReady()">I'm ready — let's go →</button></div>
+    </div>`;
+  }
+  function knowReady(){
+    const k = knowSeen(); k[S.style] = 1; try { localStorage.setItem(KNOW_KEY, JSON.stringify(k)); } catch(e){}
+    st.knowOpen = false; render();
+  }
+  function knowToggle(v){ st.knowOpen = v; render(); const el = document.getElementById('ut-know'); if(el && v) el.scrollIntoView({ behavior:'smooth', block:'start' }); }
+
   function introHTML(s){
     return `<div class="ut-intro">
       <div class="ut-intro-top"><span class="ut-intro-badge">uTrade Ideas · ${s.short}</span><span class="ut-intro-tf">${s.tfs}</span></div>
@@ -907,7 +960,7 @@ REASONING: …
     return `<svg class="ut-ladder" viewBox="0 0 100 180" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${sv}</svg>`;
   }
 
-  return { register, has, reset, render, pick, toggle, cell, showAll, setRate: setManualRate, spec: specOf, cost, next, back, submitLevels, addShot, dropShot, fire,
+  return { register, has, reset, render, pick, toggle, cell, showAll, knowReady, knowToggle, uni: openUni, uniState, setRate: setManualRate, spec: specOf, cost, next, back, submitLevels, addShot, dropShot, fire,
            learn, closeLearn, sessions, bias: currentBias, stdLevels, stdCheck, rulesHTML, goTo, D, exCard, _st: st, _eval: evaluate, _plan: plan };
 })();
 
@@ -924,6 +977,27 @@ REASONING: …
 .ut-intro-desc{font-size:13.5px;color:var(--text2);line-height:1.65;margin-top:4px}
 .ut-intro-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .ut-intro-pills span{font-family:'DM Mono',monospace;font-size:10.5px;padding:3px 10px;border-radius:20px;background:var(--bg4);border:1px solid var(--border);color:var(--text2)}
+.ut-know{border:1px solid rgba(42,143,227,0.35);border-radius:16px;background:linear-gradient(160deg,rgba(42,143,227,0.07),rgba(42,143,227,0.01));padding:18px 20px;display:flex;flex-direction:column;gap:12px;animation:rise .3s ease both}
+.ut-know-h{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.ut-know-t{font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;color:var(--text);margin-top:3px}
+.ut-know-p{flex-shrink:0;text-align:center;padding:6px 12px;border-radius:12px;background:var(--bg4);border:1px solid var(--border)}
+.ut-know-p b{display:block;font-family:'Outfit',sans-serif;font-size:20px;color:var(--text)}
+.ut-know-p span{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.06em;color:var(--text3);text-transform:uppercase}
+.ut-know-d{font-size:13.5px;color:var(--text2);line-height:1.65}
+.ut-know-l{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ut-k{display:flex;flex-direction:column;gap:8px;justify-content:space-between;padding:11px 12px;border-radius:12px;background:var(--bg3);border:1px solid var(--border)}
+.ut-k.done{border-color:rgba(34,214,122,0.3)}
+.ut-k-txt{display:flex;flex-direction:column;gap:2px}
+.ut-k-txt b{font-size:13.5px;color:var(--text)}
+.ut-k-txt span{font-size:12px;color:var(--text2);line-height:1.5}
+.ut-k-btns{display:flex;gap:6px;flex-wrap:wrap}
+.ut-k-btns button{font-family:'DM Sans',sans-serif;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:20px;cursor:pointer;border:1px solid rgba(42,143,227,0.3);background:rgba(42,143,227,0.08);color:var(--blue)}
+.ut-k-uni.done{color:var(--bull);border-color:rgba(34,214,122,0.3);background:rgba(34,214,122,0.08)}
+.ut-k-uni.locked{color:var(--text3);border-color:var(--border2);background:transparent}
+.ut-know-f{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.ut-know-f span{font-size:12.5px;color:var(--text3);flex:1;min-width:200px}
+.ut-know-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;width:100%;text-align:left;padding:10px 14px;border-radius:12px;border:1px dashed rgba(42,143,227,0.35);background:rgba(42,143,227,0.04);color:var(--text2);font-size:12.5px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.ut-know-bar b{color:var(--text)} .ut-know-bar span{margin-left:auto;color:var(--blue);font-weight:700}
 .ut-prog{display:flex;flex-direction:column;gap:8px}
 .ut-stages{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
 .ut-stages::-webkit-scrollbar{display:none}
@@ -1142,6 +1216,8 @@ REASONING: …
   .ut-ladder{width:70px}
   .ut-inst-row{grid-template-columns:repeat(3,1fr)}
   .ut-mx-r{grid-template-columns:1fr;gap:6px}
+  .ut-know{padding:14px}.ut-know-l{grid-template-columns:1fr}.ut-know-t{font-size:17px}
+  .ut-know-f .ut-next{width:100%}
   .ut-hero-row{grid-template-columns:1fr}
   .ut-mx-l{flex-direction:row;gap:8px;align-items:baseline}
   .ut-take{grid-template-columns:1fr}

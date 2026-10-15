@@ -19,6 +19,17 @@
     minRR: [3, 4],
     desc: 'The weekly chart picks the side. We let the daily pull back into a demand or supply zone — ideally the fib golden pocket — and only pull the trigger when the H4 breaks out of its pullback pattern. Held for days, aimed at the next weekly level.',
     pills: ['Hold 2–15 days', 'Check twice a day', 'TP1 ≥ 1:3 · TP2 ≥ 1:4', 'Max 3 open swings'],
+    knowIntro: "Swing trades are held for days, so the weekly picture matters most. Know these before you start.",
+    know: [
+      { t:"Market structure (HH/HL, LH/LL)", ref:'ex-market-structure-hh-hl-vs-ll-lh', why:"Reads the weekly bias." },
+      { t:"Moving average stack (50 / 200)", ref:'ex-ma-stack-50-vs-200', why:"Confirms the weekly trend." },
+      { t:"Supply & demand zones", ref:'smc-snd', why:"Where the daily pullback should stop." },
+      { t:"Fib golden pocket (61.8–65%)", ref:'fib-golden', why:"The sweet spot of a weekly pullback." },
+      { t:"Push count — trend exhaustion", ref:'ex-push-count-wave-exhaustion', why:"1st & 2nd pushes pay; the 3rd is risky." },
+      { t:"Flags & wedges", ref:'pat-flag', why:"The H4 pullback patterns whose breakout is your trigger." },
+      { t:"Fib extensions", ref:'fib-ext', why:"How swing targets (127.2%) are set." },
+      { t:"Trailing stops", ref:'mgt-trail', why:"How to let a winning swing run." }
+    ],
     stages: [{ label:'Safety gates' }, { label:'Weekly bias' }, { label:'Daily zone' }, { label:'H4 trigger' }, { label:'Your levels' }],
 
     rules: {
