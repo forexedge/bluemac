@@ -37,9 +37,8 @@ uTrade Ideas page shell, Journal, Rules page shell, auth, glossary, setup guide.
 | `utrade-swing.js` | Swing — "Weekly Zone Swing": W1 structure + 50/200 stack → D1 zone → push count → H4 pattern/CHoCH |
 | `utrade-position.js` | Position — "Macro Trend Position": MN + W1 200 SMA + trend age + macro + COT → weekly major pattern → D1 entry |
 | `utrade-key.js` | Blue Mac Key — "Key Range" session system: 15m range after the Asia/London/NY open → 15m close outside (Key Break) → retest entry. Old 9-TF MA version is in git (bfd090b) |
-| `tour.js` | `window.BMT` — app tour (auto once, `bm_tour_v1`) + "?" button; last step is personalised from the placement test |
 | | Each strategy file = questions + diagrams + `rules` (Rules page is generated from it) + `levelMap()` + `prompt()` |
-| `tour.js` | `window.BMT` — spotlight app tour of every tab. Auto-runs once (after auth, placement and disclaimer) via `localStorage['bm_tour_v1']`; floating "?" button → "Tour this page" / "Full app tour". Steps live in `PAGES`; `ifMissing`/`demo` show mock-ups when the real screen isn't there |
+| `tour.js` | `window.BMT` — spotlight app tour of every tab. Auto-runs once (after auth, placement and disclaimer) via `localStorage['bm_tour_v1']`; floating "?" button → "Tour this page" / "Full app tour". Steps live in `PAGES`; `ifMissing`/`demo` show mock-ups when the real screen isn't there. Last step is personalised from the placement test (level + suggested style buttons) |
 | `logo.png` | Single logo file (used to be embedded 4× as base64) |
 
 ### Key conventions
