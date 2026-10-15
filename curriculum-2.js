@@ -15,7 +15,7 @@
       { id:'l3-1-1', icon:'📍', tag:'MA', ref:'ex-price-position-vs-mas',
         points:['Price above both MAs = bullish bias. Below both = bearish.','Between the 50 and 200 = transition zone, reduce size or wait.','Always check price position on the higher timeframe first.'] },
       { id:'l3-1-2', icon:'📚', tag:'MA', ref:'ex-ma-stack-50-vs-200',
-        points:['50 above 200 = bullish stack; 50 below 200 = bearish stack.','The stack gives you direction, not entries.','The same stack across several timeframes = strong confluence (Blue Mac Key).'] },
+        points:['50 above 200 = bullish stack; 50 below 200 = bearish stack.','The stack gives you direction, not entries.','The same stack across several timeframes = strong confluence — your Swing and Position bias.'] },
       { id:'l3-1-3', icon:'↔️', tag:'MA', ref:'ex-mas-spreading-vs-tangled',
         points:['Spreading MAs = momentum. Tangled MAs = chop.','Avoid trading when the 50 and 200 are tangled.','A compressing gap warns that the trend is weakening.'] },
       { id:'l3-1-4', icon:'🎯', tag:'ENTRY', ref:'ex-the-50-ma-pullback-entry',

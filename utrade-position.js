@@ -24,6 +24,7 @@
     know: [
       { t:"Market structure (HH/HL, LH/LL)", ref:'ex-market-structure-hh-hl-vs-ll-lh', why:"Reads the monthly trend." },
       { t:"Moving average stack (50 / 200)", ref:'ex-ma-stack-50-vs-200', why:"The weekly 200 SMA filter." },
+      { t:"The Key Range (first week)", ref:'mgt-keyframes', why:"The first week of the month — its break shows the monthly direction." },
       { t:"DXY & correlation", ref:'mgt-dxy', why:"The dollar drives gold, indices and USD pairs." },
       { t:"COT report", ref:'ind-cot', why:"What the big funds are positioned for." },
       { t:"Cup & handle", ref:'pat-cup', why:"A classic multi-month breakout pattern." },
@@ -44,6 +45,7 @@
       ],
       steps:[
         ['Monthly sets the side', 'HH/HL (or a monthly CHoCH) with price above a rising weekly 200 SMA = longs. The mirror for shorts.'],
+        ['Monthly Key Range', 'Mark the high and low of the first week of the month. A weekly close outside it in your direction confirms the position.'],
         ['Macro + COT check', 'Rates, DXY and positioning should support the direction. Against the macro = smaller size or no trade.'],
         ['Weekly setup', 'A major pattern completes (cup & handle, inverse H&S, Wyckoff spring — or their bearish twins) or price reaches a weekly demand/supply zone.'],
         ['Daily entry', 'A daily CHoCH out of the zone, or a weekly close back above the level. No trigger = Watchlist.'],
@@ -110,6 +112,17 @@
         options:[
           { v:'early', l:'Early — 1st or 2nd leg', sub:'Trend recently started (or just broke out).', dg:() => D.chart(UT.DG.trendEarly, UT.bias() || 1), dir:0, pts:10, ai:'early-stage trend (1st or 2nd leg)' },
           { v:'mature', l:'Mature — 4th leg or later', sub:'Long-running trend with smaller pushes.', dg:() => D.chart(UT.DG.trendMature, UT.bias() || 1), dir:0, pts:3, warn:'Mature trend — reduce size and take TP1 early', ai:'mature trend (4th leg or later, 18+ months)' }
+        ] },
+
+      { id:'krange', stage:1, type:'single', short:'Monthly Key Range', tf:'W1', align:'soft',
+        q:'Mark the high and low of the first week of the month. Where has price closed since?',
+        help:'<b>The first week sets the Monthly Key Range.</b> A weekly close outside it shows where the month — and often the next few months — is heading.',
+        ref:'mgt-keyframes',
+        options:[
+          { v:'up', l:'Broke ABOVE and holding', sub:"Weekly close above the first week's high.", dg:C('krBreak', 1), dir:1, pts:10, ref:'mgt-keybreak', ai:'price broke above the monthly Key Range (first week) and is holding' },
+          { v:'down', l:'Broke BELOW and holding', sub:"Weekly close below the first week's low.", dg:C('krBreak', -1), dir:-1, pts:10, ref:'mgt-keybreak', ai:'price broke below the monthly Key Range (first week) and is holding' },
+          { v:'inside', l:'Still inside the range', sub:'No side chosen yet.', dg:C('krInside', 1), dir:0, pts:4, warn:'Price is still inside the monthly Key Range (first week) — expect chop until it breaks', ai:'price still inside the monthly Key Range (first week)' },
+          { v:'early', l:'Still in the first week', sub:'The monthly range is still forming.', dg:C('krInside', 1), dir:0, pts:3, ai:'first week of the month — monthly Key Range still forming' }
         ] },
 
       { id:'macro', stage:2, type:'single', short:'Macro', align:'soft', compact:true,
@@ -184,14 +197,16 @@
           { id:'zone_hi', label:'Zone / neckline top', hint:'Top of the weekly zone, or the pattern neckline area.' },
           { id:'zone_lo', label:'Zone / neckline bottom', hint:'Bottom of the same area.' },
           { id:'m_up', label:'Major level above', hint:'All-time high, monthly resistance or pattern target — long target.' },
-          { id:'m_dn', label:'Major level below', hint:'Monthly support or pattern target — short target.' }
+          { id:'m_dn', label:'Major level below', hint:'Monthly support or pattern target — short target.' },
+          { id:'kr_hi', label:'First week of the month — high', hint:'The monthly Key Range high — a long target, and 2× the range beyond it.' },
+          { id:'kr_lo', label:'First week of the month — low', hint:'The monthly Key Range low — a short target, and 2× the range beyond it.' }
         ],
         shots:['Monthly chart', 'Weekly chart', 'Daily chart'],
         check(L, num){ return UT.stdCheck(L, num, 'weekly'); } }
     ],
 
     levelMap(dir, L, num){
-      return UT.stdLevels(dir, L, num, { tf:'weekly', up:[['m_up','major level above']], dn:[['m_dn','major level below']], buf:0.05, ext:true });
+      return UT.stdLevels(dir, L, num, { tf:'weekly', up:[['m_up','major level above']], dn:[['m_dn','major level below']], buf:0.05, ext:true, range:['kr_hi', 'kr_lo', 'monthly Key Range'] });
     },
 
     prompt(x){
@@ -199,7 +214,7 @@
 
 THE STRATEGY:
 1. Monthly structure and the weekly 200 SMA set the side. Only trade with both.
-2. The macro story (rates, dollar, growth) and COT positioning should agree.
+2. The macro story (rates, dollar, growth) and COT positioning should agree. The first week of the month forms the monthly Key Range — a weekly close outside it in your direction confirms the position.
 3. Enter where a major weekly setup completes: cup & handle, (inverse) head & shoulders, Wyckoff spring/upthrust, or a weekly demand/supply zone.
 4. Confirm on the daily: a change of character, or a weekly close back through the level.
 5. Stop beyond the weekly swing. Targets: weekly swing, the major level, fib 127.2% extension. TP1 at least 1:3, TP2 at least 1:5. Entry 1 and Entry 2 build the position in two pieces; Entry 2 is always between Entry 1 and the stop.

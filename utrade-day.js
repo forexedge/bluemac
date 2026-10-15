@@ -28,6 +28,7 @@
       { t:"Order blocks", ref:'smc-ob-what', why:"H1 entry zone." },
       { t:"Fair value gaps", ref:'smc-fvg-what', why:"H1 entry zone." },
       { t:"Change of character (CHoCH)", ref:'smc-choch', why:"Your 15m trigger out of the zone." },
+      { t:"The Key Range (first hour)", ref:'mgt-keyframes', why:"The first hour of the session — its break shows which way the day is going." },
       { t:"Previous day high & low", ref:'ind-pdhl', why:"Today's targets and liquidity pools." }
     ],
     stages: [{ label:'Safety gates' }, { label:'D1 bias' }, { label:'H4 structure' }, { label:'H1 zone' }, { label:'15m trigger' }, { label:'Your levels' }],
@@ -44,6 +45,7 @@
       steps:[
         ['D1 sets the bias', 'Daily structure (HH/HL or LH/LL, or a fresh CHoCH). Longs from discount, shorts from premium.'],
         ['H4 confirms', 'The H4 must have broken structure (BOS) in the D1 direction and now be pulling back. A ranging H4 = wait.'],
+        ['First-hour Key Range', 'Mark the high and low of the first hour of London or New York. A break with the daily bias confirms the day; a break against it = wait.'],
         ['H1 zone', 'The pullback should reach a real zone: fib golden pocket (61.8–65%), order block, FVG or flipped S/R.'],
         ['15m trigger', 'A 15m CHoCH out of the zone (best) or a closed engulfing / pin bar. No signal = Watchlist only.'],
         ['Type your levels', 'H1 swings, the zone and PDH/PDL. Blue Mac builds the entries, stop and targets and enforces the risk rules.']
@@ -151,6 +153,18 @@
           { v:'flat', l:'Flat — price crossing it', sub:'Momentum is weak.', dg:C('emaFlat', 1), dir:0, pts:2, warn:'H4 50 EMA is flat — momentum is weak', ai:'H4 50 EMA flat' }
         ] },
 
+      { id:'krange', stage:2, type:'single', short:'First-hour Key Range', tf:'H1', align:'critical',
+        q:'Mark the high and low of the first hour of the session. Where is price?',
+        help:'The <b>first-hour Key Range</b> is where the day shows its hand. A break with the daily bias confirms the day trade; a break against it means today is fighting the trend.',
+        ref:'mgt-keyframes',
+        live: s => `<div class="ut-live"><span>London first hour <b>${s.fmt(s.hour.london)}</b> SAST</span><span>New York first hour <b>${s.fmt(s.hour.ny)}</b> SAST</span></div>`,
+        options:[
+          { v:'up', l:'Broke ABOVE and holding', sub:'The day is choosing up.', dg:C('krBreak', 1), dir:1, pts:10, ref:'mgt-keybreak', ai:'price broke above the first-hour Key Range and is holding' },
+          { v:'down', l:'Broke BELOW and holding', sub:'The day is choosing down.', dg:C('krBreak', -1), dir:-1, pts:10, ref:'mgt-keybreak', ai:'price broke below the first-hour Key Range and is holding' },
+          { v:'inside', l:'Still inside the range', sub:'No side chosen yet.', dg:C('krInside', 1), dir:0, pts:4, warn:'Price is still inside the first-hour Key Range — expect chop until it breaks', ai:'price still inside the first-hour Key Range' },
+          { v:'fake', l:'Broke one side, closed back inside', sub:'A fake break — trapped traders.', dg:C('krFake', 1), dir:0, pts:0, gate:'wait', ref:'mgt-fakebreak', why:'The first-hour range just faked one side. Let it settle — wait for a proper close outside, or for your H1 zone.', ai:'fake break of the first-hour Key Range' }
+        ] },
+
       { id:'zone', stage:3, type:'single', short:'H1 zone', tf:'H1', align:'critical',
         q:'Where has the H1 pullback reached?',
         help:'Drop to the H1 and find what the pullback is touching. The <b>golden pocket</b> (61.8–65% fib of the last H1 leg) lined up with an <b>order block or FVG</b> is the A+ zone.',
@@ -202,14 +216,16 @@
           { id:'zone_hi', label:'Zone top', hint:'Top of the golden pocket / order block / FVG.' },
           { id:'zone_lo', label:'Zone bottom', hint:'Bottom of the same zone.' },
           { id:'pdh', label:'Previous day high (PDH)', hint:'Yesterday\'s high — long target.' },
-          { id:'pdl', label:'Previous day low (PDL)', hint:'Yesterday\'s low — short target.' }
+          { id:'pdl', label:'Previous day low (PDL)', hint:'Yesterday\'s low — short target.' },
+          { id:'kr_hi', label:'First-hour range high', hint:'High of the first hour of the session — a long target, and 2× the range beyond it.' },
+          { id:'kr_lo', label:'First-hour range low', hint:'Low of the first hour of the session — a short target, and 2× the range beyond it.' }
         ],
         shots:['D1 / H4 chart', 'H1 chart', '15m chart'],
         check(L, num){ return UT.stdCheck(L, num, 'H1'); } }
     ],
 
     levelMap(dir, L, num){
-      return UT.stdLevels(dir, L, num, { tf:'H1', up:[['pdh','previous day high (PDH)']], dn:[['pdl','previous day low (PDL)']] });
+      return UT.stdLevels(dir, L, num, { tf:'H1', up:[['pdh','previous day high (PDH)']], dn:[['pdl','previous day low (PDL)']], range:['kr_hi', 'kr_lo', 'first-hour Key Range'] });
     },
 
     prompt(x){
@@ -217,7 +233,7 @@
 
 THE STRATEGY:
 1. The daily chart sets the bias (structure + premium/discount). Only trade with it.
-2. The H4 must break structure in the daily direction, then pull back.
+2. The H4 must break structure in the daily direction, then pull back. The first-hour Key Range (high/low of the first hour of London or New York) should break the same way as the daily bias.
 3. Enter the H1 pullback at a real zone: fib golden pocket (61.8–65%), order block, FVG or flipped S/R.
 4. Confirm on the 15m: a change of character with displacement (best) or a closed engulfing / pin bar.
 5. Stop beyond the H1 swing. Targets: the H1 swing, then PDH/PDL. TP1 at least 1:2, TP2 at least 1:3, Entry 2 always between Entry 1 and the stop.

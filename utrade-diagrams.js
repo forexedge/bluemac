@@ -219,6 +219,95 @@
       fitExtra:[112.6]
     }
   };
+
+  // ── Key Range (first candles after an open) — shared by every style ──
+  const KR = { boxes:[{ i1:0, i2:9, p1:100, p2:104, c:'silver', op:0.1, border:true, l:'KEY RANGE', lt:'below' }] };
+  const rangeBars = { 0:{o:101,c:103.4,h:103.8,l:100.6}, 1:{o:103.4,c:101.2,h:103.9,l:100.4}, 2:{o:101.2,c:102.8,h:103.2,l:100.9}, 3:{o:102.8,c:101.5,h:103.6,l:101.2},
+                      4:{o:101.5,c:103.1,h:103.5,l:100.2}, 5:{o:103.1,c:101.9,h:104,l:101.6}, 6:{o:101.9,c:102.9,h:103.3,l:101.4}, 7:{o:102.9,c:101.6,h:103.2,l:100.3},
+                      8:{o:101.6,c:102.6,h:103,l:101.1}, 9:{o:102.6,c:103.2,h:103.6,l:102.2} };
+  const withRange = (extra) => Object.assign({}, rangeBars, extra);
+  Object.assign(DG, {
+    krBreak: {
+      n:36, seed:101, noise:0.35, wick:0.5,
+      pts:[[0,102],[9,103.2],[10,104.8],[11,106],[14,107.2],[17,104.6],[18,105],[22,107.5],[28,109.5],[35,111]],
+      fix: withRange({ 10:{ o:103.2, c:105.6, h:105.9, l:103 }, 16:{ o:105.2, c:104.5, h:105.4, l:104.1 }, 17:{ o:104.5, c:105.3, h:105.5, l:104.05 } }),
+      boxes: KR.boxes,
+      marks:[{ t:'hline', p:104, i1:0, c:['bull','bear'], l:['RANGE HIGH','RANGE LOW'] }, { t:'text', i:10, p:107.4, s:'BREAK', c:['bull','bear'] }, { t:'ring', i:17, p:104.1, c:'amber', r:4.5 }, { t:'text', i:20, p:102.6, s:'RETEST', c:'amber' }],
+      fitExtra:[99.4, 112]
+    },
+    krMomentum: {
+      n:36, seed:103, noise:0.35, wick:0.5,
+      pts:[[0,102],[9,103.2],[10,105],[14,108],[20,111],[26,113.5],[35,115]],
+      fix: withRange({ 10:{ o:103.2, c:105.8, h:106, l:103 } }),
+      boxes: KR.boxes,
+      marks:[{ t:'hline', p:104, i1:0, c:['bull','bear'], l:['RANGE HIGH','RANGE LOW'] }, { t:'text', i:24, p:107.5, s:'NO RETEST · STRETCHED', c:'amber' }],
+      fitExtra:[99.4]
+    },
+    krFailed: {
+      n:36, seed:105, noise:0.35, wick:0.5,
+      pts:[[0,102],[9,103.2],[10,105],[13,105.6],[17,103],[22,101.5],[28,100.5],[35,100.8]],
+      fix: withRange({ 10:{ o:103.2, c:105.2, h:105.5, l:103 }, 16:{ o:104.4, c:102.9, h:104.6, l:102.7 } }),
+      boxes: KR.boxes,
+      marks:[{ t:'hline', p:104, i1:0, c:'slate' }, { t:'x', i:16, p:103, c:'bear' }, { t:'text', i:24, p:106.8, s:'BACK INSIDE = IDEA DEAD', c:'bear' }],
+      fitExtra:[99.4, 107.6]
+    },
+    krFake: {
+      n:36, seed:107, noise:0.35, wick:0.5,
+      pts:[[0,102],[9,103.2],[10,103.6],[13,102],[18,100.6],[22,98.6],[28,97.2],[35,96.5]],
+      fix: withRange({ 10:{ o:103.2, c:103.5, h:105.8, l:103 } }),
+      boxes: KR.boxes,
+      marks:[{ t:'hline', p:104, i1:0, c:'slate' }, { t:'ring', i:10, p:105.6, c:'amber', r:4.5 }, { t:'text', i:10, p:107.3, s:'FAKE BREAK', c:'amber' }, { t:'arrow', pts:[[13,101.5],[24,98]], c:['bear','bull'] }],
+      fitExtra:[108]
+    },
+    krInside: {
+      n:36, seed:109, noise:0.35, wick:0.5,
+      pts:[[0,102],[9,103.2],[14,101.4],[20,103.3],[26,101.2],[31,102.8],[35,102.2]],
+      fix: rangeBars,
+      boxes:[{ i1:0, i2:35, p1:100, p2:104, c:'silver', op:0.08, border:true, l:'STILL INSIDE THE RANGE', lt:'below' }],
+      marks:[{ t:'dot', i:35, p:102.2, c:'amber' }],
+      fitExtra:[99, 105.5]
+    },
+    openAbove: {
+      n:36, seed:111, noise:0.35, wick:0.5,
+      pts:[[0,101],[5,104.8],[10,100.6],[15,104.6],[19,102.8],[20,106.8],[24,107.8],[30,107.2],[35,108.4]],
+      fix:{ 20:{ o:106.6, c:107.2, h:107.6, l:106.3, keepPrev:true } },
+      ov:[{ t:'level', p:105.2, c:['bear','bull'], l:['PDH','PDL'] }, { t:'level', p:100.2, c:['bull','bear'], l:['PDL','PDH'] }],
+      marks:[{ t:'vline', i:20, c:'slate', l:'TODAY' }, { t:'ring', i:20, p:106.6, c:'amber', r:4.5 }]
+    },
+    openInside: {
+      n:36, seed:113, noise:0.35, wick:0.5,
+      pts:[[0,101],[5,104.8],[10,100.6],[15,104.6],[19,102.8],[20,102.6],[25,103.6],[30,101.8],[35,103]],
+      ov:[{ t:'level', p:105.2, c:'slate', l:'PDH' }, { t:'level', p:100.2, c:'slate', l:'PDL' }],
+      marks:[{ t:'vline', i:20, c:'slate', l:'TODAY' }, { t:'ring', i:20, p:102.6, c:'amber', r:4.5 }]
+    }
+  });
+  // range size compared with the average daily range (ADR) — simple bar picture
+  function rangeSize(frac, label, col){
+    const W = 260, H = 150, x0 = 40, top = 22, h = 104, adrW = 50, rr = h * frac;
+    let sv = `<rect x="${x0}" y="${top}" width="${adrW}" height="${h}" rx="4" fill="rgba(138,164,191,0.12)" stroke="#8AA4BF" stroke-dasharray="3,3"/>`;
+    sv += `<text x="${x0 + adrW / 2}" y="${top - 6}" text-anchor="middle" font-family="'DM Mono',monospace" font-size="7" font-weight="bold" fill="#8AA4BF">AVG DAILY RANGE</text>`;
+    sv += `<rect x="${x0 + 100}" y="${top + h - rr}" width="${adrW}" height="${rr}" rx="4" fill="${col}" opacity="0.28" stroke="${col}"/>`;
+    sv += `<text x="${x0 + 125}" y="${top + h - rr - 6}" text-anchor="middle" font-family="'DM Mono',monospace" font-size="7" font-weight="bold" fill="${col}">KEY RANGE</text>`;
+    sv += `<text x="${x0 + 125}" y="${top + h + 14}" text-anchor="middle" font-family="'DM Mono',monospace" font-size="8" font-weight="bold" fill="${col}">${label}</text>`;
+    sv += `<line x1="${x0 + 60}" y1="${top + h}" x2="${x0 + 90}" y2="${top + h}" stroke="rgba(255,255,255,0.2)"/>`;
+    return `<svg width="100%" viewBox="0 0 ${W} ${H}" style="max-width:320px;display:block;" xmlns="http://www.w3.org/2000/svg">${sv}</svg>`;
+  }
+  // Key Range timing: open → range forms → 2-hour window
+  function keyTimeline(state){
+    const W = 260, H = 70, X = m => 14 + m / 240 * (W - 28);
+    const col = { forming:'#F5B841', ready:'#22D67A', late:'#FF5C5C' }[state] || '#8AA4BF';
+    const nowAt = { forming:8, ready:70, late:200 }[state] || 0;
+    let sv = `<rect x="${X(0)}" y="26" width="${X(240) - X(0)}" height="14" rx="3" fill="rgba(138,164,191,0.12)"/>`;
+    sv += `<rect x="${X(0)}" y="26" width="${X(15) - X(0)}" height="14" rx="3" fill="#E4E8EE" opacity="0.6"/>`;
+    sv += `<rect x="${X(15)}" y="26" width="${X(120) - X(15)}" height="14" rx="3" fill="#22D67A" opacity="0.45"/>`;
+    sv += `<text x="${X(7)}" y="20" text-anchor="middle" font-family="'DM Mono',monospace" font-size="6.5" font-weight="bold" fill="#E4E8EE">15M</text>`;
+    sv += `<text x="${X(67)}" y="20" text-anchor="middle" font-family="'DM Mono',monospace" font-size="6.5" font-weight="bold" fill="#22D67A">TRADE WINDOW · 2H</text>`;
+    sv += `<text x="${X(180)}" y="20" text-anchor="middle" font-family="'DM Mono',monospace" font-size="6.5" font-weight="bold" fill="#8AA4BF">TOO LATE</text>`;
+    [['OPEN',0,'start'],['+15m',15,'start'],['+2h',120,'middle']].forEach(([t, m, a], k) => sv += `<text x="${X(m) + (k === 1 ? 6 : 0)}" y="${k === 1 ? 60 : 52}" text-anchor="${a}" font-family="'DM Mono',monospace" font-size="6" fill="rgba(255,255,255,0.45)">${t}</text>`);
+    sv += `<line x1="${X(nowAt)}" y1="22" x2="${X(nowAt)}" y2="44" stroke="${col}" stroke-width="2"/><text x="${X(nowAt)}" y="64" text-anchor="middle" font-family="'DM Mono',monospace" font-size="7" font-weight="bold" fill="${col}">YOU</text>`;
+    return `<svg width="100%" viewBox="0 0 ${W} ${H}" style="max-width:320px;display:block;" xmlns="http://www.w3.org/2000/svg">${sv}</svg>`;
+  }
+
   const C = (k, dir) => () => D.chart(DG[k], dir);
 
   // SAST day timeline for the session question
@@ -254,7 +343,7 @@
     });
   }
 
-  UT.DG = DG; UT.C = C; UT.sessionBar = sessionBar; UT.pdDg = pdDg;
+  UT.DG = DG; UT.C = C; UT.sessionBar = sessionBar; UT.pdDg = pdDg; UT.rangeSize = rangeSize; UT.keyTimeline = keyTimeline;
   // instrument picker shared by every strategy
   UT.INSTR = [
           ['Metals', [['XAUUSD','Gold'],['XAGUSD','Silver']]],

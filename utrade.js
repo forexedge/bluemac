@@ -181,9 +181,26 @@ window.UT = (function(){
     const nowS = (d.getUTCHours() * 60 + d.getUTCMinutes() + 120) % 1440;
     const inW = w => nowS >= w[0] && nowS < w[1];
     const day = new Date(d.getTime() + 2 * 3600e3).getUTCDay();
-    return { lo, ny, loD, nyD, now:nowS, nowTxt:hm(nowS), weekend: day === 0 || day === 6,
+    // ── Key Range: the market opens (local time in each city → SAST) ──
+    //   Asia = Tokyo 09:00 (no daylight saving) · London 08:00 · New York cash open 09:30
+    const opens = { asia: toSAST('Asia/Tokyo', 9, 0, d), london: toSAST('Europe/London', 8, 0, d), ny: toSAST('America/New_York', 9, 30, d) };
+    const since = o => (nowS - o + 1440) % 1440;            // minutes since that open (0–1439)
+    // state of a Key Range that takes `len` minutes to form and is tradeable for `win` minutes after the open
+    const keyState = (o, len, win) => {
+      const m = since(o);
+      if(m < len) return { k:'forming', left: len - m };
+      if(m < win) return { k:'ready', left: win - m };
+      if(m < 16 * 60) return { k:'late', ago: m };
+      return { k:'soon', inMin: 1440 - m };                  // opens later today / tonight
+    };
+    const key = {}; Object.entries(opens).forEach(([k, o]) => key[k] = Object.assign({ open:o, rangeEnd:(o + 15) % 1440, until:(o + 120) % 1440 }, keyState(o, 15, 120)));
+    // first-hour (Day) and 5-minute (Scalp) ranges for London and New York
+    const hour = { london: [opens.london, (opens.london + 60) % 1440], ny: [opens.ny, (opens.ny + 60) % 1440] };
+    const five = { london: [opens.london, (opens.london + 5) % 1440], ny: [opens.ny, (opens.ny + 5) % 1440] };
+    const dur = m => m >= 60 ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m` : `${m} min`;
+    return { lo, ny, loD, nyD, opens, key, hour, five, dur, now:nowS, nowTxt:hm(nowS), weekend: day === 0 || day === 6,
              cur: inW(lo) ? 'london' : inW(ny) ? 'ny' : null, curD: inW(loD) ? 'london' : inW(nyD) ? 'ny' : null,
-             fmt: w => hm(w[0]) + '–' + hm(w[1]) };
+             fmt: w => hm(w[0]) + '–' + hm(w[1]), hm };
   }
 
   // ── Scoring ─────────────────────────────────────────────
@@ -223,21 +240,25 @@ window.UT = (function(){
       if(o.noScore){ ticks.push({ ok:null, q:q.short, l:o.l }); return; }   // skipped layer — not counted
       max += best;
       if(o.gate === 'block'){ gates.push({ type:'block', q:q.short, l:o.l, why:o.why }); ticks.push({ ok:false, q:q.short, l:o.l }); return; }
-      if(o.gate === 'wait'){ gates.push({ type:'wait', q:q.short, l:o.l, why:o.why }); ticks.push({ ok:null, q:q.short, l:o.l }); earned += o.pts || 0; return; }
+      if(o.gate === 'wait'){ gates.push({ type:'wait', q:q.short, l:o.l, why:o.why, biasQ:!!q.bias }); ticks.push({ ok:null, q:q.short, l:o.l }); earned += o.pts || 0; return; }
       if(o.dir && bias && o.dir !== bias && !q.bias){
         if(q.align === 'critical'){ gates.push({ type:'wait', q:q.short, l:o.l, why:`This points ${o.dir > 0 ? 'bullish' : 'bearish'} but your ${s.biasTF} bias is ${bias > 0 ? 'bullish' : 'bearish'}. Wait for the ${q.short.toLowerCase()} to line up with the bias.` }); }
         else warns.push(`${q.short}: ${o.l} works against your bias`);
         ticks.push({ ok:null, q:q.short, l:o.l + ' (against bias)' });
         return;
       }
-      if(o.dir && !bias && !q.bias){ warns.push(`${q.short}: no bias to align with`); ticks.push({ ok:null, q:q.short, l:o.l }); return; }
+      if(o.dir && !bias && !q.bias){ ticks.push({ ok:null, q:q.short, l:o.l }); return; }
       earned += o.pts || 0;
       ticks.push({ ok:(o.pts || 0) >= best * 0.6 ? true : null, q:q.short, l:o.l });
       if(o.warn) warns.push(o.warn);
       if(o.halfRisk) halfRisk = true;
       if(typeof o.check === 'function'){ const w = o.check(sessions()); if(w) warns.push(w); }
     });
-    if(!bias && !gates.some(g => g.type === 'block')) gates.push({ type:'block', q:'Bias', l:'No directional bias', why:`${s.biasTF} gives no clear direction. No bias = no trade.` });
+    if(!bias && !gates.some(g => g.type === 'block')){
+      const bq = gates.find(g => g.biasQ);
+      if(bq) bq.type = 'block';                                  // e.g. "fake break" — say exactly why
+      else gates.push(Object.assign({ type:'block', q:'Bias', l:'No directional bias', why:`${s.biasTF} gives no clear direction. No bias = no trade.` }, s.noBias || {}));
+    }
     const score = max ? Math.round(earned / max * 100) : 0;
     const blocked = gates.some(g => g.type === 'block');
     const waiting = !blocked && gates.some(g => g.type === 'wait');
@@ -248,7 +269,7 @@ window.UT = (function(){
     return { bias, score, grade, gradeLong, risk, gates, warns, ticks, blocked, waiting, tooWeak, conf };
   }
   const opt = (q, v) => v == null ? null : q.options.find(o => o.v === v);
-  // ── 9-timeframe matrix (Blue Mac Key) ──
+  // ── 9-timeframe matrix (question type 'matrix' — not used by any strategy right now) ──
   // rows: [code, label, weight, setsBias]
   function matrixBias(q){
     const A = st.ans[q.id] || {}; let s = 0, W = 0;
@@ -334,7 +355,7 @@ window.UT = (function(){
         why:`Blue Mac needs a real level paying at least 1:${p.mins[0]} after costs. Either wait for a deeper pullback (better entry, smaller stop) or mark a further target on a higher timeframe. A TP placed beyond the liquidity in empty space usually never gets hit.` });
       ev.waiting = true;
     } else if(p.through){
-      ev.warns.push(`Price must break through the ${p.through.name} (1:${r1(p.through.rr)}) before TP1 — consider taking partials there`);
+      ev.warns.push(`Price has to get through the ${p.through.name} (1:${r1(p.through.rr)}) before TP1 — consider taking partials there`);
     }
   }
 
@@ -409,6 +430,15 @@ window.UT = (function(){
     const cands = dir > 0 ? [[hi, `${tf} swing high (buy-side liquidity)`]] : [[lo, `${tf} swing low (sell-side liquidity)`]];
     (dir > 0 ? o.up : o.dn).forEach(([f, lab]) => cands.push([num(L[f]), lab]));
     if(o.ext) cands.push([dir > 0 ? hi + (hi - lo) * 0.272 : lo - (hi - lo) * 0.272, `fib 127.2% extension of the ${tf} swing`]);
+    // Key Range of this style's timeframe: the far edge and a 2× projection are targets
+    if(o.range){
+      const [hk, lk, name] = o.range, rh = num(L[hk]), rl = num(L[lk]);
+      if(isFinite(rh) && isFinite(rl) && rh > rl){
+        const H = rh - rl;
+        if(dir > 0) cands.push([rh, `${name} high`], [rh + 2 * H, `2× ${name} target`]);
+        else cands.push([rl, `${name} low`], [rl - 2 * H, `2× ${name} target`]);
+      }
+    }
     const tg = cands.filter(t => isFinite(t[0]) && dir * (t[0] - e1) > 0).sort((a, b) => dir * (a[0] - b[0]));
     return { e1, e2, sl, e1why, e2why, slwhy, tg };
   }
@@ -597,8 +627,8 @@ window.UT = (function(){
       return `<div class="ut-opt ${tone}${sel(o) ? ' on' : ''}" role="button" tabindex="0" onclick="UT.${multi ? 'toggle' : 'pick'}('${q.id}','${o.v}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
         ${multi ? `<span class="ut-check">${sel(o) ? '✓' : ''}</span>` : ''}
         ${dg ? `<div class="ut-opt-dg">${dg}</div>` : ''}
-        <div class="ut-opt-t">${o.l}</div>
-        ${o.sub ? `<div class="ut-opt-s">${o.sub}</div>` : ''}
+        <div class="ut-opt-t">${V(o.l)}</div>
+        ${o.sub ? `<div class="ut-opt-s">${V(o.sub)}</div>` : ''}
         ${o.gate === 'block' ? `<div class="ut-tag block">🛑 No trade</div>` : o.gate === 'wait' ? `<div class="ut-tag wait">⏳ Wait</div>` : ''}
         ${o.ref ? `<button class="ut-opt-learn" onclick="event.stopPropagation();UT.learn('${o.ref}')">📖 Learn</button>` : ''}
       </div>`;

@@ -30,6 +30,7 @@
       { t:"Order blocks", ref:'smc-ob-what', why:"The 15m zone you enter from after the sweep." },
       { t:"Fair value gaps", ref:'smc-fvg-what', why:"The other entry zone — gaps price tends to fill." },
       { t:"Change of character (CHoCH)", ref:'smc-choch', why:"Your 5m trigger: the first break the other way." },
+      { t:"The Key Range & the fake break", ref:'mgt-fakebreak', why:"The first 5 minutes after the open — scalpers trade its fake break." },
       { t:"Sessions & kill zones (SAST)", ref:'ex-trading-session-times-sast', why:"Scalps only happen in the London & New York kill zones." },
       { t:"Risk-to-reward", ref:'mgt-rr', why:"Why every trade needs TP1 ≥ 1:2 after costs." }
     ],
@@ -47,6 +48,7 @@
       steps:[
         ['H1 sets the direction', 'Structure first (HH/HL or LH/LL, or a fresh CHoCH), then the 50 EMA slope, then premium/discount. Buy in discount, sell in premium.'],
         ['15m sweep', 'Wait for price to wick through the Asian high/low, PDH/PDL or equal highs/lows and <strong>close back inside</strong>. That is the Judas swing — the fake move before the real one.'],
+        ['5-min Key Range', 'Mark the first 5 minutes after the London / New York open. The best scalps come from a <strong>fake break</strong> of it that closes back inside. A real break means continuation — smaller size.'],
         ['15m zone', 'Price must react from an order block, FVG or flipped S/R level. No zone = no entry.'],
         ['5m trigger', 'Best: a 5m CHoCH that leaves an FVG. Also valid: a closed engulfing or pin bar inside the zone. No closed signal = Watchlist only.'],
         ['Type your levels', 'Blue Mac calculates Entry 1, Entry 2, stop and targets from your 15m swings, zone and liquidity — and enforces the risk rules.']
@@ -153,6 +155,19 @@
           { v:'none', l:'Nothing yet — price mid-range', sub:'No level has been taken. Price is drifting in the middle.', dg:C('midRange', 1), dir:0, pts:0, gate:'wait', why:'No liquidity has been taken yet. Mark the Asian high/low and PDH/PDL, set alerts, and wait for one to be swept.', ai:'no sweep yet — price is mid-range' }
         ] },
 
+      { id:'krange', stage:2, type:'single', short:'5-min Key Range', tf:'5m', align:'critical',
+        q:'Mark the first 5 minutes after the London / New York open. What has price done with that range?',
+        help:'The <b>5-minute Key Range</b> is the high and low of the first 5 minutes after the open. Scalpers want the <b>fake break</b>: a wick through one side that closes back inside — the trap that launches the real move the other way.',
+        ref:'mgt-fakebreak',
+        live: s => `<div class="ut-live"><span>London 5-min range <b>${s.fmt(s.five.london)}</b> SAST</span><span>New York 5-min range <b>${s.fmt(s.five.ny)}</b> SAST</span></div>`,
+        options:[
+          { v:'sweep_lo', l:'Swept below it, closed back inside', sub:'Fake break down — sellers trapped. Supports longs.', dg:C('krFake', -1), dir:1, pts:10, ref:'mgt-fakebreak', ai:'fake break below the 5-minute Key Range (closed back inside) — supports longs' },
+          { v:'sweep_hi', l:'Swept above it, closed back inside', sub:'Fake break up — buyers trapped. Supports shorts.', dg:C('krFake', 1), dir:-1, pts:10, ref:'mgt-fakebreak', ai:'fake break above the 5-minute Key Range (closed back inside) — supports shorts' },
+          { v:'break_up', l:'Broke out above and holding', sub:'A real break, not a fake.', dg:C('krBreak', 1), dir:1, pts:4, warn:'The 5-min Key Range broke for real — this is a continuation, not a sweep. Smaller size, take TP1 quickly', ai:'real break above the 5-minute Key Range (continuation)' },
+          { v:'break_dn', l:'Broke out below and holding', sub:'A real break, not a fake.', dg:C('krBreak', -1), dir:-1, pts:4, warn:'The 5-min Key Range broke for real — this is a continuation, not a sweep. Smaller size, take TP1 quickly', ai:'real break below the 5-minute Key Range (continuation)' },
+          { v:'inside', l:'Still inside (or not set yet)', sub:'Nothing has happened at the range.', dg:C('krInside', 1), dir:0, pts:3, ai:'price still inside the 5-minute Key Range' }
+        ] },
+
       { id:'poi', stage:2, type:'single', short:'15m zone', tf:'15m', align:'critical',
         q:'Where is price reacting from on the 15-minute chart?',
         help:'After the sweep, price needs a <b>zone</b> to enter from — the footprint the banks left. Pick the one price is sitting in (or about to tap). <b>No zone = no entry</b>, however good the rest looks.',
@@ -202,7 +217,9 @@
           { id:'zone_hi', label:'Zone top', hint:'Top edge of your order block / FVG / flip level.' },
           { id:'zone_lo', label:'Zone bottom', hint:'Bottom edge of the same zone.' },
           { id:'liq_up', label:'Liquidity above', hint:'Asian high, PDH or equal highs above price — long target.' },
-          { id:'liq_dn', label:'Liquidity below', hint:'Asian low, PDL or equal lows below price — short target.' }
+          { id:'liq_dn', label:'Liquidity below', hint:'Asian low, PDL or equal lows below price — short target.' },
+          { id:'kr_hi', label:'5-min Key Range high', hint:'High of the first 5 minutes after the open — a long target.' },
+          { id:'kr_lo', label:'5-min Key Range low', hint:'Low of the first 5 minutes after the open — a short target.' }
         ],
         shots:['H1 chart', '15m chart', '5m chart'],
         check(L, num){ return UT.stdCheck(L, num, '15m'); } }
@@ -210,7 +227,7 @@
 
     // Entries, stop and structural targets for each direction
     levelMap(dir, L, num){
-      return UT.stdLevels(dir, L, num, { tf:'15m', up:[['liq_up','liquidity above you marked']], dn:[['liq_dn','liquidity below you marked']] });
+      return UT.stdLevels(dir, L, num, { tf:'15m', up:[['liq_up','liquidity above you marked']], dn:[['liq_dn','liquidity below you marked']], range:['kr_hi', 'kr_lo', '5-min Key Range'] });
     },
 
     prompt(x){
@@ -219,7 +236,7 @@
 THE STRATEGY:
 1. H1 sets the bias (structure + 50 EMA + premium/discount). Only trade with it.
 2. In the London or New York kill zone, wait for the 15m chart to sweep liquidity (Asian high/low, PDH/PDL, equal highs/lows) and close back inside.
-3. Enter from a 15m order block, FVG or flipped level after the sweep.
+3. The 5-minute Key Range (first 5 minutes after the London / New York open) is the level that gets swept — a fake break that closes back inside is the best scalp. Enter from a 15m order block, FVG or flipped level after the sweep.
 4. Confirm on the 5m: a change of character with displacement (best) or a strong engulfing / pin bar that has closed.
 5. Stop beyond the swept swing. Targets are the liquidity on the other side. TP1 at least 1:2, TP2 at least 1:3, Entry 2 always between Entry 1 and the stop.
 6. Take partials at TP1 and move the stop to breakeven. A scalp that has not moved within about 60 minutes is closed.

@@ -16,7 +16,7 @@
       { id:'l5-1-2', icon:'🎛️', title:'The Blue Mac Trading Styles', tag:'STYLE',
         desc:`Blue Mac supports five styles. They use the same principles but different timeframes, holding times and screen time. The best style is the one that <strong>fits your life</strong> — your job, your schedule and your temperament.`,
         svg:() => BMUD.styles(), label:'◆ SAME RULES · DIFFERENT TIMEFRAMES',
-        how:`Working full-time? <strong>Swing</strong> or <strong>Position</strong> — check charts once or twice a day. Free during London or New York? <strong>Day trading</strong>. Can sit at the screen and react fast? <strong>Scalp</strong>. Want the full 9-timeframe MA picture? <strong>Blue Mac Key</strong>.`,
+        how:`Working full-time? <strong>Swing</strong> or <strong>Position</strong> — check charts once or twice a day. Free during London or New York? <strong>Day trading</strong>. Can sit at the screen and react fast? <strong>Scalp</strong>. Want one clean setup at the session open with clear rules? <strong>Blue Mac Key</strong>.`,
         tip:`Not sure? Take the 60-second style quiz on the Checklist page. Most beginners do best starting with Swing — fewer decisions, less noise, more time to think.`,
         points:['Scalp 15m/30m · Day H1/H4 · Swing D1/H4 · Position W1/D1 · Key all timeframes.','Choose the style that matches your available screen time.','Master one style before adding another.'] },
       { id:'l5-1-3', icon:'✅', title:'The Confluence Checklist', tag:'PROCESS',

@@ -25,7 +25,7 @@ uTrade Ideas page shell, Journal, Rules page shell, auth, glossary, setup guide.
 | `smartmoney.js` | Examples → Smart Money tab (19 lessons: OB, FVG, BOS/CHoCH, liquidity…), candle engine with auto-fit |
 | `exengine.js` | `window.BMX` shared chart engine: generates candles from anchor points and computes REAL indicators (SMA, EMA, RSI, MACD, Bollinger, Stochastic, ATR, VWAP, Ichimoku, volume profile). Also `BMX.mount()` / `BMX.filter()` for library tabs |
 | `indicators.js` | Examples → Indicators tab (17 lessons, uses BMX) |
-| `management.js` | Examples → Trade Management tab (8 lessons, uses BMX) |
+| `management.js` | Examples → Trade Management tab (12 lessons incl. 4 "Key Range" lessons, uses BMX) |
 | `uni-diagrams.js` | `window.BMUD` — 35 custom SVG diagrams for University lessons |
 | `curriculum-1/2/3.js` | University content: 7 levels → 20 modules → 97 lessons + 100 quiz questions (`window.BMU_LEVELS`) |
 | `placement.js` | `window.BMP` — placement test shown once after registration (lives in `#quiz-gate`) |
@@ -36,7 +36,8 @@ uTrade Ideas page shell, Journal, Rules page shell, auth, glossary, setup guide.
 | `utrade-day.js` | Day — "Trend Pullback Day Trade": D1 bias → H4 BOS → H1 zone (golden pocket/OB/FVG/flip) → 15m trigger |
 | `utrade-swing.js` | Swing — "Weekly Zone Swing": W1 structure + 50/200 stack → D1 zone → push count → H4 pattern/CHoCH |
 | `utrade-position.js` | Position — "Macro Trend Position": MN + W1 200 SMA + trend age + macro + COT → weekly major pattern → D1 entry |
-| `utrade-key.js` | Blue Mac Key — "Key MA System+": 9-TF 50/200 matrix (62%+ weighted) → 50/200 MA pullback → zone at MA → trigger |
+| `utrade-key.js` | Blue Mac Key — "Key Range" session system: 15m range after the Asia/London/NY open → 15m close outside (Key Break) → retest entry. Old 9-TF MA version is in git (bfd090b) |
+| `tour.js` | `window.BMT` — app tour (auto once, `bm_tour_v1`) + "?" button; last step is personalised from the placement test |
 | | Each strategy file = questions + diagrams + `rules` (Rules page is generated from it) + `levelMap()` + `prompt()` |
 | `tour.js` | `window.BMT` — spotlight app tour of every tab. Auto-runs once (after auth, placement and disclaimer) via `localStorage['bm_tour_v1']`; floating "?" button → "Tour this page" / "Full app tour". Steps live in `PAGES`; `ifMissing`/`demo` show mock-ups when the real screen isn't there |
 | `logo.png` | Single logo file (used to be embedded 4× as base64) |
@@ -112,8 +113,19 @@ Swing 1:3 & 1:4, Position 1:3 & 1:5 · old tick-box sections removed — guided 
 - Session times are computed live in SAST from London/New York local time (DST-safe): London KZ 08:00–11:00 London,
   NY KZ 08:30–11:00 New York.
 
+## Blue Mac Key → Key Range rebuild (15 Oct 2026)
+- Brahm replaced the Key's MA system with an opening-range-breakout strategy. **Name stays "Blue Mac Key"** and the strategy
+  must never be named: no "ORB" / "opening range" anywhere in UI, rules or AI output (the prompt forbids it). Words: Key Range, Key Break, Key Retest.
+- Key: 15-min range after Tokyo 09:00 / London 08:00 / New York 09:30 (local, converted to SAST live — `UT.sessions().key`),
+  tradeable for 2 h. E1 = broken edge (limit), E2 = range mid, SL = far side ± 5% of range, targets 1×/2×/3× range + PDH/PDL.
+- **Hybrid (Brahm's choice):** every other style keeps its logic and gets a `krange` question + optional `kr_hi`/`kr_lo` level fields,
+  fed to `stdLevels(..., { range:['kr_hi','kr_lo',name] })` (adds the edge + 2× range target):
+  Scalp = first 5 min (critical; a fake break supports the opposite side) · Day = first hour (critical, fake = wait) ·
+  Swing = Monday's range (soft) · Position = first week of the month (soft).
+- Examples now 138 lessons. Know-cards, rules and prompts mention the Key Range per style.
+
 ## Next up
-- Brahm to test all 5 uTrade styles on the `revamp` preview (phone first) and give feedback.
+- Brahm to test the new Blue Mac Key + Key Range layers on the `revamp` preview (phone first) and give feedback.
 - Agreed later list (15 Oct review): let members use it 4–6 weeks and log everything → FSCA/FAIS compliance check
   before charging (specific entries/SL/TP may count as advice) → PayFast → password reset → University progress to
   Supabase → manual journal entry button → merge to main. Idea: let the AI check answers against chart screenshots.

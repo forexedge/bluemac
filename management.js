@@ -9,7 +9,8 @@
     ['all','All Management','#2A8FE3'],
     ['plan','Planning','#2A8FE3'],
     ['risk','Risk','#FF5C5C'],
-    ['manage','Managing Trades','#22D67A']
+    ['manage','Managing Trades','#22D67A'],
+    ['range','Key Range','#E4E8EE']
   ];
   const f1 = v => (+v).toFixed(1);
   const wrap = s => `<svg width="100%" viewBox="0 0 260 150" style="max-width:320px;display:block;" xmlns="http://www.w3.org/2000/svg">${s}</svg>`;
@@ -187,6 +188,56 @@
           return out;
         } } }
   ];
+
+  // ── Key Range lessons (the range set by the first candles after an open) ──
+  const RB = { 0:{o:101,c:103.4,h:103.8,l:100.6}, 1:{o:103.4,c:101.2,h:103.9,l:100.4}, 2:{o:101.2,c:102.8,h:103.2,l:100.9}, 3:{o:102.8,c:101.5,h:103.6,l:101.2},
+               4:{o:101.5,c:103.1,h:103.5,l:100.2}, 5:{o:103.1,c:101.9,h:104,l:101.6}, 6:{o:101.9,c:102.9,h:103.3,l:101.4}, 7:{o:102.9,c:101.6,h:103.2,l:100.3},
+               8:{o:101.6,c:102.6,h:103,l:101.1}, 9:{o:102.6,c:103.2,h:103.6,l:102.2} };
+  const KBOX = [{ i1:0, i2:9, p1:100, p2:104, c:'silver', op:0.1, border:true, l:'KEY RANGE', lt:'below' }];
+  function frames(){
+    let s = '';
+    const P = [['5M','SCALP'], ['15M','KEY'], ['1ST HOUR','DAY'], ['MONDAY','SWING'], ['1ST WEEK','POSITION']];
+    P.forEach(([a, b], k) => {
+      const x = 4 + k * 51;
+      const m = mini({ n:16, seed:70 + k, noise:0.5, pts:[[0,50],[5,52],[6,56],[10,59],[15,63]], zones:[{ i1:0, i2:5, p1:47.5, p2:53.5, c:'silver' }],
+        fit:[44, 66] }, x, 26, 48, 92);
+      s += m.s + T(x + 24, 15, a, { c:C.silver, s:6.5 }) + T(x + 24, 132, b, { c:[C.bull, C.amber, C.blue, C.bull, C.light][k], s:6.5 });
+    });
+    return wrap(s);
+  }
+  MGT.push(
+    { id:'keyrange', name:'The Key Range', icon:'🔑', g:'range', bias:'neut',
+      desc:`When a big market opens, the first candles set a <strong>high and a low</strong> that the rest of the session reacts to. The banks place their opening orders here — so this range shows where buyers and sellers stand before the real move. Blue Mac calls it the <strong>Key Range</strong>.`,
+      how:`Mark the high and low of the <strong>first 15 minutes</strong> after the open — Asia 02:00, London 09:00/10:00 and New York 15:30/16:30 SAST (uTrade Ideas shows today's exact times). Don't trade while price is inside it. Wait for a candle to <strong>close</strong> outside.`,
+      tip:`A tight Key Range (small compared with the average daily range) is energy being stored — the break is usually stronger. A huge range means most of the day's move has already happened.`,
+      tag:'◆ MARK THE FIRST 15 MINUTES',
+      chart:{ n:36, seed:109, noise:0.35, wick:0.5, pts:[[0,102],[9,103.2],[14,101.4],[20,103.3],[26,101.2],[31,102.8],[35,102.2]], fix:RB,
+        boxes:[{ i1:0, i2:9, p1:100, p2:104, c:'silver', op:0.14, border:true, l:'FIRST 15 MIN', lt:'below' }],
+        ov:[{ t:'level', p:104, c:'bull', l:'RANGE HIGH' }, { t:'level', p:100, c:'bear', l:'RANGE LOW' }], fitExtra:[99, 105.5] } },
+    { id:'keybreak', name:'Key Break & Retest', icon:'🚀', g:'range', bias:'bull',
+      desc:`The trade comes when a candle <strong>closes outside</strong> the Key Range with a strong body. The best entries come on the <strong>retest</strong> — price comes back to the edge it just broke, and that edge now holds.`,
+      how:`Entry 1 on the retest of the broken edge, Entry 2 at the middle of the range. Stop on the <strong>other side</strong> of the range. Targets: 2× and 3× the range height projected from the break, or yesterday's high/low. One trade per session — close it by the end of the session.`,
+      tip:`If price runs away without a retest, don't chase it. Use the middle of the range as your entry, or skip the trade.`,
+      tag:'▲ CLOSE OUTSIDE → BUY THE RETEST',
+      chart:{ n:36, seed:101, noise:0.35, wick:0.5, pts:[[0,102],[9,103.2],[10,104.8],[11,106],[14,107.2],[17,104.6],[18,105],[22,107.5],[28,109.5],[35,111]],
+        fix:Object.assign({}, RB, { 10:{ o:103.2, c:105.6, h:105.9, l:103 }, 16:{ o:105.2, c:104.5, h:105.4, l:104.1 }, 17:{ o:104.5, c:105.3, h:105.5, l:104.05 } }), boxes:KBOX,
+        marks:[{ t:'hline', p:104, i1:0, c:'bull', l:'RANGE HIGH' }, { t:'text', i:10, p:107.4, s:'BREAK', c:'bull' }, { t:'ring', i:17, p:104.1, c:'amber', r:4.5 }, { t:'text', i:20, p:102.6, s:'RETEST', c:'amber' }],
+        fitExtra:[99.4, 112] } },
+    { id:'fakebreak', name:'The Fake Break', icon:'🪤', g:'range', bias:'bear',
+      desc:`Not every break is real. When price <strong>wicks outside</strong> the Key Range but the candle <strong>closes back inside</strong>, the breakout traders are trapped — and price often runs hard the other way. This is the liquidity sweep you trade in the Scalp style.`,
+      how:`Never enter on a wick — wait for the close. If the candle closes back inside, the break has failed: no breakout trade. If you trade the Scalp style, this snap-back is your setup.`,
+      tip:`If you are already in a breakout trade and a candle closes back inside the range, the idea is dead — get out.`,
+      tag:'▼ WICK OUT, CLOSE BACK IN = TRAP',
+      chart:{ n:36, seed:107, noise:0.35, wick:0.5, pts:[[0,102],[9,103.2],[10,103.6],[13,102],[18,100.6],[22,98.6],[28,97.2],[35,96.5]],
+        fix:Object.assign({}, RB, { 10:{ o:103.2, c:103.5, h:105.8, l:103 } }), boxes:KBOX,
+        marks:[{ t:'hline', p:104, i1:0, c:'slate' }, { t:'ring', i:10, p:105.6, c:'amber', r:4.5 }, { t:'text', i:10, p:107.3, s:'FAKE BREAK', c:'amber' }, { t:'arrow', pts:[[13,101.5],[24,98]], c:'bear' }],
+        fitExtra:[108] } },
+    { id:'keyframes', name:'The Key Range on Every Timeframe', icon:'🧭', g:'range', bias:'neut',
+      desc:`The same idea works at every speed: the first part of a period sets a range, and the break of it shows who is in control. Every Blue Mac style uses its own Key Range.`,
+      how:`<strong>Scalp</strong> — first 5 minutes of London / New York. <strong>Blue Mac Key</strong> — first 15 minutes of Asia, London or New York. <strong>Day</strong> — first hour of London / New York. <strong>Swing</strong> — Monday's high and low. <strong>Position</strong> — the first week of the month.`,
+      tip:`The bigger the period, the more important its range: a break of the first week of the month can set the direction for weeks.`,
+      tag:'◆ ONE IDEA · FIVE TIMEFRAMES', svg: frames() }
+  );
 
   BMX.mount('mgt', 'Management Lessons', GROUPS, MGT);
 })();

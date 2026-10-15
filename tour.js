@@ -39,7 +39,7 @@ window.BMT = (function(){
   const PAGES = {
     checklist: [
       { el:['.hdr-nav'], title:'Your five tabs', text:'<b>uTrade Ideas</b> builds trade ideas · <b>Journal</b> tracks every trade · <b>Rules</b> is the rulebook · <b>Examples</b> shows every concept on a chart · <b>Education</b> is your trading degree.' },
-      { el:['.style-bar'], title:'Pick a trading style', text:'Five complete strategies: <b>Blue Mac Key</b> (our flagship moving-average system), <b>Scalp</b>, <b>Day Trade</b>, <b>Swing</b> and <b>Position</b>. Each has its own questions, rules and risk-reward minimums.' },
+      { el:['.style-bar'], title:'Pick a trading style', text:'Five complete strategies: <b>Blue Mac Key</b> (our flagship session system), <b>Scalp</b>, <b>Day Trade</b>, <b>Swing</b> and <b>Position</b>. Each has its own questions, rules and risk-reward minimums.' },
       { el:['.quiz-trigger'], title:'Not sure which style?', text:'The 60-second quiz matches you to the style that fits your schedule and personality.' },
       { el:['#ut-know', '.ut-know-bar'], title:'What you need to know', text:'Every style lists the concepts it is built on — order blocks, moving averages, liquidity and more. <b>📖 Example</b> opens the lesson, <b>🎓</b> shows where it sits in your University degree. Tap <b>I\'m ready</b> to start.' },
       { el:['#guided-panel .ut-prog'], ifMissing:'stages', title:'Five stages, one question at a time', text:'<b>Safety gates</b> (session, news, your day) → <b>bias</b> on the higher timeframe → the <b>zone</b> → the <b>trigger</b> → <b>your price levels</b>.' },
@@ -59,7 +59,7 @@ window.BMT = (function(){
       { el:['#rules-content .rules-layout', '#rules-content'], title:'Know them. Live them.', text:'Pre-flight checklist, the setup step by step, grades and position size, entries/stops/targets and the <b>never-do-this</b> list. They are generated from the same logic as uTrade Ideas, so they always match.' }
     ],
     examples: [
-      { el:['#pg-examples .examples-filter-bar'], title:'134 visual lessons', text:'Candles, patterns, Fibonacci, Smart Money, indicators and trade management — pick a category.' },
+      { el:['#pg-examples .examples-filter-bar'], title:'138 visual lessons', text:'Candles, patterns, Fibonacci, Smart Money, indicators and trade management — pick a category.' },
       { el:['#examples-grid .ex-card'], title:'Every concept on a real chart', text:'Each card shows the idea on a chart with the rules to trade it. These are the same lessons the 📖 buttons in uTrade Ideas open.' }
     ],
     education: [
@@ -78,9 +78,40 @@ window.BMT = (function(){
     if(mode === 'full') list.push({ page:'checklist', title:'Welcome to Blue Mac 👋', text:'A quick tour of the whole app — about 2 minutes. Skip any time, and replay it later from the <b>?</b> button.' });
     pages.forEach(p => (PAGES[p] || []).forEach(s => list.push(Object.assign({ page:p }, s))));
     list.push(mode === 'full'
-      ? { page:'checklist', title:'You\'re all set 🚀', text:'Start with the <b>What you need to know</b> card for your style, then run your first analysis. Replay this tour any time from the <b>?</b> button.' }
+      ? finale()
       : { page:mode, title:'That\'s the ' + NAMES[mode] + ' tab', text:'Want the whole app? Tap <b>?</b> → <b>Full app tour</b>.' });
     return list;
+  }
+
+  // ── last step of the full tour: personalised with the placement test result ──
+  const STYLE_NAMES = { key:'Blue Mac Key', scalp:'Scalp', day:'Day Trade', swing:'Swing', position:'Position' };
+  function placement(){
+    let level = 0, style = '';
+    try { const P = window.BMU && BMU._p && BMU._p(); if(P && P.placed) level = +P.placed.level || 0; } catch(e){}
+    try { style = localStorage.getItem('bm_style_suggestion') || ''; } catch(e){}
+    if(!STYLE_NAMES[style]) style = '';
+    const L = level && (window.BMU_LEVELS || []).find(x => x.num === level);
+    return { level, title: L ? L.title : '', style };
+  }
+  function finale(){
+    const p = placement();
+    const parts = [];
+    if(p.level) parts.push(`Your placement test put you at <b>Level ${p.level}${p.title ? ' — ' + p.title : ''}</b> of your degree.`);
+    if(p.style) parts.push(`The style that fits you best: <b>${STYLE_NAMES[p.style]}</b>.`);
+    const text = (parts.length ? parts.join(' ') + ' ' : '') + 'Start with the <b>What you need to know</b> card, then run your first analysis. Replay this tour any time from the <b>?</b> button.';
+    const actions = [{ l:'🎓 ' + (p.level > 1 ? `Continue at Level ${p.level}` : 'Start your degree'), fn:'BMT.finish(\'education\')' }];
+    if(p.style) actions.push({ l:'📈 Open ' + STYLE_NAMES[p.style], fn:`BMT.finish('style','${p.style}')` });
+    return { page:'checklist', title:'You\'re all set 🚀', text, actions };
+  }
+  function finish(where, style){
+    stop();
+    if(where === 'education') go('education');
+    else if(where === 'style'){
+      go('checklist');
+      const tab = document.querySelector('.style-tab.' + style);
+      if(tab && typeof setStyle === 'function') setStyle(style, tab);
+    }
+    window.scrollTo({ top:0 });
   }
 
   function start(mode){
@@ -126,6 +157,7 @@ window.BMT = (function(){
       <div class="bmt-title">${s.title}</div>
       ${demoFor(s)}
       <div class="bmt-text">${s.text}</div>
+      ${s.actions ? `<div class="bmt-acts">${s.actions.map(a => `<button onclick="${a.fn}">${a.l}</button>`).join('')}</div>` : ''}
       <div class="bmt-dots">${steps.map((_, k) => `<i class="${k === i ? 'on' : k < i ? 'd' : ''}"></i>`).join('')}</div>
       <div class="bmt-btns">
         <button class="bmt-skip" onclick="BMT.stop()">${i === steps.length - 1 ? 'Close' : 'Skip tour'}</button>
@@ -226,6 +258,8 @@ window.BMT = (function(){
 .bmt-dots{display:flex;gap:4px;flex-wrap:wrap}
 .bmt-dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.15)}
 .bmt-dots i.d{background:rgba(42,143,227,0.5)} .bmt-dots i.on{background:#2A8FE3;width:16px;border-radius:4px}
+.bmt-acts{display:flex;flex-direction:column;gap:6px}
+.bmt-acts button{font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:700;text-align:left;border-radius:10px;cursor:pointer;padding:10px 14px;background:rgba(42,143,227,0.1);border:1px solid rgba(42,143,227,0.45);color:#F2F2F2}
 .bmt-btns{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .bmt-btns>span{display:flex;gap:8px}
 .bmt-btns button{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;border-radius:10px;cursor:pointer;padding:9px 14px}
@@ -271,5 +305,5 @@ window.BMT = (function(){
 
   if(document.readyState === 'complete') watch(); else window.addEventListener('load', watch);
 
-  return { start, stop:() => stop(), next, back, menu, page: curPage, _steps:() => steps, _i:() => i, _ready: appReady, PAGES };
+  return { start, stop:() => stop(), finish, next, back, menu, page: curPage, _steps:() => steps, _i:() => i, _ready: appReady, PAGES };
 })();

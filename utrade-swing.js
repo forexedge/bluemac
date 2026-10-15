@@ -23,6 +23,7 @@
     know: [
       { t:"Market structure (HH/HL, LH/LL)", ref:'ex-market-structure-hh-hl-vs-ll-lh', why:"Reads the weekly bias." },
       { t:"Moving average stack (50 / 200)", ref:'ex-ma-stack-50-vs-200', why:"Confirms the weekly trend." },
+      { t:"The Key Range (Monday)", ref:'mgt-keyframes', why:"Monday's high and low — its break shows the week's direction." },
       { t:"Supply & demand zones", ref:'smc-snd', why:"Where the daily pullback should stop." },
       { t:"Fib golden pocket (61.8–65%)", ref:'fib-golden', why:"The sweet spot of a weekly pullback." },
       { t:"Push count — trend exhaustion", ref:'ex-push-count-wave-exhaustion', why:"1st & 2nd pushes pay; the 3rd is risky." },
@@ -43,6 +44,7 @@
       ],
       steps:[
         ['Weekly sets the side', 'HH/HL with price above a rising 50 SMA (and 50 above 200) = longs. The mirror for shorts. Prefer discount for longs, premium for shorts.'],
+        ['Weekly Key Range', 'Mark Monday\'s high and low. A daily close outside it in the weekly direction confirms the swing for that week.'],
         ['Daily pulls back into a zone', 'Demand/supply (drop-base-rally), daily order block, the 61.8–65% golden pocket or a flipped weekly level.'],
         ['Count the pushes', 'The 1st and 2nd pushes of a weekly trend pay best. A 3rd push is often exhaustion — smaller size, quicker profits.'],
         ['H4 trigger', 'A bullish flag / falling wedge / double bottom breaking out, an H4 CHoCH, or a daily engulfing at the zone. No trigger = Watchlist.'],
@@ -123,6 +125,17 @@
           { v:'eq', l:'At 50% (equilibrium)', sub:'No location edge.', dg:() => pdDg('eq'), dir:0, pts:4, warn:'Price at weekly equilibrium — less room to run', ai:'price at weekly equilibrium' }
         ] },
 
+      { id:'krange', stage:1, type:'single', short:'Weekly Key Range', tf:'D1', align:'soft',
+        q:'Mark Monday\'s high and low. Where has price closed since?',
+        help:'<b>Monday sets the Weekly Key Range.</b> A daily close outside it shows which side the week is choosing. In the weekly direction = stronger swing.',
+        ref:'mgt-keyframes',
+        options:[
+          { v:'up', l:'Broke ABOVE and holding', sub:"Daily close above Monday's high.", dg:C('krBreak', 1), dir:1, pts:10, ref:'mgt-keybreak', ai:'price broke above the weekly Key Range (Monday) and is holding' },
+          { v:'down', l:'Broke BELOW and holding', sub:"Daily close below Monday's low.", dg:C('krBreak', -1), dir:-1, pts:10, ref:'mgt-keybreak', ai:'price broke below the weekly Key Range (Monday) and is holding' },
+          { v:'inside', l:'Still inside the range', sub:'No side chosen yet.', dg:C('krInside', 1), dir:0, pts:4, warn:'Price is still inside the weekly Key Range (Monday) — expect chop until it breaks', ai:'price still inside the weekly Key Range (Monday)' },
+          { v:'early', l:'It\'s still Monday', sub:'The weekly range is still forming.', dg:C('krInside', 1), dir:0, pts:3, ai:'Monday — weekly Key Range still forming' }
+        ] },
+
       { id:'zone', stage:2, type:'single', short:'D1 zone', tf:'D1', align:'critical',
         q:'On the daily chart, what zone has the pullback reached?',
         help:'The pullback must reach a zone where big orders sit. The best is a <b>demand/supply zone or order block inside the fib golden pocket</b>.',
@@ -185,14 +198,16 @@
           { id:'zone_hi', label:'Zone top', hint:'Top of the demand/supply zone, order block or golden pocket.' },
           { id:'zone_lo', label:'Zone bottom', hint:'Bottom of the same zone.' },
           { id:'w_up', label:'Weekly level above', hint:'Next weekly resistance / swing high — long target.' },
-          { id:'w_dn', label:'Weekly level below', hint:'Next weekly support / swing low — short target.' }
+          { id:'w_dn', label:'Weekly level below', hint:'Next weekly support / swing low — short target.' },
+          { id:'kr_hi', label:'Monday\'s high', hint:'The weekly Key Range high — a long target, and 2× the range beyond it.' },
+          { id:'kr_lo', label:'Monday\'s low', hint:'The weekly Key Range low — a short target, and 2× the range beyond it.' }
         ],
         shots:['Weekly chart', 'Daily chart', 'H4 chart'],
         check(L, num){ return UT.stdCheck(L, num, 'daily'); } }
     ],
 
     levelMap(dir, L, num){
-      return UT.stdLevels(dir, L, num, { tf:'daily', up:[['w_up','weekly level above']], dn:[['w_dn','weekly level below']], buf:0.05, ext:true });
+      return UT.stdLevels(dir, L, num, { tf:'daily', up:[['w_up','weekly level above']], dn:[['w_dn','weekly level below']], buf:0.05, ext:true, range:['kr_hi', 'kr_lo', 'weekly Key Range'] });
     },
 
     prompt(x){
@@ -200,7 +215,7 @@
 
 THE STRATEGY:
 1. The weekly chart sets the bias: structure plus the 50/200 SMA stack, ideally from discount (longs) or premium (shorts).
-2. Wait for the daily to pull back into a zone: demand/supply, daily order block, the 61.8–65% golden pocket or a flipped weekly level.
+2. Monday's high and low form the weekly Key Range — a daily close outside it in the weekly direction confirms the swing. Wait for the daily to pull back into a zone: demand/supply, daily order block, the 61.8–65% golden pocket or a flipped weekly level.
 3. Prefer the 1st or 2nd weekly push; a 3rd push is exhaustion risk.
 4. Trigger on the H4: a pullback-pattern breakout (flag, wedge, double bottom/top, H&S), an H4 change of character, or a daily engulfing at the zone.
 5. Stop beyond the daily swing. Targets: daily swing, next weekly level, fib 127.2% extension. TP1 at least 1:3, TP2 at least 1:4, Entry 2 always between Entry 1 and the stop.
