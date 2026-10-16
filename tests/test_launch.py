@@ -55,6 +55,11 @@ with sync_playwright() as pw:
     p3 = run({'spots_taken':97}, 390, 844)
     check('counter updates (3 left)', p3.inner_text('#bml-left') == '3')
     p3.screenshot(path='/tmp/launch_phone_wa.png')
+    # Brahm's real setup (16 Oct): WhatsApp only, no email anywhere on the page
+    p4 = run({'contact_email':'', 'contact_whatsapp':'27840674851'}, 390, 844)
+    check('WhatsApp only: button opens WhatsApp', p4.get_attribute('#bml-cta', 'href').startswith('https://wa.me/27840674851'))
+    check('WhatsApp only: no email link, no email address in the page', p4.is_hidden('#bml-mail') and '@gmail.com' not in p4.inner_text('#bm-launch'))
+    p4.screenshot(path='/tmp/launch_wa_only.png')
     check('zero page errors', not errors)
     for e in errors[:5]: print('  ERR', e[:200])
     br.close()

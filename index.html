@@ -1653,7 +1653,7 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
       </a>
       <div class="bml-foot">
         <span>Reference <span class="bml-chip">LOCK IN MY SPOT</span></span>
-        <a id="bml-mail" class="bml-alt" href="#">or email <span id="bml-email">brahmdp@gmail.com</span></a>
+        <a id="bml-mail" class="bml-alt" href="#" hidden>or email <span id="bml-email"></span></a>
       </div>
     </div>
 
@@ -4341,7 +4341,7 @@ async function takeThisTrade(tradeStatus = 'active'){
   }
 
 // ── FOUNDING 100 LAUNCH PANEL ──
-  let _bmLaunch = { launch_date:'2026-11-04', spots_total:100, spots_taken:null, contact_email:'brahmdp@gmail.com', contact_whatsapp:'27840674851' };
+  let _bmLaunch = { launch_date:'2026-11-04', spots_total:100, spots_taken:null, contact_email:'', contact_whatsapp:'27840674851' };
   const LOCK_MSG = "Hi Blue Mac! Lock in my spot please.\n\nName:\nEmail I'll register with:\nWhatsApp number:";
   function paintLaunch() {
     const L = _bmLaunch, $ = id => document.getElementById(id);
@@ -4357,18 +4357,19 @@ async function takeThisTrade(tradeStatus = 'active'){
     }
     const days = Math.ceil((d - Date.now()) / 864e5);
     $('bml-days').textContent = days > 1 ? days + ' days to launch' : days === 1 ? 'Launching tomorrow' : '';
-    const mail = 'mailto:' + L.contact_email + '?subject=' + encodeURIComponent('Lock in my spot') + '&body=' + encodeURIComponent(LOCK_MSG);
+    const em = String(L.contact_email || '').trim();
+    const mail = em ? 'mailto:' + em + '?subject=' + encodeURIComponent('Lock in my spot') + '&body=' + encodeURIComponent(LOCK_MSG) : '';
     const wa = String(L.contact_whatsapp || '').replace(/[^0-9]/g, '');
     const local = wa.startsWith('27') ? ('0' + wa.slice(2)).replace(/^(\d{3})(\d{3})(\d+)$/, '$1 $2 $3') : '+' + wa;
-    $('bml-email').textContent = L.contact_email;
-    $('bml-mail').href = mail;
+    $('bml-email').textContent = em;
+    if (mail) $('bml-mail').href = mail; else $('bml-mail').removeAttribute('href');
     if (wa) {
       $('bml-cta').href = 'https://wa.me/' + wa + '?text=' + encodeURIComponent(LOCK_MSG);
       $('bml-cta-sub').textContent = 'WhatsApp ' + local;
-      $('bml-cta-i').hidden = false; $('bml-mail').hidden = false;
+      $('bml-cta-i').hidden = false; $('bml-mail').hidden = !em;
     } else {
-      $('bml-cta').href = mail;
-      $('bml-cta-sub').textContent = 'Email ' + L.contact_email;
+      $('bml-cta').href = mail || '#';
+      $('bml-cta-sub').textContent = em ? 'Email ' + em : 'Contact Blue Mac';
       $('bml-cta-i').hidden = true; $('bml-mail').hidden = true;
     }
   }
