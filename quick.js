@@ -532,5 +532,5 @@ If chart screenshots are attached, use them to sharpen the signal, wait conditio
   // the builder's picture for a tool
   function pic(id){ const t = T[id]; if(!t) return ''; try { return typeof t.pic === 'string' ? D.ref(t.pic) : t.pic && t.pic.dg ? D.chart(DG[t.pic.dg], 1) : t.pic && t.pic.fn ? t.pic.fn() : ''; } catch(e){ return ''; } }
 
-  return { TOOLS: T, LAYERS: ['dir', 'loc', 'trig', 'extra'], LIMITS, build, fromDNA, plan, preview, pic, clean, current: () => LAST, RR_OF, BIAS_OF };
+  return { TOOLS: T, build, fromDNA, plan, preview, pic, clean, current: () => LAST, RR_OF, BIAS_OF };
 })();

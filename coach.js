@@ -12,7 +12,7 @@
 //
 // Progress: localStorage['bm_path_v1'] = { done:{pick,answer,idea,save}, hide:{page:1} }
 // (synced per member by profile.js). Watches the uTrade panel, so no changes are
-// needed in the engine. Replaces the old welcome banner (it described "Guided Mode").
+// needed in the engine. (The old "Guided Mode" welcome banner was removed from index.html.)
 // ══════════════════════════════════════════════════════
 window.BMC = (function(){
   const KEY = 'bm_path_v1';
@@ -88,11 +88,11 @@ window.BMC = (function(){
     const started = sc.step > 0 || sc.instrument;
     // choosing comes first — a new member lands on Scalp by default without having picked it
     if(!d.done.pick && !started){
-      const b = [];
-      if(sug && STYLE_NAME[sug]) b.push([`Use ${STYLE_NAME[sug]} — matched to you`, `BMC.useStyle('${sug}')`]);
-      else b.push(['Start with Blue Mac Key', "BMC.useStyle('key')"]);
-      b.push([hasOwn ? 'Use my own strategy' : 'Build my own strategy', hasOwn ? `BMB.open('${BMB.list()[0].id}');BMC.mark('pick')` : 'BMB.edit()']);
-      return { i:'👋', t:'Step 1 — pick how you want to trade', s:`Each tab at the top is a complete strategy. ${sug && STYLE_NAME[sug] ? `Your placement test matched you to <b>${STYLE_NAME[sug]}</b>.` : 'Not sure? Start with the Blue Mac Key — one clean session setup.'} Or build your own from the tools you already use.`, b };
+      // building their own strategy is the headline option; a Blue Mac style is the quick alternative
+      const b = [[hasOwn ? '🛠 Use my own strategy' : '🛠 Build my own strategy', hasOwn ? `BMB.open('${BMB.list()[0].id}');BMC.mark('pick')` : 'BMB.edit()', 'go']];
+      if(sug && STYLE_NAME[sug]) b.push([`Or use ${STYLE_NAME[sug]} — matched to you`, `BMC.useStyle('${sug}')`]);
+      else b.push(['Or start with Blue Mac Key', "BMC.useStyle('key')"]);
+      return { i:'👋', t:'Step 1 — pick how you want to trade', s:`<b>Build your own strategy</b> from the tools you already trade with — trendlines, order blocks, patterns, MACD… Blue Mac turns it into your own uTrade Idea. ${sug && STYLE_NAME[sug] ? `Or start with <b>${STYLE_NAME[sug]}</b>, the style your placement test matched you to.` : 'Or start with the <b>Blue Mac Key</b> — one clean session setup.'}`, b };
     }
     if(sc.know) return { i:'📚', t:`Quick read before ${name}`, s:'These are the concepts this style uses. Tap any you don’t know (2 minutes), then tap <b>I’m ready — let’s go</b> at the bottom of the card.', b:[['Show me', 'BMC.toPanel()']] };
     if(!started) return { i:'📈', t:`Step 2 — open your chart, then answer question 1`, s:`You’re on <b>${name}</b>. Open MT5 or TradingView next to Blue Mac, then answer each question by looking at your chart. Every question has example pictures — tap <b>📖 Learn</b> if a word is new.`, b:[['Start the questions', 'BMC.toPanel()']] };
@@ -119,7 +119,7 @@ window.BMC = (function(){
         <button class="bmc-x" onclick="BMC.hide('checklist',1)" aria-label="Hide the guide">Hide</button></div>
       <div class="bmc-path">${STEPS.map(([k, l], i) => `<div class="bmc-st${dd[k] ? ' done' : i === nowIdx ? ' now' : ''}"><i>${dd[k] ? '✓' : i + 1}</i><span>${l}</span></div>`).join('')}</div>
       <div class="bmc-next"><div class="bmc-ic">${n.i}</div><div class="bmc-tx"><b>${n.t}</b><p>${n.s}</p>
-        ${n.b.length ? `<div class="bmc-bs">${n.b.map(([t, a], i) => `<button class="${i ? 'bmc-b2' : 'bmc-b1'}" onclick="${a}">${t}</button>`).join('')}</div>` : ''}</div></div>
+        ${n.b.length ? `<div class="bmc-bs">${n.b.map(([t, a, cls], i) => `<button class="${i ? 'bmc-b2' : 'bmc-b1'}${cls ? ' ' + cls : ''}" onclick="${a}">${t}</button>`).join('')}</div>` : ''}</div></div>
       <div class="bmc-help">Lost? <button onclick="BMC.tour()">Show me around this page</button></div>
     </div>`;
   }
@@ -168,7 +168,92 @@ window.BMC = (function(){
   }
   function rulesFor(k){ const b = [...document.querySelectorAll('.srt')].find(x => (x.getAttribute('onclick') || '').includes(`'${k}'`)); if(b && typeof showRules === 'function') showRules(k, b); }
   function focusSearch(){ const el = document.getElementById('ex-search-input'); if(el){ el.scrollIntoView({ behavior:'smooth', block:'center' }); el.focus(); } }
-  function toPending(){ const c = [...document.querySelectorAll('.j-card')].find(x => /pending/i.test(x.className + x.textContent)); if(c){ c.scrollIntoView({ behavior:'smooth', block:'center' }); flash(c); } }
+  function toPending(){ const c = document.querySelector('.j-card.is-pending'); if(c){ c.scrollIntoView({ behavior:'smooth', block:'center' }); flash(c); } }
+
+  // ══════════════════════════════════════════════════════
+  // The arrow — points at the exact thing to tap next, on the page itself
+  // ══════════════════════════════════════════════════════
+  const vis = el => !!el && el.offsetParent !== null && el.getClientRects().length > 0;
+  const q1 = sel => [...document.querySelectorAll(sel)].find(vis) || null;
+  function curPage(){ const pg = document.querySelector('.page.on'); return pg ? pg.id.replace('pg-', '') : ''; }
+  // [element, label] for the member's next step on the current page — or null
+  function target(){
+    const page = curPage(), d = load();
+    if(!page || (d.hide && d.hide[page])) return null;
+    if(page === 'checklist'){
+      const sc = screen(), P = '#guided-panel ';
+      if(sc.limit || sc.thinking) return null;
+      if(sc.idea) return d.done.save ? null : [q1(P + '#style-take-btn') || q1(P + '.ut-take-b.mon'), 'Save it here'];
+      if(sc.result){
+        if(sc.canFire) return [q1(P + '.ut-fire[data-ai]'), sc.waiting ? 'Tap to build your Watchlist idea' : 'Tap to generate your idea'];
+        if(sc.blocked || sc.weak) return [q1(P + '.ut-gate.block') || q1(P + '.ut-res-sub'), 'Why there’s no trade'];
+        return null;
+      }
+      const started = sc.step > 0 || sc.instrument;
+      if(!d.done.pick && !started) return [q1('#bmc-checklist .bmc-b1'), 'Start here'];
+      if(sc.know) return [q1(P + '.ut-know .ut-next'), 'Tap when you’re ready'];
+      if(q1(P + '#ut-lv-price')) return [q1(P + '#ut-lv-price'), 'Type your prices here'];
+      if(q1(P + '.ut-inst')) return [q1(P + '.ut-inst'), 'Pick your market'];
+      if(q1(P + '.ut-check')) return [q1(P + '.ut-opts'), 'Tick any that apply, then Next'];
+      if(q1(P + '.ut-opts')) return [q1(P + '.ut-opts'), 'Pick the one that matches your chart'];
+      return null;
+    }
+    if(page === 'journal'){ const c = [...document.querySelectorAll('.j-card.is-pending')].find(vis); return c ? [c, 'Mark the result when it closes'] : null; }
+    if(page === 'rules'){
+      const k = curStyle(); if(!STYLE_NAME[k]) return null;
+      const b = [...document.querySelectorAll('.srt')].find(x => (x.getAttribute('onclick') || '').includes(`'${k}'`));
+      return b && !b.classList.contains('on') ? [b, 'Your style’s rules'] : null;
+    }
+    if(page === 'examples'){ const el = document.getElementById('ex-search-input'); return el && !el.value && !searched ? [el, 'Search any concept here'] : null; }
+    if(page === 'education') return [q1('#bmc-education .bmc-b1'), 'Continue here'];
+    return null;
+  }
+  let searched = false, lastT = null, raf = 0;
+  document.addEventListener('input', e => { if(e.target && e.target.id === 'ex-search-input'){ searched = true; point(); } }, true);
+  // something else is on top: a builder / picker / lesson modal, the tour, or the login screen
+  function covered(){
+    if(document.body.classList.contains('bmd-open') || document.querySelector('.ut-learn.on') || document.getElementById('bmt')) return true;
+    return ['auth-gate', 'quiz-gate', 'disclaimer-gate', 'reset-gate'].some(id => { const g = document.getElementById(id); return g && getComputedStyle(g).display !== 'none' && vis(g); });
+  }
+  function point(){
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => {
+      let ptr = document.getElementById('bmc-ptr'), chip = document.getElementById('bmc-chip');
+      if(!ptr){
+        ptr = document.createElement('div'); ptr.id = 'bmc-ptr'; ptr.setAttribute('aria-hidden', 'true');
+        ptr.innerHTML = '<span class="bmc-ptr-l"></span><span class="bmc-ptr-a"></span>'; document.body.appendChild(ptr);
+        chip = document.createElement('button'); chip.id = 'bmc-chip'; chip.type = 'button';
+        chip.onclick = () => { if(lastT) lastT.scrollIntoView({ behavior:'smooth', block:'center' }); }; document.body.appendChild(chip);
+      }
+      const t = covered() ? null : target(), el = t && t[0];
+      if(lastT && lastT !== el) lastT.classList.remove('bmc-target');
+      lastT = el || null;
+      if(!el){ ptr.className = ''; chip.className = ''; return; }
+      el.classList.add('bmc-target');
+      const r = el.getBoundingClientRect(), H = window.innerHeight;
+      // the phone's bottom nav bar covers the last ~70px
+      const nav = [...document.querySelectorAll('.nav-item')].map(n => n.getBoundingClientRect().top).filter(y => y > H * 0.7);
+      const bottom = nav.length ? Math.min(...nav) : H;
+      if(r.bottom < 40 || r.top > bottom - 30){
+        ptr.className = '';
+        chip.textContent = r.top > bottom - 30 ? `↓ ${t[1]} — tap to scroll` : `↑ ${t[1]} — tap to scroll`;
+        chip.className = 'on ' + (r.top > bottom - 30 ? 'down' : 'up');
+        chip.style.bottom = (H - bottom + 12) + 'px';
+        return;
+      }
+      chip.className = '';
+      ptr.querySelector('.bmc-ptr-l').textContent = t[1];
+      const above = r.top > 70;                                      // room for the arrow above the target?
+      ptr.className = 'on ' + (above ? 'above' : 'below');
+      const w = ptr.offsetWidth, x = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + Math.min(r.width, 320) / 2 - w / 2));
+      ptr.style.left = x + 'px';
+      ptr.style.top = (above ? r.top - ptr.offsetHeight - 4 : r.bottom + 4) + 'px';
+      ptr.style.setProperty('--ax', Math.max(14, Math.min(w - 14, r.left + Math.min(r.width, 320) / 2 - x)) + 'px');
+    });
+  }
+  // the app scrolls inside its own containers, not only the window — listen to every scroll (capture phase)
+  document.addEventListener('scroll', point, { passive:true, capture:true });
+  window.addEventListener('resize', point);
 
   // ── Paint every page ──
   const PAGES = ['checklist', 'journal', 'rules', 'examples', 'education'];
@@ -187,6 +272,7 @@ window.BMC = (function(){
       });
     } catch(e){ console.warn('Blue Mac guide:', e); }
     busy = false;
+    point();
   }
   let timer = null;
   const soon = () => { clearTimeout(timer); timer = setTimeout(paint, 120); };
@@ -206,13 +292,13 @@ window.BMC = (function(){
     hook('renderJournal', soon);
     hook('showRules', soon);
     paint();
+    setInterval(point, 300);    // modals, the tour and lessons open on top without telling us — keep the arrow honest
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 
   // ── Styles ──
   const css = document.createElement('style');
   css.textContent = `
-#welcome-banner{display:none!important}
 .bmc{margin:0}
 .bmc-card{margin:12px 0 14px;padding:14px 16px;border-radius:16px;border:1px solid rgba(42,143,227,0.45);background:linear-gradient(160deg,rgba(42,143,227,0.12),rgba(42,143,227,0.02));display:flex;flex-direction:column;gap:12px}
 .bmc-top{display:flex;align-items:center;gap:10px}
@@ -245,6 +331,33 @@ window.BMC = (function(){
 .bmc-line .bmc-x{margin-left:0}
 .bmc-flash{animation:bmcFlash 1.4s ease 2}
 @keyframes bmcFlash{0%,100%{box-shadow:0 0 0 0 rgba(42,143,227,0)}50%{box-shadow:0 0 0 4px rgba(42,143,227,0.55)}}
+/* arrows between the 4 steps */
+.bmc-st{position:relative}
+.bmc-st:not(:last-child)::after{content:'›';position:absolute;right:-7px;top:50%;transform:translateY(-50%);z-index:1;font-size:18px;font-weight:800;line-height:1;color:var(--text3)}
+.bmc-st.done:not(:last-child)::after{color:var(--bull)}
+/* "build my own strategy" is the headline option */
+/* room above the headline button for the "Start here" arrow, so it never covers the text */
+.bmc-bs:has(.bmc-b1.go){margin-top:44px}
+.bmc-b1.go{border-color:rgba(34,214,122,0.6);background:linear-gradient(135deg,#22D67A,#16a85c);color:#04140b;box-shadow:0 6px 20px rgba(34,214,122,0.3)}
+#bm-mystrats.bmb-cta{animation:bmcGlow 2.6s ease-in-out infinite}
+@keyframes bmcGlow{0%,100%{box-shadow:0 0 0 0 rgba(34,214,122,0)}50%{box-shadow:0 0 0 3px rgba(34,214,122,0.28)}}
+/* the arrow */
+#bmc-ptr{position:fixed;z-index:8000;display:none;flex-direction:column;align-items:flex-start;pointer-events:none;--ax:50%}
+#bmc-ptr.on{display:flex}
+#bmc-ptr.below{flex-direction:column-reverse}
+.bmc-ptr-l{background:var(--blue);color:#fff;font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:800;padding:6px 12px;border-radius:10px;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,0.45)}
+.bmc-ptr-a{width:0;height:0;margin-left:calc(var(--ax) - 9px);border-left:9px solid transparent;border-right:9px solid transparent;border-top:11px solid var(--blue)}
+#bmc-ptr.below .bmc-ptr-a{border-top:none;border-bottom:11px solid var(--blue)}
+#bmc-ptr.above{animation:bmcBob 1.1s ease-in-out infinite}
+#bmc-ptr.below{animation:bmcBobUp 1.1s ease-in-out infinite}
+@keyframes bmcBob{0%,100%{transform:translateY(-3px)}50%{transform:translateY(3px)}}
+@keyframes bmcBobUp{0%,100%{transform:translateY(3px)}50%{transform:translateY(-3px)}}
+.bmc-target{outline:2px solid rgba(42,143,227,0.85)!important;outline-offset:3px;border-radius:12px;animation:bmcRing 1.6s ease-in-out infinite}
+@keyframes bmcRing{0%,100%{outline-color:rgba(42,143,227,0.85)}50%{outline-color:rgba(42,143,227,0.25)}}
+#bmc-chip{position:fixed;left:50%;transform:translateX(-50%);z-index:8000;display:none;border:1px solid rgba(42,143,227,0.6);background:var(--blue);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:800;padding:9px 16px;border-radius:22px;box-shadow:0 8px 24px rgba(0,0,0,0.5);cursor:pointer;white-space:nowrap;max-width:calc(100vw - 24px);overflow:hidden;text-overflow:ellipsis}
+#bmc-chip.on{display:block}
+#bmc-chip.up{bottom:auto!important;top:12px}
+@media (prefers-reduced-motion:reduce){#bmc-ptr,.bmc-target,#bm-mystrats.bmb-cta{animation:none!important}}
 @media (max-width:640px){
   .bmc-card{padding:12px}
   .bmc-path{gap:4px}.bmc-st{padding:6px 2px}.bmc-st span{font-size:10px}
@@ -254,5 +367,5 @@ window.BMC = (function(){
 }`;
   document.head.appendChild(css);
 
-  return { paint, hide, mark, nav, top, useStyle, toPanel, toFire, toTake, toPending, rulesFor, focusSearch, tour, _load: load };
+  return { paint, hide, mark, nav, top, useStyle, toPanel, toFire, toTake, toPending, rulesFor, focusSearch, tour };
 })();

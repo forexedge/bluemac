@@ -359,5 +359,5 @@ window.BMB = (function(){
   function init(){ hookStyle(); reload(); }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 
-  return { list, get, edit, close, start, toggle, chip, setRR, addRule, ruleText, ruleMust, dropRule, setName, next, back, goto, del, open, paint, reload, STARTERS, MAX };
+  return { list, get, edit, close, start, toggle, chip, setRR, addRule, ruleText, ruleMust, dropRule, setName, next, back, goto, del, open, paint, reload };
 })();

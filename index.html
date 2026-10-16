@@ -214,7 +214,6 @@ header::after{
 .quiz-option,
 .quiz-go-btn,
 .quiz-retake-btn,
-.welcome-dismiss-btn,
 .ex-filter,
 .modal-cancel,
 .modal-confirm,
@@ -347,7 +346,6 @@ header::after{
 .guided-fire-btn:hover,
 .idea-generate-btn:hover:not(:disabled),
 .guided-next-btn:hover,
-.welcome-dismiss-btn:hover {
   transform: translateY(-2px) !important;
   box-shadow: 0 6px 18px rgba(34,214,122,0.3) !important;
 }
@@ -999,26 +997,8 @@ header::after{
   .setup-session-grid{grid-template-columns:1fr;}
 }
 /* ══ WELCOME BANNER ══ */
-.welcome-banner{margin:16px 36px;border-radius:16px;border:1px solid rgba(30,136,220,0.2);background:linear-gradient(135deg,rgba(30,136,220,0.06) 0%,rgba(150,208,255,0.04) 100%);overflow:hidden;animation:rise 0.4s ease both;}
-.welcome-banner-inner{padding:20px 24px;display:flex;align-items:flex-start;gap:18px;}
-.welcome-banner-icon{font-size:32px;line-height:1;flex-shrink:0;margin-top:2px;}
-.welcome-banner-content{flex:1;}
-.welcome-banner-title{font-family:'Outfit',sans-serif;font-size:21px;font-weight:800;color:#fff;line-height:1;margin-bottom:6px;}
-.welcome-banner-title span{background:linear-gradient(135deg,var(--blue),#96D0FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.welcome-banner-steps{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
-.welcome-banner-step{display:flex;align-items:flex-start;gap:12px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);}
-.welcome-banner-step-num{width:22px;height:22px;border-radius:50%;background:rgba(30,136,220,0.15);border:1px solid rgba(30,136,220,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'DM Mono',monospace;color:var(--blue);flex-shrink:0;margin-top:1px;}
-.welcome-banner-step-text{font-size:13px;color:var(--text2);line-height:1.5;}
-.welcome-banner-step-text strong{color:var(--text);font-weight:700;}
-.welcome-banner-footer{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-top:1px solid rgba(255,255,255,0.06);background:rgba(0,0,0,0.15);}
-.welcome-banner-footer-text{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:0.04em;}
-.welcome-dismiss-btn{padding:8px 20px;border-radius:10px;border:1px solid rgba(30,136,220,0.4);background:rgba(30,136,220,0.1);color:var(--blue);font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.2s;letter-spacing:0.04em;}
-.welcome-dismiss-btn:hover{background:rgba(30,136,220,0.2);border-color:var(--blue);}
 
 @media(max-width:820px){
-  .welcome-banner{margin:12px 18px;}
-  .welcome-banner-inner{flex-direction:column;gap:12px;padding:16px 18px;}
-  .welcome-banner-footer{flex-direction:column;gap:10px;align-items:flex-start;padding:12px 18px;}
 }
 /* ══ STYLE QUIZ ══ */
 .quiz-trigger{display:flex;align-items:center;justify-content:center;gap:14px;padding:12px 36px;border-bottom:1px solid var(--border);background:linear-gradient(90deg,rgba(30,136,220,0.04),rgba(150,208,255,0.04));}
@@ -1748,34 +1728,6 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
 
 <!-- ══════ CHECKLIST PAGE ══════ -->
 <div id="pg-checklist" class="page on">
-  <!-- WELCOME BANNER -->
-<div class="welcome-banner" id="welcome-banner" style="display:none;">
-  <div class="welcome-banner-inner">
-    <div class="welcome-banner-icon">🏔</div>
-    <div class="welcome-banner-content">
-      <div class="welcome-banner-title">Welcome to <span>Blue Mac</span></div>
-      <div style="font-size:13px;color:var(--text3);margin-top:3px;line-height:1.5;">New here? Here's how to get started in 3 steps — takes 2 minutes.</div>
-      <div class="welcome-banner-steps">
-        <div class="welcome-banner-step">
-          <div class="welcome-banner-step-num">1</div>
-          <div class="welcome-banner-step-text"><strong>Pick your trading style using the tabs below.</strong> Not sure which one? Hit the <em>"Take the 60-second Style Quiz"</em> button — it matches you to the right style based on your schedule and goals. Hover over any tab to see what each style means.</div>
-        </div>
-        <div class="welcome-banner-step">
-          <div class="welcome-banner-step-num">2</div>
-          <div class="welcome-banner-step-text"><strong>Use Guided Mode for your first few sessions.</strong> You'll see a <em>"Guided Mode — AI walks you through the setup"</em> bar below the style tabs. Keep it ON. The AI asks you questions step by step, explains everything, and builds your trade plan automatically. No experience needed.</div>
-        </div>
-        <div class="welcome-banner-step">
-          <div class="welcome-banner-step-num">3</div>
-          <div class="welcome-banner-step-text"><strong>Read the Rules page before your first real trade.</strong> Click <em>Rules</em> in the top nav. It takes 5 minutes and will save your account. <span style="color:var(--blue);cursor:pointer;text-decoration:underline;" onclick="openSetupGuide()">Need help setting up your MT5 charts? Click here.</span></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="welcome-banner-footer">
-    <div class="welcome-banner-footer-text">⚠ Blue Mac is a decision-support tool — not financial advice. Always manage your own risk.</div>
-    <button class="welcome-dismiss-btn" onclick="dismissWelcome()">Got it — Let's Trade ◆</button>
-  </div>
-</div>
 <!-- STYLE QUIZ TRIGGER -->
 <div class="quiz-trigger">
   <span class="quiz-trigger-text">Not sure which style suits you?</span>
@@ -4693,14 +4645,10 @@ function showSetupTab(tab, btn){
   btn.classList.add('on');
 }
   // ══════════════════════════════════════════════════════
-// WELCOME BANNER SYSTEM
+// SETUP NUDGE (chart setup reminder)
 // ══════════════════════════════════════════════════════
 function showWelcomeBanner(){
-  const seen = localStorage.getItem('tv_welcome_seen');
-  if(!seen){
-    const banner = document.getElementById('welcome-banner');
-    if(banner) banner.style.display = 'block';
-  }
+  // the old welcome banner was replaced by the "Your next step" guide (coach.js) — only the chart-setup nudge is left
   const setupSeen = localStorage.getItem('tv_setup_seen');
   if(!setupSeen){
     const nudge = document.getElementById('setup-nudge');
@@ -4708,21 +4656,6 @@ function showWelcomeBanner(){
   }
 }
 
-function dismissWelcome(){
-  localStorage.setItem('tv_welcome_seen','1');
-  const banner = document.getElementById('welcome-banner');
-  if(!banner) return;
-  banner.style.transition = 'all 0.4s ease';
-  banner.style.opacity = '0';
-  banner.style.maxHeight = banner.offsetHeight + 'px';
-  requestAnimationFrame(()=>{
-    banner.style.maxHeight = '0';
-    banner.style.marginTop = '0';
-    banner.style.marginBottom = '0';
-    banner.style.padding = '0';
-  });
-  setTimeout(()=>{ banner.style.display = 'none'; }, 450);
-}
   // ══════════════════════════════════════════════════════
 // STYLE QUIZ SYSTEM
 // ══════════════════════════════════════════════════════
