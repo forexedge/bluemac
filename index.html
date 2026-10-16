@@ -3542,7 +3542,7 @@ function renderJournal(){
         <div class="j-card-pair" style="color:var(--gold)">${e.pair||'—'}</div>
         <div class="j-card-meta">
           <div class="j-card-meta-top">
-            <span style="font-size:12px;color:var(--text2);">${styleIcon[e.style]||''} ${e.style}</span>
+            <span style="font-size:12px;color:var(--text2);">${(window.BMB && BMB.get(e.style)) ? '🛠 ' + String(BMB.get(e.style).name).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]) : (styleIcon[e.style]||'') + ' ' + e.style}</span>
             <span style="font-size:12px;font-weight:600;color:${biasColor(e.bias)}">${biasLabel(e.bias)}</span>
             <span class="grade-pill" style="background:${col}18;color:${col};border:1px solid ${col}44">${e.grade?.split(' ')[0]||'—'}</span>
           </div>
@@ -5242,6 +5242,7 @@ function filterExamples(cat, btn){
 <script src="utrade-key.js"></script>
 <script src="dna.js"></script>
 <script src="quick.js"></script>
+<script src="builder.js"></script>
 <script src="tour.js"></script>
 <script src="profile.js"></script>
 </body>

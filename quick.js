@@ -523,8 +523,14 @@ If chart screenshots are attached, use them to sharpen the signal, wait conditio
   }
 
   function plan(s){ const def = build(s); return { questions: def.questions.map(q => q.short), entryTF: etf(), biasTF: btf(), minRR: def.minRR }; }
+  // builder preview: count the questions WITHOUT touching the strategy a member may be running
+  function preview(s){
+    const pS = S, pL = LAST;
+    try { const def = build(s, '_preview'); return { questions: def.questions.map(q => q.short), entryTF: etf({}), biasTF: btf({}), minRR: minRR({}) }; }
+    finally { S = pS; LAST = pL; }
+  }
   // the builder's picture for a tool
   function pic(id){ const t = T[id]; if(!t) return ''; try { return typeof t.pic === 'string' ? D.ref(t.pic) : t.pic && t.pic.dg ? D.chart(DG[t.pic.dg], 1) : t.pic && t.pic.fn ? t.pic.fn() : ''; } catch(e){ return ''; } }
 
-  return { TOOLS: T, LAYERS: ['dir', 'loc', 'trig', 'extra'], LIMITS, build, fromDNA, plan, pic, clean, current: () => LAST, RR_OF, BIAS_OF };
+  return { TOOLS: T, LAYERS: ['dir', 'loc', 'trig', 'extra'], LIMITS, build, fromDNA, plan, preview, pic, clean, current: () => LAST, RR_OF, BIAS_OF };
 })();

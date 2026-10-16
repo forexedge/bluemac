@@ -59,9 +59,9 @@ with sync_playwright() as pw:
         SERVER.clear()
         ctx = br.new_context(viewport=vp); setup(ctx); p = page_for(ctx, ANNA); boot(p)
         check(f'{label}: CTA card shows when no DNA', p.evaluate("() => document.getElementById('bm-dna')?.className") == 'bmd-cta')
-        p.locator('#bm-dna').scroll_into_view_if_needed(); shot(p, f'{label}-0-cta.png')
+        check(f'{label}: DNA invitation card hidden (the Strategy Builder replaces it)', not p.is_visible('#bm-dna'))
 
-        p.click('#bm-dna .ut-next'); p.wait_for_timeout(300)
+        p.evaluate("() => BMD.open()"); p.wait_for_timeout(300)
         check(f'{label}: picker opens', p.is_visible('#bmd-ov.on'))
         check(f'{label}: concept cards have diagrams', p.evaluate("() => document.querySelectorAll('.bmd-card .bmd-dg svg').length") >= 12)
         check(f'{label}: Next disabled with nothing picked', p.evaluate("() => document.querySelector('.bmd-foot .ut-next').disabled"))
