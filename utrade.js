@@ -803,12 +803,14 @@ window.UT = (function(){
           <div class="ut-actions">
             <button class="ut-back" onclick="UT.back()">← Change answers</button>
             <button class="ut-back" onclick="restartGuided()">↺ Start over</button>
-            ${canFire ? `<button class="ut-fire" onclick="UT.fire()">${ev.waiting ? '👁 Build Watchlist Idea →' : 'Generate Trade Idea →'}</button>`
+            ${canFire ? `<button class="ut-fire" data-ai onclick="UT.fire()">${ev.waiting ? '👁 Build Watchlist Idea →' : 'Generate Trade Idea →'}</button>`
                       : `<button class="ut-fire" disabled>${ev.blocked ? '🛑 No Trade' : ev.tooWeak ? '✕ No Trade' : 'Add price levels'}</button>`}
           </div>
+          ${canFire ? '<div class="ut-quota"></div>' : ''}
         </div>
       </div>`;
     scrollTop();
+    if(canFire) loadQuota();
   }
   function riskLine(ev){
     if(!ev || !ev.risk) return '';
@@ -850,7 +852,42 @@ window.UT = (function(){
     if(!p || p.error) return 'not available';
     return `ENTRY_1 ${p.fmt(p.e1)} (${p.e1why}) · ENTRY_2 ${p.fmt(p.e2)} (${p.e2why}) · STOP_LOSS ${p.fmt(p.sl)} (${p.slwhy}) · TAKE_PROFIT_1 ${p.fmt(p.tp1)} = 1:${p.rr1} after spread (${p.note1}) · TAKE_PROFIT_2 ${p.fmt(p.tp2)} = 1:${p.rr2} after spread (${p.note2})${p.through ? ` · NOTE: price must first break through the ${p.through.name} at ${p.fmt(p.through.price)}` : ''}`;
   }
+  // ── Daily AI idea limit (enforced on the server; this only shows it) ──
+  let quota = null;   // { used, limit }
+  const quotaLeft = () => quota ? Math.max(0, quota.limit - quota.used) : null;
+  function quotaText(){
+    const left = quotaLeft(); if(left == null) return '';
+    return left > 0 ? `⚡ <b>${left} of ${quota.limit}</b> AI trade ideas left today · resets at midnight SAST`
+                    : `⏳ You've used today's <b>${quota.limit} AI trade ideas</b>. Your plan above is still yours — new ideas unlock at midnight SAST.`;
+  }
+  function paintQuota(){
+    const left = quotaLeft();
+    document.querySelectorAll('.ut-quota').forEach(el => { el.innerHTML = quotaText(); el.classList.toggle('out', left === 0); });
+    document.querySelectorAll('[data-ai]').forEach(b => {
+      if(left === 0){ b.disabled = true; if(!b.dataset.txt) b.dataset.txt = b.innerHTML; b.innerHTML = '⏳ Daily limit reached'; }
+      else if(b.dataset.txt){ b.disabled = false; b.innerHTML = b.dataset.txt; delete b.dataset.txt; }
+    });
+  }
+  function setQuota(q){ if(q && q.limit != null){ quota = { used: +q.used || 0, limit: +q.limit }; paintQuota(); } }
+  async function loadQuota(){
+    try { const { data } = await _supabase.rpc('bm_ideas_left'); if(data) setQuota(data); else paintQuota(); } catch(e){ paintQuota(); }
+  }
+  function showLimit(status, data){
+    const panel = document.getElementById('guided-panel'), s = cur();
+    const msg = status === 401 ? 'Your login has expired. Log out and back in, then try again.'
+              : esc((data && data.error) || "You've used today's AI trade ideas.");
+    panel.innerHTML = `<div class="ut-wrap" style="--ut:${s.color};"><div class="ut-limit">
+        <div class="ut-limit-i">${status === 401 ? '🔒' : '⏳'}</div>
+        <b>${status === 401 ? 'Please log in again' : 'Daily limit reached'}</b>
+        <p>${msg}</p>
+        ${status === 401 ? '' : '<p class="ut-limit-s">Your engine-calculated plan — entries, stop, targets and lot size — is still on the previous screen.</p>'}
+        <div class="ut-actions" style="justify-content:center"><button class="ut-back" onclick="UT.render()">← Back to my plan</button><button class="ut-back" onclick="restartGuided()">↺ New analysis</button></div>
+      </div></div>`;
+    scrollTop();
+  }
+
   async function fire(){
+    if(quotaLeft() === 0) return showLimit(429, { error: `You've used your ${quota.limit} AI trade ideas for today. New ideas unlock at midnight (SAST).` });
     const s = cur(), ev = st.result || evaluate();
     if(ev.blocked || ev.tooWeak) return;
     const main = plan(ev.bias), counter = plan(-ev.bias);
@@ -876,6 +913,8 @@ window.UT = (function(){
         body: JSON.stringify({ prompt, images: st.shots.filter(x => x && x.data) })
       });
       const data = await r.json();
+      if(data && data.bm_usage) setQuota(data.bm_usage);
+      if(r.status === 429 || r.status === 401) return showLimit(r.status, data);
       raw = (data.content && data.content[0] && data.content[0].text) || '';
       if(!raw) throw new Error(data.error || 'empty');
     }catch(e){
@@ -926,7 +965,9 @@ REASONING: …
         <button class="ut-take-b mon" onclick="takeThisTrade('monitoring')">👁 Monitor Setup</button>
         <div class="ut-take-n">${ev.waiting ? 'Watchlist idea — save it and enter only once the signal prints.' : 'Take = entering now · Monitor = waiting for the signal'}</div>
       </div>
-      <div class="ut-actions"><button class="ut-back" onclick="UT.fire()">↻ Regenerate</button><button class="ut-back" onclick="restartGuided()">↺ New analysis</button></div>`;
+      <div class="ut-actions"><button class="ut-back" data-ai onclick="UT.fire()">↻ Regenerate</button><button class="ut-back" onclick="restartGuided()">↺ New analysis</button></div>
+      <div class="ut-quota"></div>`;
+    paintQuota();
     const f = main.fmt;
     window._lastTradePlan = {
       instrument: st.ans.instrument, style: S.style, bias: S.bias, score: ev.score,
@@ -1082,6 +1123,14 @@ REASONING: …
 .ut-opt.on .ut-check{background:var(--blue);border-color:var(--blue)}
 .ut-nav,.ut-actions{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
 .ut-actions{justify-content:flex-end}
+.ut-quota{font-size:12.5px;color:var(--text2);text-align:right;line-height:1.5}
+.ut-quota:empty{display:none}
+.ut-quota.out{text-align:left;padding:10px 12px;border-radius:10px;border:1px dashed rgba(245,184,65,0.3);background:rgba(245,184,65,0.05);color:#E9C77A}
+.ut-limit{text-align:center;padding:28px 22px;border-radius:16px;border:1px solid rgba(245,184,65,0.3);background:linear-gradient(135deg,rgba(245,184,65,0.07),rgba(245,184,65,0.01));display:flex;flex-direction:column;gap:10px;align-items:center}
+.ut-limit-i{font-size:34px}
+.ut-limit b{font-family:'Outfit',sans-serif;font-size:20px}
+.ut-limit p{font-size:14px;color:var(--text2);max-width:440px;line-height:1.6}
+.ut-limit .ut-limit-s{font-size:12.5px;color:var(--text3, #8AA4BF)}
 .ut-back{padding:10px 16px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
 .ut-back:hover{color:var(--text);border-color:rgba(255,255,255,0.3)}
 .ut-next,.ut-fire{padding:12px 20px;border-radius:12px;border:1px solid rgba(42,143,227,0.5);background:linear-gradient(135deg,#2A8FE3,#1272BC);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 6px 20px rgba(42,143,227,0.25)}

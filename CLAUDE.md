@@ -75,6 +75,12 @@ uTrade Ideas page shell, Journal, Rules page shell, auth, glossary, setup guide.
   Coming back from the email (`PASSWORD_RECOVERY` event or `_bmRecovery` = `type=recovery` in the URL) shows `#reset-gate`
   ("Set a new password", min 8 chars) → `updateUser({password})`. Sign-up confirmation also uses `emailRedirectTo: bmHere()`.
   Both need the site in Supabase → Authentication → URL Configuration → Redirect URLs, or Supabase falls back to the Site URL.
+- **Daily AI limit (16 Oct):** the `trade-idea` Edge Function (source now in `supabase/functions/trade-idea/`, deploy with
+  `import_map_path: deno.json`, `verify_jwt: false` — it checks the login itself) rejects callers without a member login (401),
+  then atomically claims an idea via `bm_claim_idea(uid)` (service role only) → 429 `daily_limit` when used up; failed AI calls
+  are refunded (`bm_refund_idea`). Limit = `public.bm_config` key `ai_daily_limit` (default 2, editable in the dashboard), counted
+  per SAST day in `public.ai_usage`. App: `bm_ideas_left()` RPC → "X of 2 AI trade ideas left today" under Generate/Regenerate,
+  buttons lock at 0, `showLimit()` screen. Applies to the live site too (same function, same counter).
 - Form login and sign-up call `onSignedIn()` (never `checkQuizNeeded()` directly) so the profile loads before the disclaimer.
 
 ### Testing approach used so far

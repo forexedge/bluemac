@@ -5,7 +5,7 @@
 //   auth calls are recorded in window.__auth for the tests to inspect
 window.__auth = [];
 window.supabase = { createClient(){
-  const mk = u => u ? { user:{ id:u.id, email:u.email, user_metadata:{ tv_experience_level:'intermediate' } } } : null;
+  const mk = u => u ? { access_token:'tok-' + u.id, user:{ id:u.id, email:u.email, user_metadata:{ tv_experience_level:'intermediate' } } } : null;
   let user = window.__TU || null, session = mk(user);
   const subs = [];
   const recovery = /type=recovery/.test(location.hash);
