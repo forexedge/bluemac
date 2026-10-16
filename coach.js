@@ -70,6 +70,8 @@ window.BMC = (function(){
   }
 
   // ── The one next step on uTrade Ideas ──
+  // the member tapped back to Step 1 (nothing is wiped — they can keep what they had)
+  let review = false;
   function nextStep(sc, d){
     const name = esc(styleLabel(curStyle()));
     const sug = (() => { try { return localStorage.getItem('bm_style_suggestion') || ''; } catch(e){ return ''; } })();
@@ -87,17 +89,26 @@ window.BMC = (function(){
     }
     const started = sc.step > 0 || sc.instrument;
     // choosing comes first — a new member lands on Scalp by default without having picked it
-    if(!d.done.pick && !started){
+    if(review || (!d.done.pick && !started)){
       // building their own strategy is the headline option; a Blue Mac style is the quick alternative
       const b = [[hasOwn ? '🛠 Use my own strategy' : '🛠 Build my own strategy', hasOwn ? `BMB.open('${BMB.list()[0].id}');BMC.mark('pick')` : 'BMB.edit()', 'go']];
-      if(sug && STYLE_NAME[sug]) b.push([`Or use ${STYLE_NAME[sug]} — matched to you`, `BMC.useStyle('${sug}')`]);
-      else b.push(['Or start with Blue Mac Key', "BMC.useStyle('key')"]);
+      const alt = sug && STYLE_NAME[sug] ? sug : 'key';
+      // already on that style after tapping back? "Keep" says the same thing — don't show both
+      if(!(review && curStyle() === alt)) b.push([sug && STYLE_NAME[sug] ? `Or use ${STYLE_NAME[sug]} — matched to you` : 'Or start with Blue Mac Key', `BMC.useStyle('${alt}')`]);
+      if(review) b.push([`← Keep ${name}`, 'BMC.go(1)']);
       return { i:'👋', t:'Step 1 — pick how you want to trade', s:`<b>Build your own strategy</b> from the tools you already trade with — trendlines, order blocks, patterns, MACD… Blue Mac turns it into your own uTrade Idea. ${sug && STYLE_NAME[sug] ? `Or start with <b>${STYLE_NAME[sug]}</b>, the style your placement test matched you to.` : 'Or start with the <b>Blue Mac Key</b> — one clean session setup.'}`, b };
     }
     if(sc.know) return { i:'📚', t:`Quick read before ${name}`, s:'These are the concepts this style uses. Tap any you don’t know (2 minutes), then tap <b>I’m ready — let’s go</b> at the bottom of the card.', b:[['Show me', 'BMC.toPanel()']] };
     if(!started) return { i:'📈', t:`Step 2 — open your chart, then answer question 1`, s:`You’re on <b>${name}</b>. Open MT5 or TradingView next to Blue Mac, then answer each question by looking at your chart. Every question has example pictures — tap <b>📖 Learn</b> if a word is new.`, b:[['Start the questions', 'BMC.toPanel()']] };
     const tf = sc.tf ? ` Have your <b>${esc(sc.tf)}</b> chart open.` : '';
     return { i:'🧭', t:`Step 2 — question ${sc.step + 1}${sc.total ? ` of ${sc.total}` : ''}`, s:`${esc(sc.q || 'Answer the question below.')}${tf} Pick the picture that looks most like your chart. Not sure? Tap <b>📖 Learn</b>.`, b:[['Continue', 'BMC.toPanel()']] };
+  }
+  function go(i){
+    if(i === 0){ review = true; paint(); const c = document.getElementById('bmc-checklist'); if(c) c.scrollIntoView({ behavior:'smooth', block:'start' }); return; }
+    review = false; paint();
+    if(i === 2 && document.querySelector('#guided-panel .ut-fire')) return toFire();
+    if(i === 3 && document.querySelector('#guided-panel .ut-take')) return toTake();
+    toPanel();
   }
   function toFire(){ const b = document.querySelector('#guided-panel .ut-fire'); if(b){ b.scrollIntoView({ behavior:'smooth', block:'center' }); flash(b); } }
   function toTake(){ const b = document.querySelector('#guided-panel .ut-take'); if(b){ b.scrollIntoView({ behavior:'smooth', block:'center' }); flash(b); } }
@@ -111,16 +122,17 @@ window.BMC = (function(){
     if(sc.idea) mark('idea');
     const dd = load().done, n = nextStep(sc, load());
     const doneN = STEPS.filter(([k]) => dd[k]).length;
-    const nowIdx = STEPS.findIndex(([k]) => !dd[k]);
+    const nowIdx = review ? 0 : STEPS.findIndex(([k]) => !dd[k]);
     if(d.hide && d.hide.checklist) return `<button class="bmc-show" onclick="BMC.hide('checklist',0)">🧭 Show my next step</button>`;
     return `<div class="bmc-card">
       <div class="bmc-top"><span class="bmc-k">🧭 Your next step</span>
         <span class="bmc-prog">${doneN}/4 done</span>
         <button class="bmc-x" onclick="BMC.hide('checklist',1)" aria-label="Hide the guide">Hide</button></div>
-      <div class="bmc-path">${STEPS.map(([k, l], i) => `<div class="bmc-st${dd[k] ? ' done' : i === nowIdx ? ' now' : ''}"><i>${dd[k] ? '✓' : i + 1}</i><span>${l}</span></div>`).join('')}</div>
+      <div class="bmc-path">${STEPS.map(([k, l], i) => { const on = i === nowIdx, can = dd[k] || on;
+        return `<${can ? 'button type="button"' : 'div'} class="bmc-st${dd[k] && !on ? ' done' : on ? ' now' : ''}"${can ? ` onclick="BMC.go(${i})" title="${i === 0 ? 'Back to step 1' : 'Go to this step'}"` : ''}><i>${dd[k] && !on ? '✓' : i + 1}</i><span>${l}</span>${can && i === 0 && !on ? '<em>← back</em>' : ''}</${can ? 'button' : 'div'}>`; }).join('')}</div>
       <div class="bmc-next"><div class="bmc-ic">${n.i}</div><div class="bmc-tx"><b>${n.t}</b><p>${n.s}</p>
         ${n.b.length ? `<div class="bmc-bs">${n.b.map(([t, a, cls], i) => `<button class="${i ? 'bmc-b2' : 'bmc-b1'}${cls ? ' ' + cls : ''}" onclick="${a}">${t}</button>`).join('')}</div>` : ''}</div></div>
-      <div class="bmc-help">Lost? <button onclick="BMC.tour()">Show me around this page</button></div>
+      <div class="bmc-help">${dd.pick && !review ? '<button onclick="BMC.go(0)">← Back to step 1</button> · ' : ''}Lost? <button onclick="BMC.tour()">Show me around this page</button></div>
     </div>`;
   }
 
@@ -190,7 +202,7 @@ window.BMC = (function(){
         return null;
       }
       const started = sc.step > 0 || sc.instrument;
-      if(!d.done.pick && !started) return [q1('#bmc-checklist .bmc-b1'), 'Start here'];
+      if(review || (!d.done.pick && !started)) return [q1('#bmc-checklist .bmc-b1'), 'Start here'];
       if(sc.know) return [q1(P + '.ut-know .ut-next'), 'Tap when you’re ready'];
       if(q1(P + '#ut-lv-price')) return [q1(P + '#ut-lv-price'), 'Type your prices here'];
       if(q1(P + '.ut-inst')) return [q1(P + '.ut-inst'), 'Pick your market'];
@@ -287,7 +299,7 @@ window.BMC = (function(){
     const panel = document.getElementById('guided-panel');
     if(panel && window.MutationObserver) new MutationObserver(soon).observe(panel, { childList:true, subtree:true });
     hook('goPage', () => setTimeout(paint, 60));
-    hook('setStyle', soon);
+    hook('setStyle', () => { review = false; soon(); });
     hook('takeThisTrade', () => { mark('save'); soon(); });
     hook('renderJournal', soon);
     hook('showRules', soon);
@@ -332,7 +344,10 @@ window.BMC = (function(){
 .bmc-flash{animation:bmcFlash 1.4s ease 2}
 @keyframes bmcFlash{0%,100%{box-shadow:0 0 0 0 rgba(42,143,227,0)}50%{box-shadow:0 0 0 4px rgba(42,143,227,0.55)}}
 /* arrows between the 4 steps */
-.bmc-st{position:relative}
+.bmc-st{position:relative;font-family:'DM Sans',sans-serif;color:inherit}
+button.bmc-st{cursor:pointer}
+button.bmc-st:hover{border-color:rgba(255,255,255,0.3)}
+.bmc-st em{font-style:normal;font-size:10px;font-weight:700;color:var(--blue);margin-top:-2px}
 .bmc-st:not(:last-child)::after{content:'›';position:absolute;right:-7px;top:50%;transform:translateY(-50%);z-index:1;font-size:18px;font-weight:800;line-height:1;color:var(--text3)}
 .bmc-st.done:not(:last-child)::after{color:var(--bull)}
 /* "build my own strategy" is the headline option */
@@ -367,5 +382,5 @@ window.BMC = (function(){
 }`;
   document.head.appendChild(css);
 
-  return { paint, hide, mark, nav, top, useStyle, toPanel, toFire, toTake, toPending, rulesFor, focusSearch, tour };
+  return { paint, hide, mark, nav, top, go, useStyle, toPanel, toFire, toTake, toPending, rulesFor, focusSearch, tour };
 })();
