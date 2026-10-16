@@ -1295,6 +1295,21 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
 
 /* Mobile authentication: keep the form scrollable when the on-screen keyboard opens. */
 @media (max-width: 600px) {
+  .bml{margin-bottom:22px;padding:16px;border-radius:12px;border:1px solid rgba(42,143,227,0.35);background:linear-gradient(160deg,rgba(42,143,227,0.12),rgba(42,143,227,0.02));display:flex;flex-direction:column;gap:10px}
+  .bml-tag{font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#96D0FF}
+  .bml-h{font-family:'Outfit',sans-serif;font-size:19px;font-weight:700;color:#F2F2F2;line-height:1.25;text-wrap:balance}
+  .bml-bar{height:6px;border-radius:6px;background:rgba(255,255,255,0.07);overflow:hidden}
+  .bml-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2A8FE3,#96D0FF);border-radius:6px;transition:width .8s ease}
+  .bml-count{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;color:#A2A2A8;font-variant-numeric:tabular-nums}
+  .bml-count b{color:#F5B841;font-size:15px}
+  .bml-btns{display:flex;gap:8px;flex-wrap:wrap}
+  .bml-btn{flex:1;min-width:120px;text-align:center;padding:11px 14px;border-radius:8px;font-weight:700;font-size:13.5px;text-decoration:none;background:#F5B841;color:#080808}
+  .bml-btn.wa{background:#22D67A}
+  .bml-btn:focus-visible{outline:2px solid #96D0FF;outline-offset:2px}
+  .bml-ref{font-size:11.5px;color:#7C7C82;font-family:'DM Mono',monospace;line-height:1.6}
+  .bml-ref b{color:#E4E8EE;font-weight:500}
+  .bml-sel{user-select:all;-webkit-user-select:all;color:#96D0FF}
+  #auth-invite-note{font-size:12px;color:#A2A2A8;line-height:1.5;margin:-8px 0 12px;display:none}
   #auth-gate {
     align-items: flex-start !important;
     justify-content: center !important;
@@ -1585,10 +1600,10 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
 </div>
 <!-- SPLASH --><!-- AUTH GATE -->
 <div id="auth-gate" style="
-  position:fixed;inset:0;z-index:9999;background:#080808;
+  position:fixed;inset:0;z-index:9999;background:#080808;overflow-y:auto;
   display:flex;align-items:center;justify-content:center;
   font-family:'DM Sans',sans-serif;">
-  <div style="width:100%;max-width:420px;padding:24px;">
+  <div style="width:100%;max-width:420px;padding:24px;margin:auto;">
 
     <!-- Logo -->
     <div style="text-align:center;margin-bottom:32px;">
@@ -1596,26 +1611,26 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
       <div style="font-size:11px;color:#7C7C82;letter-spacing:0.2em;text-transform:uppercase;margin-top:4px;font-family:'DM Mono',monospace;">Professional Trading Platform</div>
     </div>
 
-    <!-- Pricing Pills -->
-    <div style="display:flex;gap:10px;margin-bottom:28px;">
-      <div style="flex:1;padding:14px;border-radius:8px;border:1px solid rgba(228,232,238,0.3);background:rgba(228,232,238,0.05);text-align:center;">
-        <div style="font-size:11px;color:#A2A2A8;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;">Monthly</div>
-        <div style="font-size:26px;font-weight:600;color:#fff;margin:4px 0;">$49</div>
-        <div style="font-size:11px;color:#7C7C82;">per month</div>
+    <!-- Founding 100 launch panel (filled live from bm_launch_info) -->
+    <div id="bm-launch" class="bml">
+      <div class="bml-tag">Founding 100 · Launch <span id="bml-date">4 Nov 2026</span></div>
+      <div class="bml-h">Only <span id="bml-total">100</span> members for the first 3 months.</div>
+      <div class="bml-bar" aria-hidden="true"><i id="bml-fill"></i></div>
+      <div class="bml-count"><span><b id="bml-left">—</b> of <span id="bml-total2">100</span> spots left</span><span id="bml-days"></span></div>
+      <div class="bml-btns">
+        <a id="bml-wa" class="bml-btn wa" href="#" target="_blank" rel="noopener" hidden>WhatsApp →</a>
+        <a id="bml-mail" class="bml-btn" href="#">Lock in your spot →</a>
       </div>
-      <div style="flex:1;padding:14px;border-radius:8px;border:1px solid rgba(45,184,122,0.3);background:rgba(45,184,122,0.05);text-align:center;position:relative;">
-        <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#2DB87A;color:#fff;font-size:9px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:20px;letter-spacing:0.1em;white-space:nowrap;">SAVE 20%</div>
-        <div style="font-size:11px;color:#A2A2A8;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;">Yearly</div>
-        <div style="font-size:26px;font-weight:600;color:#fff;margin:4px 0;">$39<span style="font-size:14px;color:#A2A2A8;">.20</span></div>
-        <div style="font-size:11px;color:#7C7C82;">per month</div>
-      </div>
+      <div class="bml-ref">Use the reference <b>LOCK IN MY SPOT</b> · <span id="bml-email" class="bml-sel">brahmdp@gmail.com</span><span id="bml-wa-txt"></span></div>
     </div>
 
     <!-- Tab Toggle -->
     <div style="display:flex;border:1px solid rgba(255,255,255,0.06);border-radius:8px;overflow:hidden;margin-bottom:20px;">
       <button id="tab-login" onclick="switchTab('login')" style="flex:1;padding:10px;background:rgba(30,136,220,0.1);color:#2A8FE3;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;">Login</button>
-      <button id="tab-signup" onclick="switchTab('signup')" style="flex:1;padding:10px;background:transparent;color:#7C7C82;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;">Sign Up</button>
+      <button id="tab-signup" onclick="switchTab('signup')" style="flex:1;padding:10px;background:transparent;color:#7C7C82;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;">I'm invited</button>
     </div>
+
+    <div id="auth-invite-note">Blue Mac is invite-only until launch. Register with the exact email you were invited with. Not invited yet? Lock in your spot above.</div>
 
     <!-- Form -->
     <div style="display:flex;flex-direction:column;gap:12px;">
@@ -4159,6 +4174,7 @@ async function takeThisTrade(tradeStatus = 'active'){
     document.getElementById('tab-signup').style.color = !isLogin ? '#2A8FE3' : '#7C7C82';
     document.getElementById('auth-btn').textContent = isLogin ? 'LOGIN' : 'CREATE ACCOUNT';
     document.getElementById('auth-forgot-row').style.display = isLogin ? 'block' : 'none';
+    document.getElementById('auth-invite-note').style.display = isLogin ? 'none' : 'block';
     document.getElementById('auth-error').textContent = '';
     document.getElementById('auth-success').textContent = '';
   }
@@ -4189,14 +4205,18 @@ async function takeThisTrade(tradeStatus = 'active'){
         if (data && data.session) await onSignedIn(data.session);
         else document.getElementById('auth-gate').style.display = 'none';
       } else {
+        // Invite-only until launch: free members + locked-in spots only
+        const { data: allowed, error: chkErr } = await _supabase.rpc('bm_signup_allowed', { p_email: email });
+        if (!chkErr && allowed === false) { showNotInvited(errEl); return; }
         const { data, error } = await _supabase.auth.signUp({ email, password, options:{ emailRedirectTo: bmHere() } });
+        if (error && /invite-only|database error saving new user/i.test(error.message || '')) { showNotInvited(errEl); return; }
         if (error) throw error;
         if (data && data.session) {
           sucEl.textContent = '✓ Account created and signed in.';
           await onSignedIn(data.session);
         } else {
-          sucEl.textContent = '✓ Account created! Check your email if confirmation is required, then log in.';
-          switchTab('login');
+          switchTab('login');   // (switching tabs clears the messages, so it goes first)
+          sucEl.textContent = '✓ Account created! Check your email (and spam) for the confirmation link, then log in here.';
         }
       }
     } catch (error) {
@@ -4260,6 +4280,49 @@ async function takeThisTrade(tradeStatus = 'active'){
     setTimeout(() => g.remove(), 1800);
     if (history.replaceState) history.replaceState(null, '', bmHere());
   }
+
+// ── FOUNDING 100 LAUNCH PANEL ──
+  let _bmLaunch = { launch_date:'2026-11-04', spots_total:100, spots_taken:null, contact_email:'brahmdp@gmail.com', contact_whatsapp:'' };
+  const LOCK_MSG = "Hi Blue Mac! Lock in my spot please.\n\nName:\nEmail I'll register with:\nWhatsApp number:";
+  function paintLaunch() {
+    const L = _bmLaunch, $ = id => document.getElementById(id);
+    if (!$('bm-launch')) return;
+    const d = new Date(L.launch_date + 'T00:00:00+02:00');
+    const nice = d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric', timeZone:'Africa/Johannesburg' });
+    $('bml-date').textContent = nice;
+    $('bml-total').textContent = $('bml-total2').textContent = L.spots_total;
+    if (L.spots_taken != null) {
+      const left = Math.max(0, L.spots_total - L.spots_taken);
+      $('bml-left').textContent = left;
+      $('bml-fill').style.width = Math.min(100, L.spots_taken / L.spots_total * 100) + '%';
+    }
+    const days = Math.ceil((d - Date.now()) / 864e5);
+    $('bml-days').textContent = days > 1 ? days + ' days to launch' : days === 1 ? 'Launching tomorrow' : '';
+    const mail = 'mailto:' + L.contact_email + '?subject=' + encodeURIComponent('Lock in my spot') + '&body=' + encodeURIComponent(LOCK_MSG);
+    $('bml-mail').href = mail;
+    $('bml-email').textContent = L.contact_email;
+    const wa = String(L.contact_whatsapp || '').replace(/[^0-9]/g, '');
+    $('bml-wa').hidden = !wa;
+    $('bml-mail').textContent = wa ? 'Email' : 'Lock in your spot →';
+    if (wa) {
+      $('bml-wa').href = 'https://wa.me/' + wa + '?text=' + encodeURIComponent(LOCK_MSG);
+      $('bml-wa-txt').innerHTML = ' · WhatsApp <span class="bml-sel">+' + wa + '</span>';
+    } else $('bml-wa-txt').textContent = '';
+  }
+  async function loadLaunch() {
+    paintLaunch();
+    try {
+      if (!_supabase.rpc) return;
+      const { data } = await _supabase.rpc('bm_launch_info');
+      if (data) { _bmLaunch = Object.assign(_bmLaunch, data); paintLaunch(); }
+    } catch (e) {}
+  }
+  function showNotInvited(errEl) {
+    errEl.innerHTML = "That email isn't on the invite list yet. Blue Mac is limited to 100 founding members until launch. Tap <b>Lock in your spot</b> above.";
+    const p = document.getElementById('bm-launch');
+    if (p) { p.scrollIntoView({ behavior:'smooth', block:'center' }); p.style.borderColor = '#F5B841'; setTimeout(() => p.style.borderColor = '', 2500); }
+  }
+  loadLaunch();
 
 // ── LOGIN ──
   const SKIP_LOGIN = false;

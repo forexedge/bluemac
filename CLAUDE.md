@@ -81,6 +81,12 @@ uTrade Ideas page shell, Journal, Rules page shell, auth, glossary, setup guide.
   are refunded (`bm_refund_idea`). Limit = `public.bm_config` key `ai_daily_limit` (default 2, editable in the dashboard), counted
   per SAST day in `public.ai_usage`. App: `bm_ideas_left()` RPC → "X of 2 AI trade ideas left today" under Generate/Regenerate,
   buttons lock at 0, `showLimit()` screen. Applies to the live site too (same function, same counter).
+- **Founding 100 / invite-only (16 Oct):** login screen shows `#bm-launch` (replaced the old USD pricing pills) filled from the public
+  RPC `bm_launch_info()` → launch date, "X of 100 spots left" (= distinct emails in free_access ∪ early_access ∪ accounts), contact
+  email + WhatsApp (mailto / wa.me with "Lock in my spot"). Settings in `bm_config`: `registration_open` (false = invite-only),
+  `launch_date`, `spots_total`, `contact_email`, `contact_whatsapp` (digits, empty hides the button). Sign Up tab = "I'm invited":
+  `bm_signup_allowed(email)` must be true (email in `free_access` = free forever, or `early_access` = locked-in spot, pays later);
+  backstop trigger `bm_guard_signup` BEFORE INSERT on auth.users raises "invite-only". At launch: set `registration_open` = true.
 - Form login and sign-up call `onSignedIn()` (never `checkQuizNeeded()` directly) so the profile loads before the disclaimer.
 
 ### Testing approach used so far
