@@ -10,6 +10,7 @@ PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_auth.py . tests
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_ai_limit.py . tests
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_launch.py . tests
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_search.py . tests
+PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_dna.py . tests [shots_dir]
 ```
 
 `test_ai_limit.py` covers the daily AI idea counter, the locked buttons and the limit screen.

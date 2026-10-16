@@ -19,7 +19,7 @@
 window.BMS = (function(){
   // per-member keys (bm_fx_v1 = shared exchange-rate cache, stays on the device)
   const SYNC = ['bm_uni_v1', 'bm_cost_v1', 'bm_know_v1', 'bm_tour_v1', 'bm_style_suggestion',
-                'tv_quiz_done', 'tv_disclaimer_accepted', 'tv_setup_seen', 'tv_welcome_seen', 'bm_nav_v1'];
+                'tv_quiz_done', 'tv_disclaimer_accepted', 'tv_setup_seen', 'tv_welcome_seen', 'bm_nav_v1', 'bm_dna_v1'];
   const SYNCSET = new Set(SYNC);
   const OWNER = 'bm_owner', STAMP = 'bm_state_t', NAV = 'bm_nav_v1';
   const B = { ready:false, loading:false, access:{ comp:false, tier:'free' }, uid:null };
@@ -83,12 +83,14 @@ window.BMS = (function(){
         Object.assign(UT.cost, { ccy:'ZAR', bal:'', inst:{} }, c);
       }
     } catch(e){}
+    try { if(window.BMD) BMD.paint(); } catch(e){}
   }
 
   function wipeDevice(){
     applying = true;
     SYNC.forEach(k => ls.del(k)); ls.del(STAMP); ls.del(OWNER);
     applying = false;
+    try { if(window.BMD) BMD.paint(); } catch(e){}
   }
 
   // ── Where they were ──

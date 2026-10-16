@@ -38,6 +38,7 @@ uTrade Ideas page shell, Journal, Rules page shell, auth, glossary, setup guide.
 | `utrade-position.js` | Position — "Macro Trend Position": MN + W1 200 SMA + trend age + macro + COT → weekly major pattern → D1 entry |
 | `utrade-key.js` | Blue Mac Key — "Key Range" session system: 15m range after the Asia/London/NY open → 15m close outside (Key Break) → retest entry. Old 9-TF MA version is in git (bfd090b) |
 | | Each strategy file = questions + diagrams + `rules` (Rules page is generated from it) + `levelMap()` + `prompt()` |
+| `dna.js` | `window.BMD` — **My Trading DNA** (16 Oct): member picks concepts (up to 5, cards with Examples diagrams), markets (5), sessions, entry chart (2) → `localStorage['bm_dna_v1']`, synced via BMS. Card/bar sits above the uTrade toggle on uTrade Ideas (no forced gate). `BMD.closestStyle()` maps DNA → nearest full-analysis style. Step 1 of the personal Quick Idea generator |
 | `tour.js` | `window.BMT` — spotlight app tour of every tab. Auto-runs once (after auth, placement and disclaimer) via `localStorage['bm_tour_v1']`; floating "?" button → "Tour this page" / "Full app tour". Steps live in `PAGES`; `ifMissing`/`demo` show mock-ups when the real screen isn't there. Last step is personalised from the placement test (level + suggested style buttons) |
 | `profile.js` | `window.BMS` — **member profile** (loaded last). Free-list check + "Free member" badge, and each member's saved spot synced to Supabase (see below) |
 | `logo.png` | Single logo file (used to be embedded 4× as base64) |
@@ -156,6 +157,12 @@ Swing 1:3 & 1:4, Position 1:3 & 1:5 · old tick-box sections removed — guided 
   Scalp = first 5 min (critical; a fake break supports the opposite side; a real break is allowed at `halfRisk`) · Day = first hour (critical, fake = wait) ·
   Swing = Monday's range (soft) · Position = first week of the month (soft).
 - Examples now 138 lessons. Know-cards, rules and prompts mention the Key Range per style.
+
+## Personal trade ideas (started 16 Oct 2026)
+Plan agreed with Brahm: 1. ✅ DNA picker (`dna.js`) 2. Concept blocks (OB, FVG, sweep, Key Range first) — split the strategy
+files into blocks with their own questions/levels/score weight 3. Quick Idea flow (4–6 questions from the member's DNA, same engine
+prices + R:R rules) 4. "Upgrade to A+ — full analysis" bridge 5. Later: price feed / chart screenshots. Old 5 styles stay as full analysis.
+Why: 16 Oct usage check — 9 members, 0 AI ideas, uTrade drop-off before Generate. Personalised ideas = flag for the FSCA/FAIS check.
 
 ## Next up
 - Brahm to test the new Blue Mac Key + Key Range layers on the `revamp` preview (phone first) and give feedback.
