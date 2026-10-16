@@ -1295,21 +1295,6 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
 
 /* Mobile authentication: keep the form scrollable when the on-screen keyboard opens. */
 @media (max-width: 600px) {
-  .bml{margin-bottom:22px;padding:16px;border-radius:12px;border:1px solid rgba(42,143,227,0.35);background:linear-gradient(160deg,rgba(42,143,227,0.12),rgba(42,143,227,0.02));display:flex;flex-direction:column;gap:10px}
-  .bml-tag{font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#96D0FF}
-  .bml-h{font-family:'Outfit',sans-serif;font-size:19px;font-weight:700;color:#F2F2F2;line-height:1.25;text-wrap:balance}
-  .bml-bar{height:6px;border-radius:6px;background:rgba(255,255,255,0.07);overflow:hidden}
-  .bml-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2A8FE3,#96D0FF);border-radius:6px;transition:width .8s ease}
-  .bml-count{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;color:#A2A2A8;font-variant-numeric:tabular-nums}
-  .bml-count b{color:#F5B841;font-size:15px}
-  .bml-btns{display:flex;gap:8px;flex-wrap:wrap}
-  .bml-btn{flex:1;min-width:120px;text-align:center;padding:11px 14px;border-radius:8px;font-weight:700;font-size:13.5px;text-decoration:none;background:#F5B841;color:#080808}
-  .bml-btn.wa{background:#22D67A}
-  .bml-btn:focus-visible{outline:2px solid #96D0FF;outline-offset:2px}
-  .bml-ref{font-size:11.5px;color:#7C7C82;font-family:'DM Mono',monospace;line-height:1.6}
-  .bml-ref b{color:#E4E8EE;font-weight:500}
-  .bml-sel{user-select:all;-webkit-user-select:all;color:#96D0FF}
-  #auth-invite-note{font-size:12px;color:#A2A2A8;line-height:1.5;margin:-8px 0 12px;display:none}
   #auth-gate {
     align-items: flex-start !important;
     justify-content: center !important;
@@ -1599,6 +1584,45 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
   </div>
 </div>
 <!-- SPLASH --><!-- AUTH GATE -->
+<style>
+/* Founding 100 panel — login screen, all screen sizes */
+.bml{position:relative;margin-bottom:22px;padding:18px;border-radius:16px;display:flex;flex-direction:column;gap:14px;
+  background:radial-gradient(120% 90% at 100% 0%,rgba(245,184,65,.12),transparent 55%),linear-gradient(160deg,#0F1A27,#0A0F16);
+  border:1px solid rgba(245,184,65,.28);box-shadow:0 18px 50px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.04)}
+.bml svg{display:block}
+.bml-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.bml-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 11px 5px 8px;border-radius:30px;background:rgba(245,184,65,.12);border:1px solid rgba(245,184,65,.4);
+  color:#F5B841;font:600 11px/1 'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase}
+.bml-badge svg{width:14px;height:14px}
+.bml-date{font:400 11px/1 'DM Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#8AA4BF}
+.bml-date b{color:#E4E8EE;font-weight:500}
+.bml-h{font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;line-height:1.2;color:#F2F4F7;text-wrap:balance;letter-spacing:-.2px}
+.bml-meter{display:flex;flex-direction:column;gap:7px}
+.bml-bar{height:7px;border-radius:7px;background:rgba(255,255,255,.07);overflow:hidden}
+.bml-bar i{display:block;height:100%;width:0;border-radius:7px;background:linear-gradient(90deg,#F5B841,#FFD98A);box-shadow:0 0 12px rgba(245,184,65,.5);transition:width 1s ease}
+.bml-count{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;color:#8AA4BF;font-variant-numeric:tabular-nums}
+.bml-count b{color:#F5B841;font-size:16px;font-weight:700}
+.bml-cta{display:flex;align-items:center;gap:14px;padding:12px 16px 12px 12px;border-radius:14px;text-decoration:none;
+  background:linear-gradient(135deg,#F5B841,#FFCF6B);color:#120C02;box-shadow:0 10px 28px rgba(245,184,65,.28);transition:transform .15s ease,box-shadow .15s ease}
+.bml-cta:hover{transform:translateY(-1px);box-shadow:0 14px 34px rgba(245,184,65,.38)}
+.bml-cta:active{transform:translateY(0)}
+.bml-cta:focus-visible{outline:2px solid #96D0FF;outline-offset:3px}
+.bml-seal{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:#120C02;color:#F5B841;
+  box-shadow:0 0 0 3px rgba(18,12,2,.18),inset 0 0 0 2px rgba(245,184,65,.55)}
+.bml-seal svg{width:22px;height:22px}
+.bml-cta-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.bml-cta-t b{font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;letter-spacing:-.2px;line-height:1.1}
+.bml-cta-t small{font-size:12.5px;font-weight:600;opacity:.72;font-variant-numeric:tabular-nums}
+.bml-cta-i{flex:none;width:30px;height:30px;color:#120C02}
+.bml-cta-i svg{width:30px;height:30px}
+.bml-foot{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;flex-wrap:wrap;font-size:12px;color:#7C8796}
+.bml-chip{display:inline-block;margin-left:4px;padding:3px 8px;border-radius:6px;border:1px dashed rgba(228,232,238,.3);color:#E4E8EE;
+  font:500 11px/1.2 'DM Mono',monospace;letter-spacing:.08em;user-select:all;-webkit-user-select:all}
+.bml-alt{color:#96D0FF;text-decoration:none;font-size:12.5px}
+.bml-alt span{text-decoration:underline;text-underline-offset:3px;user-select:all;-webkit-user-select:all}
+#auth-invite-note{font-size:12.5px;color:#A2A2A8;line-height:1.5;margin:-8px 0 12px;display:none}
+@media (prefers-reduced-motion: reduce){.bml-bar i,.bml-cta{transition:none}}
+</style>
 <div id="auth-gate" style="
   position:fixed;inset:0;z-index:9999;background:#080808;overflow-y:auto;
   display:flex;align-items:center;justify-content:center;
@@ -1613,15 +1637,24 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
 
     <!-- Founding 100 launch panel (filled live from bm_launch_info) -->
     <div id="bm-launch" class="bml">
-      <div class="bml-tag">Founding 100 · Launch <span id="bml-date">4 Nov 2026</span></div>
-      <div class="bml-h">Only <span id="bml-total">100</span> members for the first 3 months.</div>
-      <div class="bml-bar" aria-hidden="true"><i id="bml-fill"></i></div>
-      <div class="bml-count"><span><b id="bml-left">—</b> of <span id="bml-total2">100</span> spots left</span><span id="bml-days"></span></div>
-      <div class="bml-btns">
-        <a id="bml-wa" class="bml-btn wa" href="#" target="_blank" rel="noopener" hidden>WhatsApp →</a>
-        <a id="bml-mail" class="bml-btn" href="#">Lock in your spot →</a>
+      <div class="bml-top">
+        <span class="bml-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2.5" fill="currentColor"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="15.4" r="1.6" fill="#080808"/></svg>Founding 100</span>
+        <span class="bml-date">Launch <b id="bml-date">4 Nov 2026</b></span>
       </div>
-      <div class="bml-ref">Use the reference <b>LOCK IN MY SPOT</b> · <span id="bml-email" class="bml-sel">brahmdp@gmail.com</span><span id="bml-wa-txt"></span></div>
+      <div class="bml-h">Only <span id="bml-total">100</span> founding members for the first 3 months.</div>
+      <div class="bml-meter">
+        <div class="bml-bar" aria-hidden="true"><i id="bml-fill"></i></div>
+        <div class="bml-count"><span><b id="bml-left">—</b> of <span id="bml-total2">100</span> spots left</span><span id="bml-days"></span></div>
+      </div>
+      <a id="bml-cta" class="bml-cta" href="#" target="_blank" rel="noopener">
+        <span class="bml-seal"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2.5" fill="currentColor"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="15.4" r="1.6" fill="#080808"/></svg></span>
+        <span class="bml-cta-t"><b>Lock in your spot</b><small id="bml-cta-sub">WhatsApp 084 067 4851</small></span>
+        <span class="bml-cta-i" id="bml-cta-i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6a9.3 9.3 0 0 0-8 14.1L2.7 21.4l4.8-1.3A9.3 9.3 0 1 0 12 2.6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9.1 7.6c-.3-.6-.6-.6-.9-.6h-.7c-.3 0-.7.1-1 .5-.4.4-1.3 1.3-1.3 3.1s1.3 3.6 1.5 3.8c.2.3 2.6 4.1 6.3 5.6 3.1 1.2 3.7 1 4.4.9.7-.1 2.2-.9 2.5-1.8.3-.9.3-1.6.2-1.8-.1-.2-.3-.3-.7-.5l-2.4-1.2c-.3-.1-.6-.2-.8.2-.2.4-.9 1.2-1.1 1.4-.2.2-.4.3-.8.1-.4-.2-1.5-.6-2.9-1.8-1.1-1-1.8-2.1-2-2.5-.2-.4 0-.6.2-.8l.6-.7c.2-.2.3-.4.4-.7.1-.3 0-.5 0-.7L9.1 7.6z" fill="currentColor" transform="translate(1.6 1.4) scale(.86)"/></svg></span>
+      </a>
+      <div class="bml-foot">
+        <span>Reference <span class="bml-chip">LOCK IN MY SPOT</span></span>
+        <a id="bml-mail" class="bml-alt" href="#">or email <span id="bml-email">brahmdp@gmail.com</span></a>
+      </div>
     </div>
 
     <!-- Tab Toggle -->
@@ -4282,7 +4315,7 @@ async function takeThisTrade(tradeStatus = 'active'){
   }
 
 // ── FOUNDING 100 LAUNCH PANEL ──
-  let _bmLaunch = { launch_date:'2026-11-04', spots_total:100, spots_taken:null, contact_email:'brahmdp@gmail.com', contact_whatsapp:'' };
+  let _bmLaunch = { launch_date:'2026-11-04', spots_total:100, spots_taken:null, contact_email:'brahmdp@gmail.com', contact_whatsapp:'27840674851' };
   const LOCK_MSG = "Hi Blue Mac! Lock in my spot please.\n\nName:\nEmail I'll register with:\nWhatsApp number:";
   function paintLaunch() {
     const L = _bmLaunch, $ = id => document.getElementById(id);
@@ -4299,15 +4332,19 @@ async function takeThisTrade(tradeStatus = 'active'){
     const days = Math.ceil((d - Date.now()) / 864e5);
     $('bml-days').textContent = days > 1 ? days + ' days to launch' : days === 1 ? 'Launching tomorrow' : '';
     const mail = 'mailto:' + L.contact_email + '?subject=' + encodeURIComponent('Lock in my spot') + '&body=' + encodeURIComponent(LOCK_MSG);
-    $('bml-mail').href = mail;
-    $('bml-email').textContent = L.contact_email;
     const wa = String(L.contact_whatsapp || '').replace(/[^0-9]/g, '');
-    $('bml-wa').hidden = !wa;
-    $('bml-mail').textContent = wa ? 'Email' : 'Lock in your spot →';
+    const local = wa.startsWith('27') ? ('0' + wa.slice(2)).replace(/^(\d{3})(\d{3})(\d+)$/, '$1 $2 $3') : '+' + wa;
+    $('bml-email').textContent = L.contact_email;
+    $('bml-mail').href = mail;
     if (wa) {
-      $('bml-wa').href = 'https://wa.me/' + wa + '?text=' + encodeURIComponent(LOCK_MSG);
-      $('bml-wa-txt').innerHTML = ' · WhatsApp <span class="bml-sel">+' + wa + '</span>';
-    } else $('bml-wa-txt').textContent = '';
+      $('bml-cta').href = 'https://wa.me/' + wa + '?text=' + encodeURIComponent(LOCK_MSG);
+      $('bml-cta-sub').textContent = 'WhatsApp ' + local;
+      $('bml-cta-i').hidden = false; $('bml-mail').hidden = false;
+    } else {
+      $('bml-cta').href = mail;
+      $('bml-cta-sub').textContent = 'Email ' + L.contact_email;
+      $('bml-cta-i').hidden = true; $('bml-mail').hidden = true;
+    }
   }
   async function loadLaunch() {
     paintLaunch();
@@ -4320,7 +4357,7 @@ async function takeThisTrade(tradeStatus = 'active'){
   function showNotInvited(errEl) {
     errEl.innerHTML = "That email isn't on the invite list yet. Blue Mac is limited to 100 founding members until launch. Tap <b>Lock in your spot</b> above.";
     const p = document.getElementById('bm-launch');
-    if (p) { p.scrollIntoView({ behavior:'smooth', block:'center' }); p.style.borderColor = '#F5B841'; setTimeout(() => p.style.borderColor = '', 2500); }
+    if (p) { p.scrollIntoView({ behavior:'smooth', block:'center' }); p.style.boxShadow = '0 0 0 2px #F5B841, 0 18px 50px rgba(0,0,0,.45)'; setTimeout(() => p.style.boxShadow = '', 2500); }
   }
   loadLaunch();
 
