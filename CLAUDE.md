@@ -47,6 +47,9 @@ uTrade Ideas page shell, Journal, Rules page shell, auth, glossary, setup guide.
   The 20 original cards are matched by title slug (`ex-support-and-resistance`).
   University lessons reuse Examples diagrams via `ref:'<data-id>'` — never duplicate a diagram.
 - Library tabs with sub-filters are registered in `filterExamples()` → `SUBTABS` in `index.html`.
+- **Examples search (16 Oct):** `#ex-search-input` above the filter bar → `exSearch()` searches all 138 `.ex-card`s (title > tag > body text),
+  `EX_ALIASES` maps trader shorthand (OB, FVG, BOS, CHoCH, H&S, fib, S&R…), plurals stemmed, results ordered with CSS `order`; Enter = jump +
+  `.ex-hit` highlight; tapping a filter ends the search. New cards are picked up automatically (index built on first search).
 - Diagrams: SVG viewBox 260×150, DM Mono labels, palette `--blue #2A8FE3`, light `#96D0FF`,
   bull `#22D67A`, bear `#FF5C5C`, silver `#E4E8EE`, slate `#8AA4BF`, amber `#F5B841` (indicators only).
 - University progress: `localStorage['bm_uni_v1']` (device only for now). Strict unlocking:

@@ -2186,6 +2186,32 @@ header::after{background:linear-gradient(90deg,transparent 0%,rgba(30,136,220,0.
       <div class="examples-subtitle">Stuck on a question? Find the concept here — real chart examples explained simply</div>
     </div>
 
+    <!-- Search all lessons -->
+    <style>
+      .ex-search{position:relative;margin:0 0 14px}
+      .ex-search input{width:100%;padding:13px 44px 13px 46px;border-radius:12px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);
+        font:500 16px 'DM Sans',sans-serif;outline:none;transition:border-color .15s,box-shadow .15s}
+      .ex-search input::placeholder{color:var(--text3,#7C7C82)}
+      .ex-search input::-webkit-search-cancel-button,.ex-search input::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none}
+      .ex-search input:focus{border-color:rgba(42,143,227,.7);box-shadow:0 0 0 3px rgba(42,143,227,.18)}
+      .ex-search-i{position:absolute;left:15px;top:50%;transform:translateY(-50%);width:19px;height:19px;color:var(--text2);pointer-events:none}
+      .ex-search-x{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:8px;border:0;background:transparent;color:var(--text2);font-size:20px;cursor:pointer;display:none}
+      .ex-search.has .ex-search-x{display:block}
+      .ex-search-info{font:12px 'DM Mono',monospace;color:var(--text2);margin:-6px 0 12px;min-height:0}
+      .ex-search-info b{color:#96D0FF;font-weight:500}
+      .ex-search-info:empty{display:none}
+      .examples-page.searching .examples-filter-bar,.examples-page.searching .pattern-subfilter{display:none!important}
+      .ex-card.ex-hit{animation:exhit 1.6s ease}
+      @keyframes exhit{0%,40%{box-shadow:0 0 0 2px #2A8FE3,0 0 30px rgba(42,143,227,.35)}100%{box-shadow:none}}
+      @media (prefers-reduced-motion: reduce){.ex-card.ex-hit{animation:none;box-shadow:0 0 0 2px #2A8FE3}}
+    </style>
+    <div class="ex-search" id="ex-search">
+      <svg class="ex-search-i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4.2-4.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input id="ex-search-input" type="search" inputmode="search" autocomplete="off" placeholder="Search 138 lessons — e.g. order block, RSI, fib" aria-label="Search the examples">
+      <button class="ex-search-x" type="button" aria-label="Clear search" onclick="exSearchClear()">×</button>
+    </div>
+    <div class="ex-search-info" id="ex-search-info"></div>
+
     <div class="examples-filter-bar">
       <button class="ex-filter on" onclick="filterExamples('all',this)">All</button>
       <button class="ex-filter" onclick="filterExamples('ma',this)">Moving Averages</button>
@@ -5088,7 +5114,85 @@ async function checkQuizNeeded(session){
 // ── EDUCATION PROGRESS TRACKING ──
 
 // Init progress on page load
+// ── Examples search: every lesson in every tab, trader shorthand understood ──
+const EX_ALIASES = {
+  ob:'order block', obs:'order block', fvg:'fair value gap', imbalance:'fair value gap', bos:'break of structure', choch:'change of character',
+  mss:'change of character', ma:'moving average', mas:'moving average', sma:'moving average', ema:'moving average', fib:'fibonacci', fibs:'fibonacci',
+  'h&s':'head and shoulders', hs:'head and shoulders', 'ihs':'inverse head and shoulders', 'sr':'support resistance', 's&r':'support resistance', 'snr':'support resistance',
+  sd:'supply demand', 's&d':'supply demand', rr:'risk reward', 'r:r':'risk reward', sl:'stop loss', tp:'take profit', be:'breakeven', pdh:'previous day high',
+  pdl:'previous day low', liq:'liquidity', bb:'bollinger', vwap:'vwap', orb:'key range', 'kz':'kill zone', engulfing:'engulf', pinbar:'pin bar',
+  dt:'double top', db:'double bottom', ote:'golden pocket', 'golden':'golden pocket', lot:'position size', lots:'position size', sizing:'position size'
+};
+let _exIndex = null, _exPrev = null, _exT = null;
+function exNorm(x){ return ' ' + String(x || '').toLowerCase().replace(/&amp;/g,'&').replace(/[’']/g,'').replace(/[^a-z0-9&:%.]+/g,' ').trim() + ' '; }
+function exIndex(){
+  if (_exIndex) return _exIndex;
+  _exIndex = [...document.querySelectorAll('#examples-grid .ex-card, #pg-examples .ex-card')].filter((c, i, a) => a.indexOf(c) === i).map(c => ({
+    el: c,
+    title: exNorm((c.querySelector('.ex-card-title') || {}).textContent),
+    tag: exNorm((c.querySelector('.ex-card-tag') || {}).textContent + ' ' + (c.dataset.cat || '').replace(/-/g, ' ')),
+    body: exNorm(c.textContent)
+  }));
+  return _exIndex;
+}
+function exTerms(q){
+  const raw = String(q).toLowerCase().trim(); if (!raw) return [];
+  const whole = EX_ALIASES[raw.replace(/\s+/g, '')];
+  const words = (whole || raw).split(/\s+/).flatMap(w => (EX_ALIASES[w] && !whole ? EX_ALIASES[w] : w).split(/\s+/));
+  return words.map(w => w.replace(/[^a-z0-9&:%.]/g, '')).filter(Boolean)
+    .map(w => w.length > 3 && /s$/.test(w) && !/ss$/.test(w) ? w.slice(0, -1) : w);     // plurals: "order blocks" → "block"
+}
+function exSearch(q, jump){
+  const page = document.querySelector('#pg-examples .examples-page'), box = document.getElementById('ex-search'), info = document.getElementById('ex-search-info');
+  const terms = exTerms(q);
+  box.classList.toggle('has', !!String(q).length);
+  if (!terms.length) {
+    page.classList.remove('searching'); info.textContent = '';
+    exIndex().forEach(x => x.el.style.order = '');
+    const back = _exPrev || document.querySelector('.ex-filter');
+    if (back) { const m = (back.getAttribute('onclick') || '').match(/'([^']+)'/); filterExamples(m ? m[1] : 'all', back); }
+    _exPrev = null; return;
+  }
+  if (!page.classList.contains('searching')) _exPrev = document.querySelector('.ex-filter.on');
+  page.classList.add('searching');
+  document.querySelectorAll('.pattern-subfilter').forEach(r => r.classList.remove('show'));
+  const hits = [];
+  exIndex().forEach(x => {
+    const has = t => x.body.includes(t) || x.tag.includes(t);
+    const ok = terms.every(has);
+    let score = 0;
+    if (ok) terms.forEach(t => { score += x.title.includes(' ' + t) ? 10 : x.title.includes(t) ? 6 : x.tag.includes(t) ? 3 : 1; });
+    if (ok && x.title.includes(' ' + terms.join(' '))) score += 20;            // the whole phrase in the title
+    x.el.style.display = ok ? 'block' : 'none';
+    x.el.style.order = ok ? String(1000 - score) : '';
+    if (ok) hits.push([score, x.el]);
+  });
+  hits.sort((a, b) => b[0] - a[0]);
+  const safe = String(q).replace(/[<>&"]/g, '');
+  info.innerHTML = hits.length ? `<b>${hits.length}</b> lesson${hits.length === 1 ? '' : 's'} for “${safe}”` + (hits.length > 1 ? ' · press Enter to jump to the best match' : '')
+                               : `No lessons for “${safe}”. Try fewer words, or e.g. “order block”, “RSI”, “double top”.`;
+  if (hits.length && (jump || hits.length === 1)) {
+    const el = hits[0][1]; el.classList.remove('ex-hit'); void el.offsetWidth; el.classList.add('ex-hit');
+    if (jump) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+function exSearchClear(){ const i = document.getElementById('ex-search-input'); i.value = ''; exSearch(''); i.focus(); }
+document.addEventListener('DOMContentLoaded', () => {
+  const i = document.getElementById('ex-search-input'); if (!i) return;
+  i.addEventListener('input', () => { clearTimeout(_exT); _exT = setTimeout(() => exSearch(i.value), 120); });
+  i.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); clearTimeout(_exT); exSearch(i.value, true); i.blur(); }
+    if (e.key === 'Escape') exSearchClear();
+  });
+});
+
 function filterExamples(cat, btn){
+  if (cat && document.querySelector('#pg-examples .examples-page.searching')) {   // a filter tap ends the search
+    const i = document.getElementById('ex-search-input'); if (i) i.value = '';
+    document.querySelector('#pg-examples .examples-page').classList.remove('searching');
+    document.getElementById('ex-search').classList.remove('has'); document.getElementById('ex-search-info').textContent = '';
+    (_exIndex || []).forEach(x => x.el.style.order = ''); _exPrev = null;
+  }
   document.querySelectorAll('.ex-filter').forEach(b=>b.classList.remove('on'));
   if(btn) btn.classList.add('on');
   // Tabs with their own sub-filter row (Patterns, Fibonacci)
