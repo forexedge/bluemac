@@ -162,7 +162,7 @@ window.BMPR = (function(){
           ok:'Spot on. These are the only numbers Blue Mac needs — it builds the entries, stop and targets from them.' }
       ],
       learnt:['Answer from what the chart shows — not what you hope', 'Daily trend decides LONG or SHORT', 'Wait for the pullback into a zone, then a 15m trigger', 'Blue Mac sets the prices — you just read the chart'],
-      name:'Gold',
+      name:'Gold', pics:{ zone:h1Zone, trig:m15TrigR },
       coach: p => ({
         e1:`A <b>buy limit</b> at the top of the golden pocket. Price is at 4206.50, so you wait for it to come back down to you.`,
         e2:'Your second, cheaper buy — half the size. Blue Mac always keeps it <b>inside</b> the stop.',
@@ -265,13 +265,98 @@ window.BMPR = (function(){
     };
   })();
 
-  // runs 2–5 (coming soon — shown so members see the path)
+  // ════════════════════════════════════════════════════
+  // RUN 3 — "News day": the same A+ Gold setup as Run 1, but US CPI is 20 minutes away
+  // Engine: red news within the hour = hard block. Plus the fundamentals behind it.
+  // ════════════════════════════════════════════════════
+  const R3 = (function(){
+    // a CPI release on the 1-minute chart: quiet, then a spike down, a spike up, and chop
+    const CPI = { n:46, seed:31, noise:0.35, wick:1.0,
+      pts:[[0,4206],[19,4207],[20,4207],[21,4190,2],[22,4214,2],[24,4198,1.5],[28,4211,1.2],[34,4201,0.9],[45,4205,0.7]],
+      fix:{ 20:{ o:4207, c:4206.6, h:4207.4, l:4205.9 }, 21:{ o:4206.6, c:4192.0, h:4207.2, l:4183.5 }, 22:{ o:4192.0, c:4213.8, h:4219.6, l:4190.8 }, 23:{ o:4213.8, c:4202.5, h:4215.0, l:4199.0 } } };
+    const cpiBase = chart(with_(CPI, { marks:[{ t:'vline', i:21, l:'CPI 14:30', c:'bear' }] }));
+    const cpiR = chart(with_(CPI, { marks:[{ t:'vline', i:21, l:'CPI 14:30', c:'bear' },
+      { t:'hline', i1:6, i2:26, p:4199.0, c:'bear', l:'A TIGHT STOP', lr:false },
+      { t:'text', i:21, p:4180.5, s:'−23 IN 1 MIN', c:'bear' }, { t:'text', i:22, p:4222.5, s:'+28', c:'bull' }] }));
+
+    const clock = `<div class="bmpr-scene"><div class="bmpr-scene-h">🕑 Practice clock</div>
+      <div class="bmpr-clock"><b>Wednesday · 14:10</b><span>SAST</span></div>
+      <div class="bmpr-scene-r"><span>London day-trade window</span><b>closed at 13:00 SAST</b></div>
+      <div class="bmpr-scene-r"><span>New York day-trade window</span><b class="ok">opens 14:30 SAST</b></div>
+      <small>Your Gold setup from this morning is still there: daily uptrend, H1 golden pocket, 15m CHoCH. You want to enter when New York opens.</small></div>`;
+    const cal = `<div class="bmpr-scene"><div class="bmpr-scene-h">📅 Practice economic calendar · today (SAST)</div>
+      ${[['11:00', 'EUR', 'German ZEW Sentiment', 'med', ''], ['14:30', 'USD', 'CPI m/m (inflation)', 'high', ' hot'], ['14:30', 'USD', 'Core CPI m/m', 'high', ' hot'], ['16:30', 'USD', 'Crude Oil Inventories', 'low', '']].map(([t, c, n, k, h]) =>
+        `<div class="bmpr-cal${h}"><span class="t">${t}</span><span class="c">${c}</span><span class="n">${n}</span><span class="i ${k}">${k === 'high' ? 'RED' : k === 'med' ? 'ORANGE' : 'YELLOW'}</span></div>`).join('')}
+      <small>🔴 Red = high impact · 🟠 Orange = medium · 🟡 Yellow = low. Gold is priced in <b>US dollars</b>, so USD news moves it.</small></div>`;
+    const print_ = `<div class="bmpr-scene"><div class="bmpr-scene-h">📰 14:30 SAST · the number is out</div>
+      <div class="bmpr-scene-r"><span>US CPI m/m · Forecast</span><b>0.3%</b></div>
+      <div class="bmpr-scene-r"><span>Actual</span><b class="no">0.5%</b></div>
+      <div class="bmpr-scene-r"><span>Verdict</span><b class="no">HOTTER than expected</b></div>
+      <small>CPI = how fast prices in the US are rising (inflation). The market only cares about the <b>surprise</b>: actual vs forecast.</small></div>`;
+
+    return {
+      id:'r3', n:3, title:'News day', style:'day', instrument:'XAUUSD', name:'Gold',
+      blurb:'Gold · the same A+ setup · but US CPI is 20 minutes away',
+      brief:`Remember your A+ Gold setup from Run 1? It's back — <b>daily uptrend, H1 golden pocket, 15m CHoCH</b>.
+        But today is <b>Wednesday</b>, and something is on the calendar. Let's see if you spot it — and learn what news actually does to Gold.`,
+      pre:{ discipline:'fresh', d1_structure:'up', d1_pd:'discount', h4_structure:'bos_bull', h4_ema:'flat', krange:'up', zone:'fib_bull', trigger:'choch_bull', confluence:['pdhl'] },
+      resultTitle:'What Blue Mac says', endBtn:'See what Blue Mac says →',
+      steps:[
+        { q:'session', scene:clock, ans:'ny',
+          ok:'Right — London\'s day-trade window has closed and New York opens at 14:30 SAST. That is the session you\'d enter in.',
+          no:{ london:'London\'s day-trade window closed at 13:00 SAST — too late for a new London entry.',
+               late:'The NY afternoon starts after the New York lunch — hours from now. You\'re planning for the New York open.',
+               asia:'Asia finished hours ago. Look at the clock: New York is next.' },
+          hint:'Which window opens next on the practice clock?' },
+        { q:'news', scene:cal, ans:'soon',
+          ok:'🔴 <b>US CPI at 14:30 SAST — 20 minutes from now</b>, and it\'s USD news, so it hits Gold. Blue Mac\'s rule: no new trades from <b>1 hour before</b> until <b>30 minutes after</b> red news. This is a hard stop 🛑.',
+          no:{ clear:'Look again — two 🔴 <b>red</b> USD events at 14:30. Gold is priced in US dollars, so USD news moves it.',
+               later:'"Later" means more than an hour away. 14:30 is only <b>20 minutes</b> from 14:10.' },
+          hint:'What time is it now, and what time is the red event?' },
+        { call:[
+            { v:'take', l:'Take it — the setup is A+', sub:'Daily, H1 and 15m all line up.' },
+            { v:'half', l:'Take it with half size', sub:'Less risk, still in the move.' },
+            { v:'no', l:'No new trade until 30 min after CPI', sub:'Protect the account first.' }],
+          callQ:'But the chart is A+. What do you do?', pic:R1.pics.trig, cap:'Your 15m trigger · Gold · 14:10 SAST', ans:'no',
+          ok:'That\'s discipline 👊 A perfect chart doesn\'t matter when a red event is minutes away — the news decides the next move, not your setup.',
+          no:{ take:'That\'s how accounts get hurt on news days. CPI can move Gold tens of dollars in a minute — it can jump straight through a stop, with slippage and a wide spread.',
+               half:'Half size doesn\'t fix it: the spike ignores your stop, spreads widen and you can get filled far from your price. The rule is <b>no new trades</b>, not smaller trades.' },
+          hint:'What does Blue Mac\'s news rule say — smaller trades, or no trades?' },
+        { call:[
+            { v:'down', l:'Gold usually DROPS first', sub:'' },
+            { v:'up', l:'Gold usually RISES first', sub:'' },
+            { v:'flat', l:'Nothing — it is only one number', sub:'' }],
+          callQ:'CPI came in HOTTER than expected. What does Gold usually do first?', scene:print_, ans:'down',
+          ok:'Hotter inflation → markets expect US interest rates to stay <b>higher for longer</b> → the US dollar and US yields rise → Gold (priced in USD, and it pays no interest) usually <b>drops first</b>. A <b>cooler</b> number usually does the opposite. Note the word <i>usually</i> — the first spike often reverses.',
+          no:{ up:'Inflation can help Gold over years — but on the day, a hotter number usually means <b>higher US rates</b>, a stronger dollar and a <b>lower</b> Gold price first.',
+               flat:'CPI is one of the biggest numbers of the month. A surprise of 0.2% can move Gold tens of dollars in seconds.' },
+          hint:'Hot inflation → what do markets expect the US central bank to do with interest rates?' },
+        { call:[
+            { v:'now', l:'Straight after 14:30 — catch the move', sub:'' },
+            { v:'thirty', l:'From 15:00 SAST — 30 minutes after', sub:'' },
+            { v:'tomorrow', l:'Not until tomorrow', sub:'' }],
+          callQ:'Here\'s what happened at 14:30. When can you look for a new trade again?', pic:cpiBase, picR:cpiR, cap:'Practice chart · Gold · 1-minute · around the CPI release', ans:'thirty',
+          ok:'From <b>15:00 SAST</b>. Look at the chart: down 23 in one minute, up 28 the next. A tight stop would have been hit within seconds — on a long <b>or</b> a short — and spreads are at their widest right on the release. After 30 minutes the dust settles: re-run uTrade Ideas. Your setup may still be there — or the news made a new one.',
+          no:{ now:'Look at the first two minutes: −23, then +28. That whipsaw is exactly what the 30-minute rule protects you from. Spreads are widest right after the release too.',
+               tomorrow:'Too careful 🙂 The rule is 30 minutes. After that, re-run uTrade — the setup might still be valid.' },
+          hint:'Blue Mac\'s rule: 1 hour before until how long after?' }
+      ],
+      after:{ t:'What to do on a news day', list:[
+        'Check the calendar <b>before</b> you trade — your Daily Pre-Flight does this every morning',
+        'Mark the red events. No new trades from <b>1 hour before</b> until <b>30 minutes after</b>',
+        'Already in a trade? Be at <b>breakeven or out</b> before the release',
+        'After the 30 minutes, <b>re-run uTrade Ideas</b> — the news may have made a better setup' ] },
+      moral:'📰 <b>News beats charts.</b> Even an A+ setup gets a 🛑 when red news is close — you can\'t control the spike, so you step aside and come back when it has settled.',
+      learnt:['Red news within the hour = no new trades, even A+', 'Gold moves on USD news: CPI, NFP, FOMC', 'Hotter inflation usually means a stronger dollar and weaker Gold first', 'Wait 30 minutes after the release, then re-run uTrade']
+    };
+  })();
+
+  // runs still to come (shown so members see the path)
   const SOON = [
-    { n:3, title:'News day', blurb:'CPI in 20 minutes → No Trade, and why' },
     { n:4, title:'Kill zone scalp', blurb:'London sweep → CHoCH → entry, fast' },
     { n:5, title:'Your own strategy', blurb:'Build one, then practise it' }
   ];
-  const RUNS = { r1: R1, r2: R2 }, ORDER = ['r1', 'r2'];
+  const RUNS = { r1: R1, r2: R2, r3: R3 }, ORDER = ['r1', 'r2', 'r3'];
   const TOTAL = 5;
   const nextRun = () => { const P = load(); const id = ORDER.find(k => !P.done[k]); return id ? RUNS[id] : null; };
 
@@ -407,13 +492,14 @@ window.BMPR = (function(){
 
   // a run that should end in Wait / No Trade: show the engine's gates and what has to happen first
   function waitHTML(ev){
-    const run = st.run, head = ev.blocked ? '🛑 No Trade' : ev.tooWeak ? '✕ Below Blue Mac standard' : '⏳ Watchlist — not a trade yet';
+    const run = st.run, head = ev.blocked ? 'No Trade' : ev.tooWeak ? 'Below Blue Mac standard' : 'Watchlist — not a trade yet';
     const sub = ev.blocked ? 'A hard rule is broken — Blue Mac never builds this idea, and the AI is never called.'
       : ev.tooWeak ? `Score ${ev.score}/100 — Blue Mac needs 60+ before it builds any idea.${ev.waiting ? ' And the setup isn\'t ready either:' : ''}`
       : 'The setup may come — but it is not confirmed. On the real screen you would get a Watchlist idea to MONITOR, not to enter.';
     return `
       <div class="bmpr-grade ${ev.blocked ? 'block' : 'amber'}"><div class="g">${ev.blocked ? '🛑' : ev.tooWeak ? '✕' : '⏳'}</div>
         <div><b>${head}</b><span>${sub}</span></div></div>
+      ${ev.blocked && ev.grade ? `<div class="bmpr-would"><span>Without that rule this setup would score</span><b>${ev.score}/100 · ${esc(ev.grade)}</b></div>` : ''}
       <div class="bmpr-note">This is the <b>real Blue Mac engine</b> reading your practice answers.</div>
       <div class="bmpr-warns"><div class="bmpr-scene-h">Why Blue Mac won't build this trade</div>
         ${ev.gates.map(g => `<div class="bmpr-gate"><b>${g.type === 'block' ? '🛑' : '⏳'} ${esc(g.q)}: ${esc(g.l)}</b>${g.why ? `<span>${esc(g.why)}</span>` : ''}</div>`).join('')}</div>
@@ -604,6 +690,8 @@ window.BMPR = (function(){
 .bmpr-cal{display:grid;grid-template-columns:44px 40px 1fr auto;gap:8px;align-items:center;font-size:12.5px;color:var(--text2);padding:3px 0}
 .bmpr-cal .t,.bmpr-cal .c{font-family:'DM Mono',monospace;color:var(--text)}
 .bmpr-cal .i{font-family:'DM Mono',monospace;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:6px}
+.bmpr-cal .i.high{background:rgba(255,92,92,0.18);color:#FF6B6B}
+.bmpr-cal.hot{background:rgba(255,92,92,0.06);border-radius:8px;padding:5px 6px;margin:0 -6px}
 .bmpr-cal .i.med{background:rgba(245,140,40,0.18);color:#F59A3C}.bmpr-cal .i.low{background:rgba(245,215,65,0.15);color:#E8CC4A}
 .bmpr-fb{border-radius:12px;padding:11px 14px;font-size:13.5px;line-height:1.55;color:var(--text);animation:rise .2s ease both}
 .bmpr-fb.ok{background:rgba(34,214,122,0.1);border:1px solid rgba(34,214,122,0.4)}
@@ -636,6 +724,8 @@ window.BMPR = (function(){
 .bmpr-pr p{margin:4px 0 0;font-size:12.5px;color:var(--text2);line-height:1.5}
 .bmpr-warns div,.bmpr-real div{font-size:12.5px;color:var(--text2);line-height:1.5}
 .bmpr-done{display:flex;flex-direction:column;gap:8px}
+.bmpr-would{display:flex;justify-content:space-between;align-items:center;gap:10px;border-radius:12px;border:1px dashed var(--border2);padding:10px 14px;font-size:13px;color:var(--text2)}
+.bmpr-would b{font-family:'DM Mono',monospace;color:var(--text3);text-decoration:line-through;white-space:nowrap}
 .bmpr-gate{display:flex;flex-direction:column;gap:2px;padding:6px 0;border-bottom:1px dashed var(--border)}
 .bmpr-gate:last-child{border-bottom:0}
 .bmpr-gate b{font-size:13px;color:var(--text)}.bmpr-gate span{font-size:12.5px;color:var(--text2);line-height:1.5}
