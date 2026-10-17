@@ -167,7 +167,8 @@ window.BMF = (function(){
   function newsHTML(){
     const n = st.news || {}, opt = (k, t, sub) => `<div class="ut-opt neut${n.k === k ? ' on' : ''}" role="button" tabindex="0" onclick="BMF.setNews('${k}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"><div class="ut-opt-t">${t}</div><div class="ut-opt-s">${sub}</div></div>`;
     return `<div class="bmpr-scene"><div class="bmpr-scene-h">📅 Check today's calendar</div>
-        <div class="bmf-txt">Open <a href="https://www.forexfactory.com/calendar" target="_blank" rel="noopener noreferrer">ForexFactory</a> (or Investing.com), set the time zone to <b>Johannesburg</b>, and look for <b>🔴 red-folder</b> events on the currencies you trade. For gold and US indices that's <b>USD</b>.</div></div>
+        <div class="bmf-txt">Open <a href="https://www.forexfactory.com/calendar" target="_blank" rel="noopener noreferrer">ForexFactory</a> (or Investing.com), set the time zone to <b>Johannesburg</b>, and look for <b>🔴 red-folder</b> events on the currencies you trade. For gold and US indices that's <b>USD</b>.</div>
+        ${window.BMN ? `<button class="bmf-learn" onclick="BMF.close();BMN.open()">📰 Not sure what NFP, CPI or FOMC do? Take the News Ready track</button>` : ''}</div>
       <div class="ut-opts compact bmf-opts">
         ${opt('none', 'No red news for my markets today', 'Normal trading day.')}
         ${opt('red', 'There is red news today', 'I\'ll type the time below.')}
@@ -313,6 +314,7 @@ window.BMF = (function(){
 .bmf-txt a{color:var(--blue);font-weight:700}
 .bmf-opts{grid-template-columns:1fr!important}
 .bmf-time input{max-width:140px}
+.bmf-learn{align-self:flex-start;margin-top:4px;padding:7px 12px;border-radius:10px;border:1px solid rgba(245,140,60,0.45);background:rgba(245,140,60,0.08);color:var(--text);font-size:12.5px;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left}
 .bmf-fit{display:flex;justify-content:space-between;align-items:center;gap:12px;border-radius:12px;background:var(--bg4);border:1px solid var(--border2);padding:10px 12px}
 .bmf-fit-q{display:flex;gap:10px;align-items:flex-start}
 .bmf-fit-q>span{font-size:20px;line-height:1.2}
