@@ -30,11 +30,17 @@ window.BMN = (function(){
     const d = new Date(), x = ((h * 60 + m) - tzOffsetMin(tz, d) + 120 + 1440) % 1440;
     return String(Math.floor(x / 60)).padStart(2, '0') + ':' + String(x % 60).padStart(2, '0');
   }
-  const NY = (h, m) => `<b>${sast('America/New_York', h, m)} SAST</b>`;
+  // the same moment on the member's chart clock (UT.clock: SAST / MT5 time / their own zone) — SAST if uTrade isn't loaded
+  function clk(tz, h, m){
+    if(!(window.UT && UT.clock)) return `${sast(tz, h, m)} SAST`;
+    const d = new Date(), x = ((h * 60 + m) - tzOffsetMin(tz, d) + UT.clock.off(d) + 2880) % 1440;
+    return `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')} ${UT.clock.name()}`;
+  }
+  const NY = (h, m) => `<b>${clk('America/New_York', h, m)}</b>`;
   const T = () => ({   // computed when a lesson is drawn, so it is always today's time
     us830: NY(8, 30), us1000: NY(10, 0), fomc: NY(14, 0), fomcPc: NY(14, 30),
-    ecb: `<b>${sast('Europe/Berlin', 14, 15)} SAST</b>`, ecbPc: `<b>${sast('Europe/Berlin', 14, 45)} SAST</b>`, boe: `<b>${sast('Europe/London', 12, 0)} SAST</b>`,
-    tokyoNoon: `<b>${sast('Asia/Tokyo', 12, 0)} SAST</b>`
+    ecb: `<b>${clk('Europe/Berlin', 14, 15)}</b>`, ecbPc: `<b>${clk('Europe/Berlin', 14, 45)}</b>`, boe: `<b>${clk('Europe/London', 12, 0)}</b>`,
+    tokyoNoon: `<b>${clk('Asia/Tokyo', 12, 0)}</b>`, sarb: `<b>${clk('Africa/Johannesburg', 15, 0)}</b>`
   });
   const DST_NOTE = '<small class="bmn-dst">⏰ Times shown for <b>today</b>, worked out live. They move by an hour when New York, London or Europe change their clocks — South Africa never does.</small>';
   const row = (k, v) => `<div class="bmpr-scene-r"><span>${k}</span><b>${v}</b></div>`;
@@ -101,7 +107,7 @@ window.BMN = (function(){
 
     { id:'n7', icon:'🇿🇦', title:'South Africa: SARB, SA CPI & the rand', tag:'ZAR',
       body: t => `<p>Trading <b>USDZAR</b> — or just thinking in rands? These matter.</p>
-        ${box('🗓 When', row('SARB rate decision', '6 meetings a year · decision usually around <b>15:00 SAST</b>') + row('SA CPI (Stats SA)', 'mid-to-late month, on a weekday morning — check the calendar'))}
+        ${box('🗓 When', row('SARB rate decision', '6 meetings a year · decision usually around ${t.sarb}') + row('SA CPI (Stats SA)', 'mid-to-late month, on a weekday morning — check the calendar'))}
         <p>A <b>hawkish</b> SARB (rates up or held high) usually supports the rand. <b>USDZAR going up = the rand getting weaker.</b></p>
         <p>The rand is an <b>emerging-market</b> currency: when global markets get scared (wars, crashes, big US surprises), money runs to safety and the rand usually <b>weakens</b> — even with no SA news at all. US data moves USDZAR too.</p>
         <p>Your account is probably in rands: a weaker rand means a USD profit is worth <b>more</b> rands — and a USD loss costs more too.</p>`,

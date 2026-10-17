@@ -63,7 +63,7 @@
     rules: {
       icon:'🔑', sub:'15-minute Key Range · one trade per session',
       preflight:[
-        ['Know today\'s opens in SAST.', 'Asia 02:00 · London 09:00 (summer) / 10:00 (winter) · New York 15:30 / 16:30. uTrade Ideas shows today\'s exact times.'],
+        ['Know today\'s opens in SAST.', 'Asia 02:00 · London 09:00 (summer) / 10:00 (winter) · New York 15:30 / 16:30 SAST. uTrade Ideas shows today\'s exact times on your chart clock (MT5 charts like XM run 1 hour ahead of SAST from mid-March to early November).'],
         ['Right market for the session.', 'Asia: JPY & AUD pairs, gold. London: EUR, GBP, gold, DAX, FTSE. New York: NAS100, US30, S&P, gold, USD pairs.'],
         ['Calendar checked.', 'No red news during the 15-minute range or within 30 minutes of your entry.'],
         ['Mark the Key Range.', 'High and low of the first 15-minute candle after the open — then do nothing until a candle closes outside.'],
@@ -101,17 +101,17 @@
 
       { id:'session', stage:0, type:'single', short:'Session',
         q:'Which session\'s Key Range are you trading?',
-        help:'Each of the three big opens sets its own Key Range. Times below are today\'s, already in SAST — daylight saving included.',
+        help:() => `Each of the three big opens sets its own Key Range. Times below are today's, already on your chart clock (<b>${UT.clock.name()}</b>) — daylight saving included.`,
         ref:'mgt-keyrange',
         live: s => `<div class="ut-live">${keyBar(s)}<div style="width:100%;display:flex;flex-direction:column;gap:3px;">
           ${Object.entries(s.key).map(([k, v]) => `<span>${SES[k]} · opens <b>${s.hm(v.open)}</b> · range set <b>${s.hm(v.rangeEnd)}</b> · <b class="${v.k === 'ready' ? 'now' : ''}">${stateTxt(v, s)}</b></span>`).join('')}
           ${s.weekend ? '<span style="color:var(--bear)">Weekend — FX, metals and indices are closed</span>' : ''}</div></div>`,
         options:[
-          { v:'asia', l:'Asia (Tokyo)', sub:() => { const s = UT.sessions(); return `Opens ${s.hm(s.key.asia.open)} SAST. Thinnest session — JPY & AUD pairs and gold.`; }, dir:0, pts:6,
+          { v:'asia', l:'Asia (Tokyo)', sub:() => { const s = UT.sessions(); return `Opens ${s.hm(s.key.asia.open)} ${s.clk}. Thinnest session — JPY & AUD pairs and gold.`; }, dir:0, pts:6,
             ai:'Asia (Tokyo) session Key Range', check: () => BEST.asia.includes(UT._st.ans.instrument) ? null : `${UT._st.ans.instrument} rarely moves in the Asia session — London or New York is better for it` },
-          { v:'london', l:'London', sub:() => { const s = UT.sessions(); return `Opens ${s.hm(s.key.london.open)} SAST. Best for EUR, GBP, gold, DAX & FTSE.`; }, dir:0, pts:8,
+          { v:'london', l:'London', sub:() => { const s = UT.sessions(); return `Opens ${s.hm(s.key.london.open)} ${s.clk}. Best for EUR, GBP, gold, DAX & FTSE.`; }, dir:0, pts:8,
             ai:'London session Key Range', check: () => BEST.london.includes(UT._st.ans.instrument) ? null : `${UT._st.ans.instrument} usually moves more at the New York open` },
-          { v:'ny', l:'New York', sub:() => { const s = UT.sessions(); return `Opens ${s.hm(s.key.ny.open)} SAST. Best for NAS100, US30, S&P, gold & USD pairs.`; }, dir:0, pts:8,
+          { v:'ny', l:'New York', sub:() => { const s = UT.sessions(); return `Opens ${s.hm(s.key.ny.open)} ${s.clk}. Best for NAS100, US30, S&P, gold & USD pairs.`; }, dir:0, pts:8,
             ai:'New York session Key Range (cash open)', check: () => BEST.ny.includes(UT._st.ans.instrument) ? null : `${UT._st.ans.instrument} usually moves more at the London open` }
         ] },
 
@@ -263,7 +263,7 @@ THE STRATEGY:
 
 THE TRADER'S SETUP:
 Instrument: ${x.instrument}
-Time now: ${x.session.nowTxt} SAST (Asia opens ${x.session.hm(x.session.key.asia.open)}, London ${x.session.hm(x.session.key.london.open)}, New York ${x.session.hm(x.session.key.ny.open)})
+Time now: ${x.session.nowTxt} ${x.session.clk} (Asia opens ${x.session.hm(x.session.key.asia.open)}, London ${x.session.hm(x.session.key.london.open)}, New York ${x.session.hm(x.session.key.ny.open)})
 Key Break direction: ${x.bias}
 Blue Mac score: ${x.score}/100 — ${x.grade}
 Status: ${x.status}

@@ -91,7 +91,7 @@ with sync_playwright() as pw:
                 check(f'{mode}: an answer cannot be changed', p.evaluate('() => BMF._st().score') == 1)
             p.evaluate('() => BMF.next()')
         rec = p.evaluate('() => BMF.today()')
-        check(f'{mode}: saved — red news 14:30, fit 3/4, drill 2/3', rec and rec['news'] == {'k':'red', 't':'14:30'} and rec['fit']['yes'] == 3 and rec['drill']['score'] == 2)
+        check(f'{mode}: saved — red news 14:30 SAST (clock kept with it), fit 3/4, drill 2/3', rec and rec['news'] == {'k':'red', 't':'14:30', 'c':'SAST'} and rec['fit']['yes'] == 3 and rec['drill']['score'] == 2)
         dt = p.evaluate("() => document.querySelector('#bmf-ov .bmd-body').innerText")
         check(f'{mode}: summary: Fly carefully, no new trades 13:30–15:00, 3-day streak', 'Fly carefully' in dt and '13:30–15:00' in dt and '3-day streak' in dt)
         p.evaluate('() => BMF.close()')

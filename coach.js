@@ -100,7 +100,8 @@ window.BMC = (function(){
     }
     if(sc.know) return { i:'📚', t:`Quick read before ${name}`, s:'These are the concepts this style uses. Tap any you don’t know (2 minutes), then tap <b>I’m ready — let’s go</b> at the bottom of the card.', b:[['Show me', 'BMC.toPanel()']] };
     if(!started) return { i:'📈', t:`Step 2 — open your chart, then answer question 1`, s:`You’re on <b>${name}</b>. Open MT5 or TradingView next to Blue Mac, then answer each question by looking at your chart. Every question has example pictures — tap <b>📖 Learn</b> if a word is new.`, b:[['Start the questions', 'BMC.toPanel()']] };
-    const tf = sc.tf ? ` Have your <b>${esc(sc.tf)}</b> chart open.` : '';
+    const isClock = sc.tf && /^(SAST|MT5 time|your time)$/.test(sc.tf.trim());          // session questions show the clock, not a chart timeframe
+    const tf = sc.tf && !isClock ? ` Have your <b>${esc(sc.tf)}</b> chart open.` : '';
     return { i:'🧭', t:`Step 2 — question ${sc.step + 1}${sc.total ? ` of ${sc.total}` : ''}`, s:`${esc(sc.q || 'Answer the question below.')}${tf} Pick the picture that looks most like your chart. Not sure? Tap <b>📖 Learn</b>.`, b:[['Continue', 'BMC.toPanel()']] };
   }
   function go(i){

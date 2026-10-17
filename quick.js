@@ -270,7 +270,7 @@ window.BMQ = (function(){
     q: () => ({ short:'Key Range', align:'critical', ref:'mgt-keyrange', tf:'15m',
       q:'What has price done with the Key Range?',
       help:'The <b>Key Range</b> is the high and low of the first 15 minutes after the Asia, London or New York open. It is tradeable for 2 hours. A <b>Key Break</b> closes outside it; the <b>Key Retest</b> comes back to the edge.',
-      live: s => `<div class="ut-live">${['asia', 'london', 'ny'].map(k => { const x = s.key[k]; return `<span>${k === 'ny' ? 'New York' : k === 'asia' ? 'Asia' : 'London'} <b>${s.hm(x.open)}</b> SAST${x.k === 'ready' ? ` · <b class="now">live, ${s.dur(x.left)} left</b>` : x.k === 'forming' ? ` · forming (${x.left} min)` : ''}</span>`; }).join('')}</div>`,
+      live: s => `<div class="ut-live">${['asia', 'london', 'ny'].map(k => { const x = s.key[k]; return `<span>${k === 'ny' ? 'New York' : k === 'asia' ? 'Asia' : 'London'} <b>${s.hm(x.open)}</b> ${s.clk}${x.k === 'ready' ? ` · <b class="now">live, ${s.dur(x.left)} left</b>` : x.k === 'forming' ? ` · forming (${x.left} min)` : ''}</span>`; }).join('')}</div>`,
       options:[
         { v:'break_up', l:'Key Break up — retest holding', sub:'15m closed above the range, came back to the top edge.', dg:C('krBreak', 1), dir:1, pts:14, ref:'mgt-keybreak', ai:'Key Break above the Key Range with a retest of the top edge', check: krLive },
         { v:'break_dn', l:'Key Break down — retest holding', sub:'15m closed below the range, came back to the bottom edge.', dg:C('krBreak', -1), dir:-1, pts:14, ref:'mgt-keybreak', ai:'Key Break below the Key Range with a retest of the bottom edge', check: krLive },
@@ -303,11 +303,11 @@ window.BMQ = (function(){
     q: () => { const mine = sessList();
       return { short:'Session', compact:true, ref:'ex-trading-session-times-sast',
         q:'Is one of your sessions open right now?',
-        help:`Your sessions: <b>${mine.map(x => x[1]).join(', ')}</b>. Times are SAST today, daylight saving included.`,
-        live: s => `<div class="ut-live">${mine.map(([k, n]) => `<span>${n} opens <b>${s.hm(s.opens[k])}</b> SAST</span>`).join('')}<span>Now <b>${s.nowTxt} SAST</b></span></div>`,
+        help:() => `Your sessions: <b>${mine.map(x => x[1]).join(', ')}</b>. Times are today's, on your chart clock (${UT.clock.name()}), daylight saving included.`,
+        live: s => `<div class="ut-live">${mine.map(([k, n]) => `<span>${n} opens <b>${s.hm(s.opens[k])}</b> ${s.clk}</span>`).join('')}<span>Now <b>${s.nowTxt} ${s.clk}</b></span></div>`,
         options:[
           { v:'yes', l:'Yes — I\'m in my session', sub:'Volume is there.', dir:0, pts:6, ai:'inside the trader\'s chosen session',
-            check: s => { const w = mine.some(([k]) => { const m = (s.now - s.opens[k] + 1440) % 1440; return m < 240; }); return w ? null : `Clock says ${s.nowTxt} SAST — none of your sessions opened in the last 4 hours.`; } },
+            check: s => { const w = mine.some(([k]) => { const m = (s.now - s.opens[k] + 1440) % 1440; return m < 240; }); return w ? null : `Clock says ${s.nowTxt} ${s.clk} — none of your sessions opened in the last 4 hours.`; } },
           { v:'no', l:'No — outside my sessions', sub:'Prepare now, trade when it opens.', dir:0, pts:0, gate:'wait', why:'Your own rule: only trade your sessions. Set alerts and come back when it opens.', ai:'outside the trader\'s sessions' }
         ] }; } };
   function sessList(){ const all = [['asia','Asia'], ['london','London'], ['ny','New York']], s = (S && S.sessions) || []; const m = all.filter(x => s.includes(x[0])); return m.length ? m : all.slice(1); }
@@ -349,10 +349,10 @@ window.BMQ = (function(){
     return { id:'safety', stage:0, type:'single', short:'Quick check', compact:true, ref:'mgt-news',
       q:'Quick safety check — which of these is true right now?',
       help:'<b>Red-folder news</b> (NFP, CPI, FOMC) within 30 minutes or <b>3 losses today</b> = no trade. Check ForexFactory if you are not sure.',
-      live: s => fast() && !sessTool ? `<div class="ut-live"><span>London KZ <b>${s.fmt(s.lo)}</b></span><span>New York KZ <b>${s.fmt(s.ny)}</b></span><span>Now <b class="${s.cur ? 'now' : ''}">${s.nowTxt} SAST</b></span>${s.weekend ? '<span style="color:var(--bear)">Weekend — FX & metals are closed</span>' : ''}</div>` : '',
+      live: s => fast() && !sessTool ? `<div class="ut-live"><span>London KZ <b>${s.fmt(s.lo)}</b></span><span>New York KZ <b>${s.fmt(s.ny)}</b></span><span>Now <b class="${s.cur ? 'now' : ''}">${s.nowTxt} ${s.clk}</b></span>${s.weekend ? '<span style="color:var(--bear)">Weekend — FX & metals are closed</span>' : ''}</div>` : '',
       options:[
         { v:'clear', l:'All clear', sub:'No red news within 30 min, and 0–1 losses today.', dir:0, pts:6, ai:'no high-impact news within 30 minutes, 0–1 losses today',
-          check: s => fast() && !sessTool && !s.cur ? `It is ${s.nowTxt} SAST — outside the London (${s.fmt(s.lo)}) and New York (${s.fmt(s.ny)}) kill zones. Fast-chart setups follow through best inside them.` : null },
+          check: s => fast() && !sessTool && !s.cur ? `It is ${s.nowTxt} ${s.clk} — outside the London (${s.fmt(s.lo)}) and New York (${s.fmt(s.ny)}) kill zones. Fast-chart setups follow through best inside them.` : null },
         { v:'two', l:'2 losses today', sub:'Allowed — but this one is at half risk.', dir:0, pts:3, halfRisk:true, warn:'2 losses today — half risk on this trade', ai:'2 losses today — half risk' },
         { v:'news', l:'Red news within 30 minutes', sub:'Or it came out less than 30 minutes ago.', dir:0, pts:0, gate:'block', why:'No new trades 30 minutes either side of high-impact news. Come back after it settles.' },
         { v:'stop', l:'3 losses today (or daily limit hit)', sub:'Hard stop for today.', dir:0, pts:0, gate:'block', why:'Three losses = done for the day. Journal the trades and come back next session.' }
@@ -486,7 +486,7 @@ Stop beyond the ${etf()} swing. TP1 at least 1:${m[0]}, TP2 at least 1:${m[1]} a
 
 THE TRADER'S SETUP:
 Instrument: ${x.instrument}
-Time now: ${x.session.nowTxt} SAST
+Time now: ${x.session.nowTxt} ${x.session.clk}
 Bias: ${x.bias}
 Blue Mac score: ${x.score}/100 — ${x.grade}
 Status: ${x.status}

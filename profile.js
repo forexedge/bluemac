@@ -19,7 +19,7 @@
 window.BMS = (function(){
   // per-member keys (bm_fx_v1 = shared exchange-rate cache, stays on the device)
   const SYNC = ['bm_uni_v1', 'bm_cost_v1', 'bm_know_v1', 'bm_tour_v1', 'bm_style_suggestion',
-                'tv_quiz_done', 'tv_disclaimer_accepted', 'tv_setup_seen', 'bm_nav_v1', 'bm_strats_v1', 'bm_path_v1', 'bm_prac_v1', 'bm_flight_v1', 'bm_news_v1'];
+                'tv_quiz_done', 'tv_disclaimer_accepted', 'tv_setup_seen', 'bm_nav_v1', 'bm_strats_v1', 'bm_path_v1', 'bm_prac_v1', 'bm_flight_v1', 'bm_news_v1', 'bm_clock_v1'];
   const SYNCSET = new Set(SYNC);
   const OWNER = 'bm_owner', STAMP = 'bm_state_t', NAV = 'bm_nav_v1';
   try { localStorage.removeItem('bm_dna_v1'); } catch(e){}   // retired DNA picker (17 Oct) — tidy old copies off the device

@@ -160,7 +160,7 @@ window.UT = (function(){
   function closeLearn(){
     const ov = document.getElementById('ut-learn');
     if(ov) ov.classList.remove('on');
-    document.body.style.overflow = '';
+    if(!document.querySelector('.bmd-ov.on')) document.body.style.overflow = '';   // another full-screen panel (Pre-Flight, builder…) still open → keep the page locked
   }
 
   // ── SAST session clock (handles UK + US daylight saving) ──
@@ -169,8 +169,63 @@ window.UT = (function(){
     const g = k => +p.find(x => x.type === k).value;
     return (Date.UTC(g('year'), g('month') - 1, g('day'), g('hour'), g('minute')) - Math.floor(d.getTime() / 60000) * 60000) / 60000;
   }
-  // local-time window in a city → minutes after SAST midnight
-  function toSAST(tz, h, m, d){ return ((h * 60 + m) - tzOffsetMin(tz, d) + 120 + 1440) % 1440; }
+  // ── Chart clock (17 Oct): every session time is shown in the clock the member's CHART uses ──
+  //   sast   = South Africa, UTC+2 all year
+  //   broker = MT5 server time: XM and most MT5 brokers run New York + 7 h (GMT+3 in US summer, GMT+2 in US winter),
+  //            so the daily candle closes at 17:00 New York → from mid-March to early November it is SAST + 1 h
+  //   local  = this device's own time zone (overseas members, TradingView set to local time)
+  const CLOCK_KEY = 'bm_clock_v1', CLOCKS = ['sast', 'broker', 'local'];
+  function clockMode(){ try { const c = JSON.parse(localStorage.getItem(CLOCK_KEY) || 'null'); if(c && CLOCKS.includes(c.m)) return c.m; } catch(e){} return 'sast'; }
+  function clockOff(d, mode){                                  // minutes ahead of UTC for that clock
+    d = d || new Date(); mode = mode || clockMode();
+    if(mode === 'broker') return tzOffsetMin('America/New_York', d) + 420;
+    if(mode === 'local') return -d.getTimezoneOffset();
+    return 120;
+  }
+  const CLOCK_NAME = { sast:'SAST', broker:'MT5 time', local:'your time' };
+  function clockName(mode){ return CLOCK_NAME[mode || clockMode()]; }
+  // local-time window in a city → minutes after midnight on the member's chart clock (SAST by default)
+  function toSAST(tz, h, m, d){ return ((h * 60 + m) - tzOffsetMin(tz, d) + clockOff(d) + 2880) % 1440; }
+  // a moment → "HH:MM" on any clock (used by the picker so members can match it to their chart)
+  function clockNow(mode, d){ d = d || new Date(); const x = ((d.getUTCHours() * 60 + d.getUTCMinutes() + clockOff(d, mode)) % 1440 + 1440) % 1440; return hm(x); }
+  function setClock(m){
+    if(!CLOCKS.includes(m)) return;
+    try { localStorage.setItem(CLOCK_KEY, JSON.stringify({ v:1, m })); } catch(e){}
+    clockPick();                                               // redraw the picker with the new choice ticked
+    try { if(document.getElementById('guided-panel')) render(); } catch(e){}
+    try { window.dispatchEvent(new CustomEvent('bm-clock', { detail:{ m } })); } catch(e){}
+  }
+  function clockPick(){
+    let ov = document.getElementById('ut-learn');
+    if(!ov){
+      ov = document.createElement('div'); ov.id = 'ut-learn'; ov.className = 'ut-learn';
+      ov.onclick = e => { if(e.target === ov) closeLearn(); };
+      document.body.appendChild(ov);
+    }
+    const cur = clockMode(), d = new Date();
+    const lon = mode => hm(((8 * 60) - tzOffsetMin('Europe/London', d) + clockOff(d, mode) + 2880) % 1440);
+    const opt = (m, icon, t, sub) => `<button class="ut-clk-o ${cur === m ? 'on' : ''}" onclick="UT.setClock('${m}')">
+        <span class="ut-clk-i">${icon}</span><span class="ut-clk-t"><b>${t}</b><small>${sub}</small></span>
+        <span class="ut-clk-n"><b>${clockNow(m, d)}</b><small>now</small></span></button>`;
+    ov.innerHTML = `<div class="ut-learn-box" role="dialog" aria-modal="true">
+      <div class="ut-learn-head"><div><div class="ut-learn-kicker">🕒 Chart clock</div><div class="ut-learn-title">Which clock does your chart use?</div></div>
+        <button class="ut-learn-x" onclick="UT.closeLearn()" aria-label="Close">✕</button></div>
+      <div class="ut-learn-body">
+        <p class="ut-clk-p">Blue Mac shows every session time — Key Ranges, kill zones, entry windows — in the clock you pick, so the candle we name is the candle on <b>your</b> chart. Look at the time of the newest candle on your chart and pick the clock that matches.</p>
+        ${opt('broker', '📊', 'MT5 / broker time', 'XM and most MT5 brokers. Runs 1 hour ahead of SAST from mid-March to early November, the same as SAST the rest of the year.')}
+        ${opt('sast', '🇿🇦', 'South Africa (SAST)', 'TradingView set to Johannesburg, or any chart on SA time.')}
+        ${opt('local', '🌍', 'My own time zone', 'For members outside South Africa, or TradingView set to your local time. Uses this device\'s clock.')}
+        <div class="ut-clk-ex">Example — today the London open is <b>${lon(cur)} ${clockName(cur)}</b>${cur !== 'sast' ? ` (= ${lon('sast')} SAST)` : ''}.</div>
+        <button class="ut-learn-btn" onclick="UT.closeLearn()">Done</button>
+      </div></div>`;
+    ov.classList.add('on');
+    document.body.style.overflow = 'hidden';
+  }
+  const clockSet = () => { try { return !!localStorage.getItem(CLOCK_KEY); } catch(e){ return false; } };
+  // never chosen → ask once in plain words (most members chart on MT5, which runs ahead of SAST half the year)
+  const clockChip = () => clockSet()
+    ? `<button class="ut-clk" onclick="UT.clockPick()" title="Change the clock">🕒 ${clockName()} · change</button>`
+    : `<button class="ut-clk ask" onclick="UT.clockPick()">🕒 Times in SAST · chart on MT5? Tap to match it</button>`;
   const hm = x => String(Math.floor(x / 60) % 24).padStart(2,'0') + ':' + String(x % 60).padStart(2,'0');
   function sessions(d){
     d = d || new Date();
@@ -178,7 +233,7 @@ window.UT = (function(){
     const ny = [toSAST('America/New_York', 8, 30, d), toSAST('America/New_York', 11, 0, d)];
     const loD = [toSAST('Europe/London', 8, 0, d), toSAST('Europe/London', 12, 0, d)];      // day-trade windows
     const nyD = [toSAST('America/New_York', 8, 30, d), toSAST('America/New_York', 12, 0, d)];
-    const nowS = (d.getUTCHours() * 60 + d.getUTCMinutes() + 120) % 1440;
+    const nowS = ((d.getUTCHours() * 60 + d.getUTCMinutes() + clockOff(d)) % 1440 + 1440) % 1440;   // on the member's chart clock
     const inW = w => nowS >= w[0] && nowS < w[1];
     const day = new Date(d.getTime() + 2 * 3600e3).getUTCDay();
     // ── Key Range: the market opens (local time in each city → SAST) ──
@@ -198,7 +253,7 @@ window.UT = (function(){
     const hour = { london: [opens.london, (opens.london + 60) % 1440], ny: [opens.ny, (opens.ny + 60) % 1440] };
     const five = { london: [opens.london, (opens.london + 5) % 1440], ny: [opens.ny, (opens.ny + 5) % 1440] };
     const dur = m => m >= 60 ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m` : `${m} min`;
-    return { lo, ny, loD, nyD, opens, key, hour, five, dur, now:nowS, nowTxt:hm(nowS), weekend: day === 0 || day === 6,
+    return { lo, ny, loD, nyD, opens, key, hour, five, dur, now:nowS, nowTxt:hm(nowS), clk:clockName(), weekend: day === 0 || day === 6,
              cur: inW(lo) ? 'london' : inW(ny) ? 'ny' : null, curD: inW(loD) ? 'london' : inW(nyD) ? 'ny' : null,
              fmt: w => hm(w[0]) + '–' + hm(w[1]), hm };
   }
@@ -524,7 +579,7 @@ window.UT = (function(){
     else if(q.type === 'multi') body = optionsHTML(q, true);
     else if(q.type === 'levels') body = levelsHTML(q);
     else if(q.type === 'matrix') body = matrixHTML(q);
-    const live = typeof q.live === 'function' ? q.live(sessions()) : '';
+    const live = typeof q.live === 'function' ? q.live(sessions()).replace(/<\/div>\s*$/, clockChip() + '</div>') : '';
     const same = st._drawn === st.step; st._drawn = st.step;   // re-render of the same question → no entrance animation
     const firstTime = st.step === 0 && (s.know || []).length && !knowSeen()[S.style];
     const knowOpen = firstTime || st.knowOpen;
@@ -1043,7 +1098,7 @@ REASONING: …
   }
 
   return { register, has, reset, render, pick, toggle, cell, showAll, knowReady, knowToggle, uni: openUni, uniState, setRate: setManualRate, spec: specOf, cost, next, back, submitLevels, addShot, dropShot, fire,
-           learn, closeLearn, sessions, bias: currentBias, stdLevels, stdCheck, rulesHTML, goTo, D, exCard, _st: st, _eval: evaluate, _plan: plan, simulate, def: k => STRATS[k] };
+           learn, closeLearn, sessions, clockPick, setClock, clock: { mode: clockMode, name: clockName, off: clockOff, now: clockNow, chip: clockChip }, bias: currentBias, stdLevels, stdCheck, rulesHTML, goTo, D, exCard, _st: st, _eval: evaluate, _plan: plan, simulate, def: k => STRATS[k] };
 })();
 
 // ── Styles ──────────────────────────────────────────────
@@ -1099,6 +1154,20 @@ REASONING: …
 .ut-live{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-family:'DM Mono',monospace;font-size:11.5px;color:var(--text2);padding:10px 12px;border-radius:10px;border:1px dashed var(--border2)}
 .ut-live b{color:var(--text)}
 .ut-live .now{color:var(--bull)}
+.ut-clk{margin-left:auto;font-family:'DM Mono',monospace;font-size:10.5px;color:var(--blue);background:rgba(42,143,227,0.08);border:1px solid rgba(42,143,227,0.25);border-radius:20px;padding:3px 10px;cursor:pointer;white-space:nowrap}
+.ut-clk:hover{background:rgba(42,143,227,0.16)}
+.ut-clk.ask{color:var(--gold);background:rgba(245,184,65,0.1);border-color:rgba(245,184,65,0.45);white-space:normal;text-align:left;border-radius:12px;padding:6px 12px;font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:600}
+.ut-clk-p{margin:0;font-size:13.5px;line-height:1.55;color:var(--text2)}
+.ut-clk-o{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;border-radius:12px;border:1px solid var(--border2);background:var(--bg4);color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif}
+.ut-clk-o.on{border-color:var(--blue);background:rgba(42,143,227,0.12);box-shadow:0 0 0 1px var(--blue) inset}
+.ut-clk-i{font-size:20px;flex-shrink:0}
+.ut-clk-t{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.ut-clk-t b{font-size:14.5px}
+.ut-clk-t small{font-size:12px;color:var(--text3);line-height:1.4}
+.ut-clk-n{display:flex;flex-direction:column;align-items:flex-end;font-family:'DM Mono',monospace;flex-shrink:0}
+.ut-clk-n b{font-size:17px}
+.ut-clk-n small{font-size:10px;color:var(--text3)}
+.ut-clk-ex{font-size:13px;color:var(--text2);padding:10px 12px;border-radius:10px;border:1px dashed var(--border2)}
 .ut-hero{border-radius:12px;background:rgba(255,255,255,0.02);border:1px solid var(--border);padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px}
 .ut-hero svg{max-width:420px!important;width:100%}
 .ut-hero-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}

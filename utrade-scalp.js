@@ -39,7 +39,7 @@
     rules: {
       icon:'⚡', sub:'London & New York kill zones only',
       preflight:[
-        ['Kill zone open.', 'London 08:00–11:00 London time or New York 08:30–11:00 New York time — uTrade Ideas shows both in SAST. No scalps in Asia or after the NY close.'],
+        ['Kill zone open.', 'London 08:00–11:00 London time or New York 08:30–11:00 New York time — uTrade Ideas shows both on your chart clock (SAST, MT5 time or your own time zone). No scalps in Asia or after the NY close.'],
         ['Calendar checked.', 'No red-folder news for your instrument 30 minutes either side. USD news moves gold, indices and every USD pair.'],
         ['Asian range & PDH/PDL marked.', 'These are the liquidity pools the banks will raid. Mark them before London opens.'],
         ['H1 bias decided.', 'HH/HL = longs only. LH/LL = shorts only. A ranging H1 = no scalps today.'],
@@ -76,19 +76,19 @@
         help:'Pick the chart you have open. Gold, NAS100 and US30 move the most in the kill zones; majors like EURUSD and GBPUSD give the cleanest sweeps.',
         groups: UT.INSTR },
 
-      { id:'session', stage:0, type:'single', short:'Session', tf:'SAST',
+      { id:'session', stage:0, type:'single', short:'Session', tf:() => UT.clock.name(),
         q:'Which session window are you in right now?',
-        help:'<b>Scalps only work when the big banks are active.</b> The kill zones are the first hours of London and New York — that is when the Asian range and yesterday\'s high/low get swept. Times below are already converted to SAST for today, daylight saving included.',
+        help:'<b>Scalps only work when the big banks are active.</b> The kill zones are the first hours of London and New York — that is when the Asian range and yesterday\'s high/low get swept. Times below are already converted to your chart clock for today, daylight saving included.',
         ref:'ex-trading-session-times-sast',
         live: s => `<div class="ut-live">${sessionBar(s)}<div style="width:100%;display:flex;flex-wrap:wrap;gap:6px 14px;">
             <span>London KZ <b>${s.fmt(s.lo)}</b></span><span>New York KZ <b>${s.fmt(s.ny)}</b></span>
-            <span>Now <b class="${s.cur ? 'now' : ''}">${s.nowTxt} SAST${s.cur ? ' · in the ' + (s.cur === 'london' ? 'London' : 'New York') + ' kill zone' : ''}</b></span>
+            <span>Now <b class="${s.cur ? 'now' : ''}">${s.nowTxt} ${s.clk}${s.cur ? ' · in the ' + (s.cur === 'london' ? 'London' : 'New York') + ' kill zone' : ''}</b></span>
             ${s.weekend ? '<span style="color:var(--bear)">Weekend — FX & metals are closed</span>' : ''}</div></div>`,
         options:[
           { v:'london', l:'London kill zone', sub:'First 3 hours of London. Sweeps of the Asian high/low happen here.', dir:0, pts:10, ai:'London kill zone (London open)',
-            check: s => s.cur === 'london' ? null : `Clock says ${s.nowTxt} SAST — the London kill zone is ${s.fmt(s.lo)}. Only enter inside it.` },
+            check: s => s.cur === 'london' ? null : `Clock says ${s.nowTxt} ${s.clk} — the London kill zone is ${s.fmt(s.lo)}. Only enter inside it.` },
           { v:'ny', l:'New York kill zone', sub:'NY open + overlap with London. Biggest volume of the day.', dir:0, pts:10, ai:'New York kill zone (NY open, London overlap)',
-            check: s => s.cur === 'ny' ? null : `Clock says ${s.nowTxt} SAST — the New York kill zone is ${s.fmt(s.ny)}. Only enter inside it.` },
+            check: s => s.cur === 'ny' ? null : `Clock says ${s.nowTxt} ${s.clk} — the New York kill zone is ${s.fmt(s.ny)}. Only enter inside it.` },
           { v:'between', l:'Between kill zones', sub:'London lunch or late NY. Moves are slow and fake.', dir:0, pts:0, gate:'wait', why:'Outside the kill zones the sweep-and-reverse rarely follows through. Prepare now, enter only when the next kill zone opens.', ai:'between kill zones (low-volume window)' },
           { v:'asia', l:'Asian session / after NY close', sub:'Thin volume. This is when the range BUILDS, not when we trade it.', dir:0, pts:0, gate:'block', why:'Blue Mac never scalps the Asian session or after the NY close — mark the Asian high and low instead and come back for London.' }
         ] },
@@ -159,7 +159,7 @@
         q:'Mark the first 5 minutes after the London / New York open. What has price done with that range?',
         help:'The <b>5-minute Key Range</b> is the high and low of the first 5 minutes after the open. Scalpers want the <b>fake break</b>: a wick through one side that closes back inside — the trap that launches the real move the other way.',
         ref:'mgt-fakebreak',
-        live: s => `<div class="ut-live"><span>London 5-min range <b>${s.fmt(s.five.london)}</b> SAST</span><span>New York 5-min range <b>${s.fmt(s.five.ny)}</b> SAST</span></div>`,
+        live: s => `<div class="ut-live"><span>London 5-min range <b>${s.fmt(s.five.london)}</b> ${s.clk}</span><span>New York 5-min range <b>${s.fmt(s.five.ny)}</b> ${s.clk}</span></div>`,
         options:[
           { v:'sweep_lo', l:'Swept below it, closed back inside', sub:'Fake break down — sellers trapped. Supports longs.', dg:C('krFake', -1), dir:1, pts:10, ref:'mgt-fakebreak', ai:'fake break below the 5-minute Key Range (closed back inside) — supports longs' },
           { v:'sweep_hi', l:'Swept above it, closed back inside', sub:'Fake break up — buyers trapped. Supports shorts.', dg:C('krFake', 1), dir:-1, pts:10, ref:'mgt-fakebreak', ai:'fake break above the 5-minute Key Range (closed back inside) — supports shorts' },
@@ -243,7 +243,7 @@ THE STRATEGY:
 
 THE TRADER'S SETUP:
 Instrument: ${x.instrument}
-Time now: ${x.session.nowTxt} SAST (London kill zone ${x.session.fmt(x.session.lo)}, New York kill zone ${x.session.fmt(x.session.ny)})
+Time now: ${x.session.nowTxt} ${x.session.clk} (London kill zone ${x.session.fmt(x.session.lo)}, New York kill zone ${x.session.fmt(x.session.ny)})
 H1 bias: ${x.bias}
 Blue Mac score: ${x.score}/100 — ${x.grade}
 Status: ${x.status}

@@ -20,6 +20,10 @@ window.BMF = (function(){
   const KEY = 'bm_flight_v1', KEEP_DAYS = 120;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 
+  // ── Chart clock (UT): the name of the clock times are shown in, and how far it is from SAST today ──
+  const clk = () => (window.UT && UT.clock ? UT.clock.name() : 'SAST');
+  const sastGap = () => { const g = window.UT && UT.clock ? (UT.clock.off() - 120) / 60 : 0; return g === 0 ? '0 h' : (g > 0 ? g + ' h' : '−' + -g + ' h'); };
+
   // ── SAST calendar ──
   const sastDate = d => new Intl.DateTimeFormat('en-CA', { timeZone:'Africa/Johannesburg', year:'numeric', month:'2-digit', day:'2-digit' }).format(d || new Date());
   const parts = k => k.split('-').map(Number);
@@ -124,7 +128,8 @@ window.BMF = (function(){
       if(st.news.k === 'red'){
         const v = ((document.getElementById('bmf-news-t') || {}).value || '').trim();
         st.news.t = v;                                        // keep what they typed, even if it needs fixing
-        if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(v)){ st.err = 'Type the time of the red news in SAST as HH:MM, like 14:30 or 09:00.'; return draw(); }
+        st.news.c = clk();                                    // the clock it was typed in
+        if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(v)){ st.err = `Type the time of the red news in ${clk()} as HH:MM, like 14:30 or 09:00.`; return draw(); }
       }
       if(st.news.k === 'later'){ st.err = 'Check the calendar first (link above), then come back and pick an answer.'; return draw(); }
     }
@@ -153,8 +158,9 @@ window.BMF = (function(){
     const row = (lab, val, now) => { now = now && !closed; return `<div class="bmpr-scene-r"><span>${lab}</span><b class="${now ? 'ok' : ''}">${val}${now ? ' · NOW' : ''}</b></div>`; };
     const keyRow = (n, lab) => row(`${lab} Key Range`, `${hm(s.key[n].open)}–${hm(s.key[n].rangeEnd)} · trade until ${hm(s.key[n].until)}`, s.key[n].k === 'forming' || s.key[n].k === 'ready');
     return `${isWeekend(k) ? `<div class="bmpr-fb no"><b>🛌 Weekend — forex and gold are closed.</b> Today is for learning: finish your Pre-Flight to keep the habit (and your streak) going.</div>` : ''}
-      <div class="bmpr-scene"><div class="bmpr-scene-h">⏰ Today in SAST · ${esc(niceDate(k))}</div>
-        <div class="bmpr-clock"><b>${esc(s.nowTxt)}</b><span>SAST right now</span></div>
+      <div class="bmpr-scene"><div class="bmpr-scene-h">⏰ Today in ${esc(s.clk)} · ${esc(niceDate(k))}</div>
+        <div class="bmpr-clock"><b>${esc(s.nowTxt)}</b><span>${esc(s.clk)} right now</span></div>
+        <div class="bmf-clk">${UT.clock.chip()}</div>
         ${row('London kill zone', s.fmt(s.lo), s.cur === 'london')}
         ${row('New York kill zone', s.fmt(s.ny), s.cur === 'ny')}
         ${row('Day trades: London window', s.fmt(s.loD), s.curD === 'london')}
@@ -167,14 +173,14 @@ window.BMF = (function(){
   function newsHTML(){
     const n = st.news || {}, opt = (k, t, sub) => `<div class="ut-opt neut${n.k === k ? ' on' : ''}" role="button" tabindex="0" onclick="BMF.setNews('${k}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"><div class="ut-opt-t">${t}</div><div class="ut-opt-s">${sub}</div></div>`;
     return `<div class="bmpr-scene"><div class="bmpr-scene-h">📅 Check today's calendar</div>
-        <div class="bmf-txt">Open <a href="https://www.forexfactory.com/calendar" target="_blank" rel="noopener noreferrer">ForexFactory</a> (or Investing.com), set the time zone to <b>Johannesburg</b>, and look for <b>🔴 red-folder</b> events on the currencies you trade. For gold and US indices that's <b>USD</b>.</div>
+        <div class="bmf-txt">Open <a href="https://www.forexfactory.com/calendar" target="_blank" rel="noopener noreferrer">ForexFactory</a> (or Investing.com), set the time zone to <b>${clk() === 'your time' ? 'your own time zone' : 'Johannesburg'}</b>${clk() === 'MT5 time' ? (sastGap() === '0 h' ? ' (MT5 time is the same as SAST today)' : ` (then add ${sastGap()} to get MT5 time today)`) : ''}, and look for <b>🔴 red-folder</b> events on the currencies you trade. For gold and US indices that's <b>USD</b>.</div>
         ${window.BMN ? `<button class="bmf-learn" onclick="BMF.close();BMN.open()">📰 Not sure what NFP, CPI or FOMC do? Take the News Ready track</button>` : ''}</div>
       <div class="ut-opts compact bmf-opts">
         ${opt('none', 'No red news for my markets today', 'Normal trading day.')}
         ${opt('red', 'There is red news today', 'I\'ll type the time below.')}
         ${opt('later', 'Not checked yet', 'Open the calendar first.')}
       </div>
-      ${n.k === 'red' ? `<div class="ut-lv-f bmf-time"><label for="bmf-news-t">Time of the red news (SAST)</label>
+      ${n.k === 'red' ? `<div class="ut-lv-f bmf-time"><label for="bmf-news-t">Time of the red news (${esc(clk())})</label>
         <input id="bmf-news-t" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 14:30" maxlength="5" value="${esc(n.t || '')}">
         <small>Several? Type the first one. Blue Mac's rule: no new trades from 1 hour before until 30 minutes after.</small></div>` : ''}`;
   }
@@ -209,7 +215,7 @@ window.BMF = (function(){
       <div class="bmf-streak"><div class="bmf-fire">🔥 ${sk.cur}</div><div><b>${sk.cur === 1 ? '1-day streak' : `${sk.cur}-day streak`}</b><small>Best: ${sk.best} · weekends never break it</small></div></div>
       ${weekHTML()}
       <div class="bmpr-scene"><div class="bmpr-scene-h">📋 Today's flight plan</div>
-        ${n && n.k === 'red' ? `<div class="bmpr-scene-r"><span>🔴 Red news</span><b class="no">${esc(n.t)} SAST</b></div>
+        ${n && n.k === 'red' ? `<div class="bmpr-scene-r"><span>🔴 Red news</span><b class="no">${esc(n.t)} ${esc(n.c || 'SAST')}</b></div>
           <div class="bmpr-scene-r"><span>No new trades</span><b class="no">${win}</b></div>`
           : n && n.k === 'weekend' ? `<div class="bmpr-scene-r"><span>Markets</span><b>Closed (weekend)</b></div>`
           : `<div class="bmpr-scene-r"><span>News</span><b class="ok">No red news</b></div>`}
@@ -268,7 +274,7 @@ window.BMF = (function(){
     const v = fitVerdict(rec.fit.yes), n = rec.news, d = rec.drill;
     const bits = [`🔥 ${sk.cur}-day streak`];
     if(d) bits.push(`Drill ${d.score}/${d.of}`);
-    if(n && n.k === 'red' && n.t) bits.push(`🔴 news ${n.t} · no new trades ${newsWindow(n.t)}`);
+    if(n && n.k === 'red' && n.t) bits.push(`🔴 news ${n.t} ${n.c || 'SAST'} · no new trades ${newsWindow(n.t)}`);
     return `<div class="bmpr-cta-i">${v.icon}</div>
       <div class="bmpr-cta-t"><b>${v.t}</b><span>${bits.map(esc).join(' · ')}</span></div>
       <button class="ut-back" onclick="BMF.open()">View</button>`;
@@ -300,6 +306,7 @@ window.BMF = (function(){
     const tick = () => { const k = sastDate(); if(k !== shown){ shown = k; paint(); } };
     document.addEventListener('visibilitychange', () => { if(!document.hidden) tick(); });
     setInterval(tick, 60000);
+    window.addEventListener('bm-clock', () => { paint(); if(st && document.getElementById('bmf-ov')) draw(); });
   }
 
   // ── Styles (on top of bmd-* and bmpr-*) ──
@@ -314,6 +321,8 @@ window.BMF = (function(){
 .bmf-txt a{color:var(--blue);font-weight:700}
 .bmf-opts{grid-template-columns:1fr!important}
 .bmf-time input{max-width:140px}
+.bmf-clk{display:flex;justify-content:flex-end}
+.bmf-clk .ut-clk{margin-left:0}
 .bmf-learn{align-self:flex-start;margin-top:4px;padding:7px 12px;border-radius:10px;border:1px solid rgba(245,140,60,0.45);background:rgba(245,140,60,0.08);color:var(--text);font-size:12.5px;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left}
 .bmf-fit{display:flex;justify-content:space-between;align-items:center;gap:12px;border-radius:12px;background:var(--bg4);border:1px solid var(--border2);padding:10px 12px}
 .bmf-fit-q{display:flex;gap:10px;align-items:flex-start}

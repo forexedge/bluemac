@@ -36,7 +36,7 @@
     rules: {
       icon:'📈', sub:'London & New York sessions · closed by the NY close',
       preflight:[
-        ['Session open.', 'Enter in London (08:00–12:00 London time) or New York (08:30–12:00 New York time). uTrade Ideas shows both in SAST. No new day trades after the NY lunch.'],
+        ['Session open.', 'Enter in London (08:00–12:00 London time) or New York (08:30–12:00 New York time). uTrade Ideas shows both on your chart clock (SAST, MT5 time or your own time zone). No new day trades after the NY lunch.'],
         ['Calendar checked.', 'No red news within the next hour. If there is red news later today, plan to be at breakeven or out before it.'],
         ['PDH & PDL marked.', 'Yesterday\'s high and low are today\'s main targets and liquidity pools.'],
         ['D1 bias decided.', 'Trend structure on the daily — and where price sits in the daily range (premium or discount).'],
@@ -73,19 +73,19 @@
         help:'Pick the chart you have open. Gold and the indices give the biggest intraday ranges; the majors give the cleanest structure.',
         groups: UT.INSTR },
 
-      { id:'session', stage:0, type:'single', short:'Session', tf:'SAST', compact:true,
+      { id:'session', stage:0, type:'single', short:'Session', tf:() => UT.clock.name(), compact:true,
         q:'Which session are you planning the entry in?',
-        help:'<b>Day trades need volume and time.</b> Enter in London or the New York morning so the trade has hours to reach its targets before the NY close. Times are converted to SAST for today, daylight saving included.',
+        help:'<b>Day trades need volume and time.</b> Enter in London or the New York morning so the trade has hours to reach its targets before the NY close. Times are converted to your chart clock for today, daylight saving included.',
         ref:'ex-trading-session-times-sast',
         live: s => `<div class="ut-live">${sessionBar(s, 'day')}<div style="width:100%;display:flex;flex-wrap:wrap;gap:6px 14px;">
             <span>London <b>${s.fmt(s.loD)}</b></span><span>New York <b>${s.fmt(s.nyD)}</b></span>
-            <span>Now <b class="${s.curD ? 'now' : ''}">${s.nowTxt} SAST${s.curD ? ' · ' + (s.curD === 'london' ? 'London' : 'New York') + ' session' : ''}</b></span>
+            <span>Now <b class="${s.curD ? 'now' : ''}">${s.nowTxt} ${s.clk}${s.curD ? ' · ' + (s.curD === 'london' ? 'London' : 'New York') + ' session' : ''}</b></span>
             ${s.weekend ? '<span style="color:var(--bear)">Weekend — FX & metals are closed</span>' : ''}</div></div>`,
         options:[
           { v:'london', l:'London session', sub:'The day\'s first big move. Best for EUR, GBP, gold and DAX.', dir:0, pts:10, ai:'London session',
-            check: s => s.curD === 'london' ? null : `Clock says ${s.nowTxt} SAST — the London entry window is ${s.fmt(s.loD)}.` },
+            check: s => s.curD === 'london' ? null : `Clock says ${s.nowTxt} ${s.clk} — the London entry window is ${s.fmt(s.loD)}.` },
           { v:'ny', l:'New York morning', sub:'Highest volume. Best for USD pairs, gold and US indices.', dir:0, pts:10, ai:'New York morning session (London overlap)',
-            check: s => s.curD === 'ny' ? null : `Clock says ${s.nowTxt} SAST — the New York entry window is ${s.fmt(s.nyD)}.` },
+            check: s => s.curD === 'ny' ? null : `Clock says ${s.nowTxt} ${s.clk} — the New York entry window is ${s.fmt(s.nyD)}.` },
           { v:'late', l:'NY afternoon (after NY lunch)', sub:'Not enough time left for a new day trade.', dir:0, pts:0, gate:'block', why:'After the New York lunch there are only a few hours to the close — not enough room for a day trade to reach 1:2. Plan tomorrow\'s setup instead.' },
           { v:'asia', l:'Asian session', sub:'Thin, choppy and full of fake moves.', dir:0, pts:0, gate:'block', why:'Blue Mac day trades are entered in London or New York only. Use Asia to mark levels and plan.' }
         ] },
@@ -157,7 +157,7 @@
         q:'Mark the high and low of the first hour of the session. Where is price?',
         help:'The <b>first-hour Key Range</b> is where the day shows its hand. A break with the daily bias confirms the day trade; a break against it means today is fighting the trend.',
         ref:'mgt-keyframes',
-        live: s => `<div class="ut-live"><span>London first hour <b>${s.fmt(s.hour.london)}</b> SAST</span><span>New York first hour <b>${s.fmt(s.hour.ny)}</b> SAST</span></div>`,
+        live: s => `<div class="ut-live"><span>London first hour <b>${s.fmt(s.hour.london)}</b> ${s.clk}</span><span>New York first hour <b>${s.fmt(s.hour.ny)}</b> ${s.clk}</span></div>`,
         options:[
           { v:'up', l:'Broke ABOVE and holding', sub:'The day is choosing up.', dg:C('krBreak', 1), dir:1, pts:10, ref:'mgt-keybreak', ai:'price broke above the first-hour Key Range and is holding' },
           { v:'down', l:'Broke BELOW and holding', sub:'The day is choosing down.', dg:C('krBreak', -1), dir:-1, pts:10, ref:'mgt-keybreak', ai:'price broke below the first-hour Key Range and is holding' },
@@ -241,7 +241,7 @@ THE STRATEGY:
 
 THE TRADER'S SETUP:
 Instrument: ${x.instrument}
-Time now: ${x.session.nowTxt} SAST (London window ${x.session.fmt(x.session.loD)}, New York window ${x.session.fmt(x.session.nyD)})
+Time now: ${x.session.nowTxt} ${x.session.clk} (London window ${x.session.fmt(x.session.loD)}, New York window ${x.session.fmt(x.session.nyD)})
 D1 bias: ${x.bias}
 Blue Mac score: ${x.score}/100 — ${x.grade}
 Status: ${x.status}
