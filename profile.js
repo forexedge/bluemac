@@ -19,7 +19,7 @@
 window.BMS = (function(){
   // per-member keys (bm_fx_v1 = shared exchange-rate cache, stays on the device)
   const SYNC = ['bm_uni_v1', 'bm_cost_v1', 'bm_know_v1', 'bm_tour_v1', 'bm_style_suggestion',
-                'tv_quiz_done', 'tv_disclaimer_accepted', 'tv_setup_seen', 'bm_nav_v1', 'bm_strats_v1', 'bm_path_v1'];
+                'tv_quiz_done', 'tv_disclaimer_accepted', 'tv_setup_seen', 'bm_nav_v1', 'bm_strats_v1', 'bm_path_v1', 'bm_prac_v1'];
   const SYNCSET = new Set(SYNC);
   const OWNER = 'bm_owner', STAMP = 'bm_state_t', NAV = 'bm_nav_v1';
   try { localStorage.removeItem('bm_dna_v1'); } catch(e){}   // retired DNA picker (17 Oct) — tidy old copies off the device
@@ -86,6 +86,7 @@ window.BMS = (function(){
     } catch(e){}
     try { if(window.BMB) BMB.reload(); } catch(e){}
     try { if(window.BMC) BMC.paint(true); } catch(e){}
+    try { if(window.BMPR) BMPR.paint(); } catch(e){}
   }
 
   function wipeDevice(){
@@ -94,6 +95,7 @@ window.BMS = (function(){
     applying = false;
     try { if(window.BMB) BMB.reload(); } catch(e){}
     try { if(window.BMC) BMC.paint(true); } catch(e){}
+    try { if(window.BMPR) BMPR.paint(); } catch(e){}
   }
 
   // ── Where they were ──

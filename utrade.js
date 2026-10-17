@@ -358,6 +358,17 @@ window.UT = (function(){
     }
   }
 
+  // ── Practice runs (practice.js): run the real engine on a made-up answer set without touching the member's idea ──
+  function simulate(key, ans, lv){
+    const keep = { style: S.style, ans: st.ans, lv: st.lv };
+    try {
+      S.style = key; st.ans = ans || {}; st.lv = lv || {};
+      const ev = evaluate(), p = ev.bias ? plan(ev.bias) : null;
+      roomCheck(ev, p);
+      return { ev, p, spec: specOf(st.ans.instrument) };
+    } finally { S.style = keep.style; st.ans = keep.ans; st.lv = keep.lv; }
+  }
+
   // ── Position size (lots) in the trader's account currency ──
   const fmtMoney = (v, ccy) => { const c = CCYS.find(x => x[0] === ccy) || ['', '']; return c[1] + Math.round(v).toLocaleString('en-ZA').replace(/,/g, ' '); };
   function sizing(p, ev){
@@ -1032,7 +1043,7 @@ REASONING: …
   }
 
   return { register, has, reset, render, pick, toggle, cell, showAll, knowReady, knowToggle, uni: openUni, uniState, setRate: setManualRate, spec: specOf, cost, next, back, submitLevels, addShot, dropShot, fire,
-           learn, closeLearn, sessions, bias: currentBias, stdLevels, stdCheck, rulesHTML, goTo, D, exCard, _st: st, _eval: evaluate, _plan: plan };
+           learn, closeLearn, sessions, bias: currentBias, stdLevels, stdCheck, rulesHTML, goTo, D, exCard, _st: st, _eval: evaluate, _plan: plan, simulate, def: k => STRATS[k] };
 })();
 
 // ── Styles ──────────────────────────────────────────────
