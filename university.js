@@ -6,6 +6,10 @@
 // ══════════════════════════════════════════════════════
 window.BMU = (function(){
   const KEY = 'bm_uni_v1', PASS = 0.8;
+  // 17 Oct: lessons only count when actually read, and a failed quiz needs a short break before a retry
+  const COOLDOWN = 10 * 60 * 1000;                                    // 10 minutes after a failed quiz
+  const READ_MIN = 10, READ_MAX = 40;                                 // seconds on a NEW lesson before "Complete" unlocks
+  let READY = null, readTick = null;                                  // { lid, at } for the lesson on screen
   const LEVELS = (window.BMU_LEVELS || []).slice().sort((a, b) => a.num - b.num);
   const MODULES = [];
   LEVELS.forEach(L => L.modules.forEach(m => { m.level = L; MODULES.push(m); }));
@@ -237,6 +241,8 @@ window.BMU = (function(){
     const i = m.lessons.findIndex(x => x.id === lid), l = m.lessons[i]; if(!l) return module(mid);
     P.last = { mid, lid }; if(!P.started) P.started = new Date().toISOString(); save();
     const L = m.level, isLast = i === m.lessons.length - 1;
+    const body = lessonBody(l), wait = P.done[l.id] ? 0 : readSecs(body);
+    READY = { lid:l.id, at: Date.now() + wait * 1000 };
     const dots = m.lessons.map((x, k) => `<i class="${P.done[x.id] ? 'd' : ''}${k === i ? ' c' : ''}"></i>`).join('');
     const tag = l.tag ? `<span class="ex-card-tag" style="background:${L.color}1F;color:${L.color};border:1px solid ${L.color}55;">${esc(l.tag)}</span>` : '';
     show(crumbs([['Degree', 'BMU.home()'], [`Module ${m.code}`, `BMU.module('${m.id}')`], [`Lesson ${i + 1} of ${m.lessons.length}`]]) + `
@@ -246,15 +252,35 @@ window.BMU = (function(){
           <div class="ex-card-icon">${l.icon || m.icon}</div>
           <div class="ex-card-title">${esc(lessonTitle(l))}</div>${tag}
         </div>
-        <div class="ex-card-body">${lessonBody(l)}</div>
+        <div class="ex-card-body">${body}</div>
       </div>
       <div class="uni-nav">
         ${i > 0 ? `<button class="uni-btn" onclick="BMU.lesson('${m.id}','${m.lessons[i - 1].id}')">‹ Previous</button>` : `<button class="uni-btn" onclick="BMU.module('${m.id}')">‹ Module</button>`}
-        <button class="uni-btn primary" onclick="BMU.complete('${m.id}','${l.id}')">${P.done[l.id] ? (isLast ? 'Go to the quiz ›' : 'Next lesson ›') : (isLast ? '✓ Complete &amp; take the quiz' : '✓ Complete &amp; continue')}</button>
+        <button class="uni-btn primary" id="uni-complete" data-label="${P.done[l.id] ? (isLast ? 'Go to the quiz ›' : 'Next lesson ›') : (isLast ? '✓ Complete &amp; take the quiz' : '✓ Complete &amp; continue')}" onclick="BMU.complete('${m.id}','${l.id}')">${P.done[l.id] ? (isLast ? 'Go to the quiz ›' : 'Next lesson ›') : (isLast ? '✓ Complete &amp; take the quiz' : '✓ Complete &amp; continue')}</button>
       </div>`);
+    startReadTick();
+  }
+  // reading time for a new lesson: about 40% of a normal reading speed (200 words a minute), 10–40 s
+  function readSecs(html){
+    const words = String(html).replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
+    return Math.max(READ_MIN, Math.min(READ_MAX, Math.round(words / 200 * 60 * 0.4)));
+  }
+  function readLeft(){ return READY ? Math.max(0, Math.ceil((READY.at - Date.now()) / 1000)) : 0; }
+  function startReadTick(){
+    clearInterval(readTick);
+    const paint = () => {
+      const b = document.getElementById('uni-complete');
+      if(!b){ clearInterval(readTick); return; }
+      const left = readLeft();
+      b.disabled = left > 0; b.classList.toggle('waiting', left > 0);
+      b.innerHTML = left > 0 ? `📖 Keep reading… ${left}s` : b.dataset.label;
+      if(!left) clearInterval(readTick);
+    };
+    paint(); if(readLeft() > 0) readTick = setInterval(paint, 500);
   }
   function complete(mid, lid){
     const m = MODULES.find(x => x.id === mid), i = m.lessons.findIndex(x => x.id === lid);
+    if(!P.done[lid] && READY && READY.lid === lid && readLeft() > 0) return;   // still in the reading time
     P.done[lid] = Date.now(); save();
     const next = m.lessons.slice(i + 1).find(x => !P.done[x.id]) || m.lessons[i + 1];
     if(next) return lesson(mid, next.id);
@@ -269,6 +295,8 @@ window.BMU = (function(){
   function quiz(mid){
     const m = MODULES.find(x => x.id === mid); if(!m || !unlocked(m)) return home();
     if(!quizReady(m)) return module(mid);
+    const wait = coolLeft(m);
+    if(wait > 0) return coolView(m, wait);
     P.last = { mid, quiz:true }; save();
     Q = { m, i:0, score:0, qs: shuffle(m.quiz).map(q => { const o = shuffle(q.o.map((t, k) => ({ t, ok:k === q.a }))); return { q:q.q, o, why:q.why }; }), answered:false };
     renderQ();
@@ -300,6 +328,7 @@ window.BMU = (function(){
     const prev = P.quiz[m.id] || { best:0, passed:false, tries:0 };
     const wasLevelDone = levelDone(m.level);
     P.quiz[m.id] = { best:Math.max(prev.best, pct), passed:prev.passed || ok, tries:prev.tries + 1, at:Date.now() };
+    if(!ok && !prev.passed) P.quiz[m.id].failAt = Date.now();          // a failed first pass → short break before the retry
     const newCert = !wasLevelDone && levelDone(m.level);
     if(newCert) P.certs[m.level.id] = new Date().toISOString();
     if(ok) P.last = null;
@@ -310,12 +339,28 @@ window.BMU = (function(){
         <div class="uni-result-score">${Math.round(pct * 100)}%</div>
         <div class="uni-result-title">${ok ? '🎉 Module passed!' : 'Not yet — you need 80% to pass'}</div>
         ${!ok && exempt(m) ? `<p style="margin-bottom:0;">You're still placed out of this module, so nothing gets locked. Review the lessons and try again whenever you like.</p>` : ''}
-        <p>${score} of ${qs.length} correct. ${ok ? (next ? `<b>Module ${next.code} · ${esc(next.title)}</b> is now unlocked.` : 'You have completed every module.') : 'Go back over the lessons — especially the ones these questions came from — then try again. There is no limit on retries.'}</p>
+        <p>${score} of ${qs.length} correct. ${ok ? (next ? `<b>Module ${next.code} · ${esc(next.title)}</b> is now unlocked.` : 'You have completed every module.') : `Go back over the lessons — especially the ones these questions came from. ${prev.passed ? 'You have passed this module before, so you can retry straight away.' : 'The retry unlocks in <b>10 minutes</b> — use that time to review.'} The questions and answers are shuffled every time.`}</p>
         <div class="uni-result-btns">
           ${ok ? (newCert ? `<button class="uni-btn primary" onclick="BMU.cert('${m.level.id}')">🏅 Claim your ${esc(m.level.badge)}</button>` : next ? `<button class="uni-btn primary" onclick="BMU.module('${next.id}')">Start Module ${next.code} ›</button>` : '')
-               : `<button class="uni-btn primary" onclick="BMU.quiz('${m.id}')">Retry quiz</button><button class="uni-btn" onclick="BMU.module('${m.id}')">Review lessons</button>`}
+               : `<button class="uni-btn primary" onclick="BMU.module('${m.id}')">Review the lessons</button><button class="uni-btn" onclick="BMU.quiz('${m.id}')">${prev.passed ? 'Retry quiz' : 'Retry (in 10 min)'}</button>`}
           <button class="uni-btn" onclick="BMU.home()">Back to degree</button>
         </div>
+      </div>`);
+  }
+
+  // ── Retry cooldown (only between failed attempts on a module not passed yet) ──
+  function coolLeft(m){
+    const q = P.quiz[m.id]; if(!q || q.passed || !q.failAt) return 0;
+    return Math.max(0, q.failAt + COOLDOWN - Date.now());
+  }
+  function coolView(m, wait){
+    const total = Math.ceil(wait / 1000), mins = Math.floor(total / 60), secs = total % 60;   // 599.4 s → "10 min", never "9 min 60 s"
+    show(crumbs([['Degree', 'BMU.home()'], [`Module ${m.code}`, `BMU.module('${m.id}')`], ['Quiz']]) + `
+      <div class="uni-result fail">
+        <div class="uni-result-score">⏳</div>
+        <div class="uni-result-title">Quick break before your retry</div>
+        <p>The Module ${m.code} quiz unlocks again in <b>${[mins ? `${mins} min` : '', secs ? `${secs} s` : ''].filter(Boolean).join(' ')}</b>. Use the time to re-read the lessons — that's where the marks are.</p>
+        <div class="uni-result-btns"><button class="uni-btn primary" onclick="BMU.module('${m.id}')">Review the lessons</button><button class="uni-btn" onclick="BMU.home()">Back to degree</button></div>
       </div>`);
   }
 
@@ -419,6 +464,7 @@ window.BMU = (function(){
   .uni-toast{margin-top:14px;padding:12px 16px;border-radius:12px;background:rgba(245,184,65,.1);border:1px solid rgba(245,184,65,.35);color:#F5D9A0;font-size:13px;}
   .uni-foot{margin-top:26px;text-align:center;}
   .uni-reset{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3,#777);padding:6px 12px;border-radius:8px;border:1px solid var(--border,rgba(255,255,255,.1));background:transparent;cursor:pointer;}
+  .uni-btn.waiting,.uni-btn[disabled]{opacity:.6;cursor:not-allowed;filter:saturate(.6)}
   .uni-reset.armed,.uni-reset:hover{color:#FF5C5C;border-color:rgba(255,92,92,.5);}
   .uni-crumbs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text3,#777);}
   .uni-crumbs button{background:none;border:0;color:var(--blue);cursor:pointer;font:inherit;padding:0;}.uni-crumbs i{font-style:normal;opacity:.5;}

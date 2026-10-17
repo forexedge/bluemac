@@ -58,6 +58,7 @@ uTrade Ideas page shell, Journal, Rules page shell, auth, glossary, setup guide.
   `.ex-hit` highlight; tapping a filter ends the search. New cards are picked up automatically (index built on first search).
 - Diagrams: SVG viewBox 260×150, DM Mono labels, palette `--blue #2A8FE3`, light `#96D0FF`,
   bull `#22D67A`, bear `#FF5C5C`, silver `#E4E8EE`, slate `#8AA4BF`, amber `#F5B841` (indicators only).
+- **Tougher University (17 Oct):** `quiz-extra.js` (loaded after curriculum-3.js) appends questions so every module quiz has **10** (200 total; Module 2.3 had only 4) — append-only, ids unchanged. New lessons lock "Complete" for a reading time (`readSecs`: 40% of 200 wpm, 10–40 s, countdown on `#uni-complete`, `complete()` ignores early taps); lessons already read never wait. A failed quiz on a module not yet passed stores `failAt` → 10-minute break (`coolLeft`/`coolView`) before the retry; modules passed before never wait and stay passed. Test: `tests/test_uni_rules.py`.
 - University progress: `localStorage['bm_uni_v1']` (device only for now). Strict unlocking:
   pass each module quiz with 80%+. Placement marks lower modules "placed out" (`P.placed.level`);
   certificates still need real quiz passes; Level 7 can never be skipped.

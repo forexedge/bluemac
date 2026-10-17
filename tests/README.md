@@ -19,6 +19,7 @@ PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_old_edu.py . tests 
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_practice.py . tests   # uTrade Practice run 1, phone + desktop
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_preflight.py . tests  # Daily Pre-Flight: flows, streak maths, weekend, sync
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_news.py . tests       # News Ready: live SAST times (5 DST cases), lessons, exam, certificate
+PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_uni_rules.py . tests  # 10-question quizzes, reading timer, 10-min retry break, old progress kept
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/crawl_all.py . tests   # deep tap-through, prints PROBLEMS: 0
 ```
 
