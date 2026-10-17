@@ -472,11 +472,99 @@ window.BMPR = (function(){
     };
   })();
 
+  // ════════════════════════════════════════════════════
+  // RUN 5 — "Your own strategy": a member-style strategy from the Strategy Toolbox
+  // Built under a practice key ('_prac') and the member's own strategy is put back on close
+  // (BMQ keeps ONE current strategy and its question texts read from it live).
+  // ════════════════════════════════════════════════════
+  const R5 = (function(){
+    const STRAT = { name:'Trendline Bounce', tfs:['H1'], instr:['XAUUSD'], sessions:['london', 'ny'], dir:['trendline'], loc:['tltouch', 'ob'],
+                    trig:['engulf', 'pin'], extra:['round'], custom:[{ t:'My trendline has at least 3 touches', must:true }], rr:null };
+    const D1 = { n:60, seed:51, noise:9, wick:1.0,
+      pts:[[0,3720],[8,3703],[16,3880],[25,3839],[34,4010],[42,3975],[52,4290,10],[59,4203]],
+      fix:{ 8:{ l:3700 }, 25:{ l:3836 }, 42:{ l:3972 }, 59:{ c:4203.4 } } };
+    const TL = i => 4138 + (i - 10) * 1.25;          // the H1 trendline: 4138 at candle 10, +1.25 per candle
+    const H1 = { n:60, seed:53, noise:2.4, wick:1.0,
+      pts:[[0,4150],[6,4168],[10,4140.5],[18,4186],[26,4160.5],[34,4212],[42,4180.5],[50,4244],[56,4206],[58,4201]],
+      fix:{ 10:{ l:TL(10) }, 26:{ l:TL(26) }, 42:{ l:TL(42) }, 50:{ h:4246.0 }, 59:{ o:4201.2, h:4204.2, l:4191.5, c:4203.4 } } };
+    const L = { price:'4203.40', swing_hi:'4246.00', swing_lo:'4191.50', zone_hi:'4202.00', zone_lo:'4196.00', liq_up:'4275.00' };
+    const line = { t:'line', a:[2, TL(2)], b:[59, TL(59)], c:'bull', w:1.4 };
+    const d1Base = chart(D1);
+    const d1R = chart(with_(D1, { marks:[{ t:'line', a:[2, 3652], b:[59, 4108], c:'bull', w:1.4 }, { t:'ring', i:8, p:3700, r:5, c:'amber' }, { t:'ring', i:25, p:3836, r:5, c:'amber' }, { t:'ring', i:42, p:3972, r:5, c:'amber' }] }));
+    const h1Base = chart(with_(H1, { marks:[line] }));
+    const h1Touch = chart(with_(H1, { marks:[line, { t:'ring', i:10, p:TL(10), r:5, c:'amber' }, { t:'ring', i:26, p:TL(26), r:5, c:'amber' }, { t:'ring', i:42, p:TL(42), r:5, c:'amber' },
+      { t:'text', i:10, p:TL(10) - 9, s:'1', c:'amber' }, { t:'text', i:26, p:TL(26) - 9, s:'2', c:'amber' }, { t:'text', i:42, p:TL(42) - 9, s:'3', c:'amber' }, { t:'ring', i:59, p:4192, r:6, c:'bull' }, { t:'text', i:55, p:4183, s:'TAP 4', c:'bull' }] }));
+    const zoom = with_(Object.assign({}, H1, { show:9 }), {});
+    const h1Trig = chart(with_(zoom, { fitExtra:[TL(51)], marks:[{ t:'line', a:[51, TL(51)], b:[59, TL(59)], c:'bull', w:1.4 }] }));
+    const h1TrigR = chart(with_(zoom, { fitExtra:[TL(51)], marks:[{ t:'line', a:[51, TL(51)], b:[59, TL(59)], c:'bull', w:1.4 }, { t:'ring', i:59, p:4194, r:9, c:'amber' }, { t:'text', i:56, p:4193, s:'HAMMER →', c:'amber' }] }));
+    const h1Round = chart(with_(H1, { marks:[line, { t:'hline', i1:40, p:4200, c:'silver', l:'4200.00' }] }));
+    const h1Levels = chart(with_(H1, { fitExtra:[4275], boxes:[{ i1:52, i2:59, p1:4196, p2:4202, c:'blue', op:0.2, border:true }],
+      marks:[line, { t:'hline', p:4275, c:'bear', l:'RESIST.' }, { t:'hline', i1:44, p:4246, c:'light', l:'SWING H' }, { t:'hline', i1:52, p:4191.5, c:'light', l:'SWING L' }, { t:'dot', i:59, p:4203.4, c:'white' }] }));
+
+    const check = `<div class="bmpr-scene"><div class="bmpr-scene-h">✅ Quick check · Tuesday 15:20 SAST</div>
+      <div class="bmpr-scene-r"><span>Red news in the next 30 minutes</span><b class="ok">none</b></div>
+      <div class="bmpr-scene-r"><span>Losses today</span><b>0</b></div>
+      <div class="bmpr-scene-r"><span>Session</span><b class="ok">New York open (one of your sessions)</b></div></div>`;
+    const recipe = `<div class="bmpr-scene"><div class="bmpr-scene-h">🛠 The strategy · "Trendline Bounce"</div>
+      <div class="bmpr-scene-r"><span>Direction</span><b>Trendline · daily chart</b></div>
+      <div class="bmpr-scene-r"><span>Location</span><b>Trendline tap or order block · H1</b></div>
+      <div class="bmpr-scene-r"><span>Trigger</span><b>Engulfing or pin bar · H1</b></div>
+      <div class="bmpr-scene-r"><span>Extra</span><b>Round number at the zone</b></div>
+      <div class="bmpr-scene-r"><span>Own rule (must)</span><b>3+ touches on the trendline</b></div></div>`;
+    let prev = null;
+    return {
+      id:'r5', n:5, title:'Your own strategy', style:'_prac', instrument:'XAUUSD', name:'Gold',
+      blurb:'A member-built strategy · same engine, same safety rules',
+      brief:`On Blue Mac you can <b>build your own strategy</b> from the tools you actually trade — trendlines, order blocks, patterns, indicators — even your own rules.
+        Here's one a member could build. You'll answer the questions <b>Blue Mac creates from it</b>, and the same engine prices it with the same risk rules.${recipe}`,
+      setup(){ prev = BMQ.current(); BMQ.build(STRAT, '_prac'); },
+      teardown(){ if(prev && prev.key && prev.key !== '_prac' && prev.key !== '_preview') { try { BMQ.build(prev.strategy, prev.key); } catch(e){} } prev = null; },
+      doneBtn:{ l:'🛠 Build my own strategy →', fn:'BMPR.buildOwn()' },
+      steps:[
+        { q:'safety', scene:check, ans:'clear',
+          ok:'All clear. Notice: <b>every</b> strategy — even one you build yourself — gets this safety check. You can make Blue Mac stricter, never looser.',
+          no:{ two:'Your journal shows <b>0</b> losses today.', news:'Nothing red in the next 30 minutes.', stop:'No losses today — you\'re good.' },
+          hint:'Read the quick check card — news, losses, session.' },
+        { q:'dir_trendline', pic:d1Base, picR:d1R, cap:'Practice chart · Gold · Daily', ans:'up',
+          ok:'A <b>rising trendline</b> under the daily lows — touched three times and still holding. That\'s the direction: <b>longs only</b>.',
+          no:{ down:'The lows are climbing — a line under them points <b>up</b>.', none:'Draw a line under the three big daily lows — price has bounced off it every time.' },
+          hint:'Connect the three biggest daily lows. Which way does the line point?' },
+        { q:'zone', pic:h1Base, cap:'Practice chart · Gold · H1 with your trendline', ans:'tl_bull',
+          ok:'Price is <b>tapping the rising trendline</b> right now — that\'s this strategy\'s location.',
+          no:{ ob_bull:'There may be an order block somewhere — but what\'s happening <b>right now</b> is a tap of the trendline.', none:'Look at the last candle — it\'s on the trendline.',
+               other:'The line is rising and price is on it from above — a rising trendline tap.' },
+          hint:'Where is the last candle compared to the green line?' },
+        { q:'own0', pic:h1Touch, cap:'Same H1 chart · count the touches', ans:'yes',
+          ok:'Three clean touches before this one — the rule is met. <b>Your own rules</b> work like Blue Mac\'s: answer "Not yet" and the idea waits.',
+          no:{ no:'Count again: candles 1, 2 and 3 all bounced off the line — and this is the 4th tap.' },
+          hint:'Count the rings on the line before the current candle.' },
+        { q:'trigger', pic:h1Trig, picR:h1TrigR, cap:'H1 · zoomed in on the last candles', ans:'pin_bull',
+          ok:'A <b>bullish pin bar (hammer)</b>: price dipped through the line, got rejected and closed near the high — a long lower wick, a small body. That\'s your trigger.',
+          no:{ eng_bull:'An engulfing candle\'s body swallows the one before. This one has a <b>small body and a long lower wick</b> — a hammer.',
+               none:'The last candle has closed — and it\'s a clear rejection candle.', other:'The rejection is from below — buyers stepped in. That\'s bullish.' },
+          hint:'Look at the shape of the last candle: body size vs wick length.' },
+        { q:'confluence', multi:true, pic:h1Round, cap:'H1 · the 4200.00 round number added', ans:['round'],
+          ok:'<b>4200.00</b> runs right through the trendline tap — a round number that lots of traders watch. Extra confidence.',
+          extra:'Only tick what you can see. The chart shows the round number.', miss:'Look at the 4200.00 line — it sits right on the tap.',
+          hint:'Which extra line is on the chart?' },
+        { q:'levels', pic:h1Levels, cap:'Read these prices off your H1 chart', lv:L, tol:0.051, ph:'e.g. 4200.00',
+          names:{ price:'Current price (the dot)', swing_hi:'H1 swing high', swing_lo:'H1 swing low (the hammer\'s low)', zone_hi:'Top of the entry area', zone_lo:'Bottom of the entry area', liq_up:'Next resistance (target above)' },
+          req:['price', 'swing_hi', 'swing_lo', 'zone_hi', 'zone_lo', 'liq_up'],
+          ok:'Spot on. Your own strategy, Blue Mac\'s maths.' }
+      ],
+      learnt:['Build a strategy from the tools YOU trade', 'Blue Mac turns it into questions — and checks your own rules too', 'Same engine: same prices, R:R and lot size maths', 'The safety rules can be made stricter — never looser'],
+      coach: p => ({
+        e1:'A <b>buy limit</b> at the top of the entry area around the trendline. Price is at 4203.40 — you wait for one more dip.',
+        e2:'Your second, cheaper buy — middle of the entry area, half the size, still above the stop.',
+        sl:'Below the hammer\'s low plus a buffer. If price closes back under the trendline and the hammer\'s low, the bounce has failed.',
+        tp1:`1:${p.rr1} after the spread — the last H1 swing high.`,
+        tp2:`1:${p.rr2} — the next resistance you marked. Half off at TP1, stop to breakeven.` })
+    };
+  })();
+
   // runs still to come (shown so members see the path)
-  const SOON = [
-    { n:5, title:'Your own strategy', blurb:'Build one, then practise it' }
-  ];
-  const RUNS = { r1: R1, r2: R2, r3: R3, r4: R4 }, ORDER = ['r1', 'r2', 'r3', 'r4'];
+  const SOON = [];
+  const RUNS = { r1: R1, r2: R2, r3: R3, r4: R4, r5: R5 }, ORDER = ['r1', 'r2', 'r3', 'r4', 'r5'];
   const TOTAL = 5;
   const nextRun = () => { const P = load(); const id = ORDER.find(k => !P.done[k]); return id ? RUNS[id] : null; };
 
@@ -486,6 +574,8 @@ window.BMPR = (function(){
 
   function open(id){
     const run = RUNS[id || 'r1']; if(!run) return;
+    if(st && st.run.teardown) st.run.teardown();              // switching runs inside the panel
+    if(run.setup) run.setup();
     st = { run, i:-1, ans:Object.assign({ instrument: run.instrument }, run.pre || {}), lv:{}, tries:0, fb:null, solved:false, slips:0, picks:[] };
     let ov = document.getElementById('bmpr-ov');
     if(!ov){ ov = document.createElement('div'); ov.id = 'bmpr-ov'; ov.className = 'bmd-ov'; document.body.appendChild(ov); }
@@ -493,6 +583,7 @@ window.BMPR = (function(){
     draw();
   }
   function close(){
+    if(st && st.run.teardown) st.run.teardown();
     const ov = document.getElementById('bmpr-ov'); if(ov){ ov.classList.remove('on'); ov.innerHTML = ''; }
     document.body.style.overflow = ''; document.body.classList.remove('bmd-open'); st = null; paint();
   }
@@ -654,12 +745,14 @@ window.BMPR = (function(){
           <div class="bmpr-badge"><span>✅</span><div><b>uTrade Certified · ${doneN}/${TOTAL}</b><small>${st.slips ? `${st.slips} slip${st.slips > 1 ? 's' : ''} along the way — that's how you learn.` : 'Not a single slip. Sharp! 🔥'}</small></div></div>
           <div class="bmpr-scene-h">What you just practised</div>
           ${run.learnt.map(t => `<div class="bmpr-l">✓ ${esc(t)}</div>`).join('')}
-          <div class="bmpr-scene-h" style="margin-top:14px;">Next practice runs</div>
+          ${doneN === TOTAL ? `<div class="bmpr-fb ok">🏆 <b>All ${TOTAL} practice runs done — you're uTrade Certified.</b> You know how to read the charts, spot traps, respect the news, scalp the kill zones and run your own strategy. Time to do it for real.</div>`
+            : `<div class="bmpr-scene-h" style="margin-top:14px;">Next practice runs</div>`}
           ${ORDER.map(id => RUNS[id]).filter(r => !P.done[r.id]).map(r => `<div class="bmpr-soon ready"><b>Run ${r.n} · ${esc(r.title)}</b><span>${esc(r.blurb)}</span><i>Ready</i></div>`).join('')}
           ${SOON.map(s => `<div class="bmpr-soon"><b>Run ${s.n} · ${esc(s.title)}</b><span>${esc(s.blurb)}</span><i>Coming soon</i></div>`).join('')}
         </div>`;
       foot = nx ? `<button class="ut-back" onclick="BMPR.goReal()">Try it for real</button><button class="ut-next" onclick="BMPR.open('${nx.id}')">Next: Run ${nx.n} →</button>`
-                : `<button class="ut-back" onclick="BMPR.close()">Close</button><button class="ut-next" onclick="BMPR.goReal()">Try a real ${esc(UT.def(run.style).short)} idea →</button>`;
+           : run.doneBtn ? `<button class="ut-back" onclick="BMPR.close()">Close</button><button class="ut-next" onclick="${run.doneBtn.fn}">${run.doneBtn.l}</button>`
+           : `<button class="ut-back" onclick="BMPR.close()">Close</button><button class="ut-next" onclick="BMPR.goReal()">Try a real ${esc(UT.def(run.style).short)} idea →</button>`;
     } else {
       const s = steps[st.i], qq = q(s), sg = s.call ? { label:'🧠 Your call' } : (UT.def(run.style).stages[qq.stage] || { label:'' });
       kicker += ` · Question ${st.i + 1} of ${n}`; title = run.title;
@@ -732,6 +825,11 @@ window.BMPR = (function(){
     st.i = st.run.steps.length + 1; draw();
     const b = document.querySelector('#bmpr-ov .bmd-body'); if(b) b.scrollTop = 0;
   }
+  function buildOwn(){
+    close();
+    try { const nav = document.querySelector(`.nav-item[onclick*="goPage('checklist'"]`); goPage('checklist', nav); } catch(e){}
+    try { if(window.BMB) BMB.edit(); } catch(e){}
+  }
   function goReal(){
     const style = st ? st.run.style : 'day';
     close();
@@ -751,6 +849,9 @@ window.BMPR = (function(){
     if(!d) return `<div class="bmpr-cta-i">🎯</div>
       <div class="bmpr-cta-t"><b>New to uTrade? Practise first</b><span>${where === 'uni' ? 'Start here: ' : ''}answer the real questions on a safe practice chart. Instant feedback, a real price plan at the end — and it doesn't use your 2 daily AI ideas.</span></div>
       <button class="ut-next" onclick="BMPR.open('r1')">Start practice →</button>`;
+    if(d >= TOTAL) return `<div class="bmpr-cta-i">🏆</div>
+      <div class="bmpr-cta-t"><b>uTrade Certified · all ${TOTAL} runs done</b><span>Practise any run again whenever you want a refresher.</span></div>
+      <button class="ut-back" onclick="BMPR.open('${ORDER[0]}')">Practise again</button>`;
     return `<div class="bmpr-cta-i">✅</div>
       <div class="bmpr-cta-t"><b>uTrade Certified · ${d}/${TOTAL}</b><span>${d < TOTAL ? (d + 1 === TOTAL ? `Run ${TOTAL} is coming soon. ` : `Runs ${d + 1}–${TOTAL} are coming soon. `) : ''}Practise again any time.</span></div>
       <button class="ut-back" onclick="BMPR.open('${ORDER[0]}')">Practise again</button>`;
@@ -871,6 +972,6 @@ window.BMPR = (function(){
   function boot(){ paint(); watchUni(); }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
-  return { open, close, pick, reveal, toggle, check, checkLevels, next, back, finish, goReal, paint,
+  return { open, close, pick, reveal, toggle, check, checkLevels, next, back, finish, goReal, buildOwn, paint,
            status: () => load(), RUNS, _st: () => st };
 })();
