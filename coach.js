@@ -183,7 +183,9 @@ window.BMC = (function(){
   function toPending(){ const c = document.querySelector('.j-card.is-pending'); if(c){ c.scrollIntoView({ behavior:'smooth', block:'center' }); flash(c); } }
 
   // ══════════════════════════════════════════════════════
-  // The arrow — points at the exact thing to tap next, on the page itself
+  // The pointer — a calm label that sits IN the page right above the thing to tap next
+  // (it takes its own line, so it can never cover text), plus a steady outline on the target.
+  // Off-screen targets get a small "↓ … tap to scroll" chip instead. No bouncing.
   // ══════════════════════════════════════════════════════
   const vis = el => !!el && el.offsetParent !== null && el.getClientRects().length > 0;
   const q1 = sel => [...document.querySelectorAll(sel)].find(vis) || null;
@@ -217,7 +219,7 @@ window.BMC = (function(){
       return b && !b.classList.contains('on') ? [b, 'Your style’s rules'] : null;
     }
     if(page === 'examples'){ const el = document.getElementById('ex-search-input'); return el && !el.value && !searched ? [el, 'Search any concept here'] : null; }
-    if(page === 'education') return [q1('#bmc-education .bmc-b1'), 'Continue here'];
+    if(page === 'education') return [q1('#bmc-education .bmc-b1'), ''];
     return null;
   }
   let searched = false, lastT = null, raf = 0;
@@ -225,42 +227,47 @@ window.BMC = (function(){
   // something else is on top: a builder / picker / lesson modal, the tour, or the login screen
   function covered(){
     if(document.body.classList.contains('bmd-open') || document.querySelector('.ut-learn.on') || document.getElementById('bmt')) return true;
+    // the app's own pop-ups (Setup Guide, Style Quiz, journal modals) all open with the 'open' class
+    if(document.querySelector('#setup-guide-overlay.open, #quiz-overlay.open, #log-modal.open, #update-modal.open')) return true;
     return ['auth-gate', 'quiz-gate', 'disclaimer-gate', 'reset-gate'].some(id => { const g = document.getElementById(id); return g && getComputedStyle(g).display !== 'none' && vis(g); });
+  }
+  // the label goes above the whole row / block the target lives in — never inside a row of buttons
+  const ROWS = '.bmc-bs, .ut-know-f, .ut-lv, .ut-actions, .ut-take, .style-rules-tabs, #ex-search';
+  function here(){
+    let h = document.getElementById('bmc-here');
+    if(!h){ h = document.createElement('div'); h.id = 'bmc-here'; h.className = 'bmc-here'; h.setAttribute('role', 'note'); }
+    return h;
   }
   function point(){
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(() => {
-      let ptr = document.getElementById('bmc-ptr'), chip = document.getElementById('bmc-chip');
-      if(!ptr){
-        ptr = document.createElement('div'); ptr.id = 'bmc-ptr'; ptr.setAttribute('aria-hidden', 'true');
-        ptr.innerHTML = '<span class="bmc-ptr-l"></span><span class="bmc-ptr-a"></span>'; document.body.appendChild(ptr);
+      let chip = document.getElementById('bmc-chip');
+      if(!chip){
         chip = document.createElement('button'); chip.id = 'bmc-chip'; chip.type = 'button';
         chip.onclick = () => { if(lastT) lastT.scrollIntoView({ behavior:'smooth', block:'center' }); }; document.body.appendChild(chip);
       }
-      const t = covered() ? null : target(), el = t && t[0];
+      const t = covered() ? null : target(), el = t && t[0], h = here();
       if(lastT && lastT !== el) lastT.classList.remove('bmc-target');
       lastT = el || null;
-      if(!el){ ptr.className = ''; chip.className = ''; return; }
+      if(!el){ if(h.parentNode) h.remove(); chip.className = ''; return; }
       el.classList.add('bmc-target');
+      // in-page label (only when there is something to say)
+      if(t[1]){
+        const row = el.closest(ROWS) || el, txt = '↓ ' + t[1];
+        if(h.textContent !== txt) h.textContent = txt;
+        if(h.parentNode !== row.parentNode || h.nextSibling !== row) row.parentNode.insertBefore(h, row);
+      } else if(h.parentNode) h.remove();
+      // off-screen → chip above the phone's bottom nav
       const r = el.getBoundingClientRect(), H = window.innerHeight;
-      // the phone's bottom nav bar covers the last ~70px
       const nav = [...document.querySelectorAll('.nav-item')].map(n => n.getBoundingClientRect().top).filter(y => y > H * 0.7);
       const bottom = nav.length ? Math.min(...nav) : H;
-      if(r.bottom < 40 || r.top > bottom - 30){
-        ptr.className = '';
-        chip.textContent = r.top > bottom - 30 ? `↓ ${t[1]} — tap to scroll` : `↑ ${t[1]} — tap to scroll`;
-        chip.className = 'on ' + (r.top > bottom - 30 ? 'down' : 'up');
+      if(t[1] && (r.bottom < 40 || r.top > bottom - 30)){
+        const down = r.top > bottom - 30;
+        const txt = `${down ? '↓' : '↑'} ${t[1]} — tap to scroll`;
+        if(chip.textContent !== txt) chip.textContent = txt;
+        chip.className = 'on ' + (down ? 'down' : 'up');
         chip.style.bottom = (H - bottom + 12) + 'px';
-        return;
-      }
-      chip.className = '';
-      ptr.querySelector('.bmc-ptr-l').textContent = t[1];
-      const above = r.top > 70;                                      // room for the arrow above the target?
-      ptr.className = 'on ' + (above ? 'above' : 'below');
-      const w = ptr.offsetWidth, x = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + Math.min(r.width, 320) / 2 - w / 2));
-      ptr.style.left = x + 'px';
-      ptr.style.top = (above ? r.top - ptr.offsetHeight - 4 : r.bottom + 4) + 'px';
-      ptr.style.setProperty('--ax', Math.max(14, Math.min(w - 14, r.left + Math.min(r.width, 320) / 2 - x)) + 'px');
+      } else chip.className = '';
     });
   }
   // the app scrolls inside its own containers, not only the window — listen to every scroll (capture phase)
@@ -280,7 +287,8 @@ window.BMC = (function(){
         if(!el){ el = document.createElement('div'); el.id = 'bmc-' + page; el.className = 'bmc'; pg.insertBefore(el, pg.firstChild); }
         if(!force && !pg.classList.contains('on') && el.innerHTML) return;      // hidden pages refresh when opened
         const html = page === 'checklist' ? utradeHTML() : lineHTML(page);
-        if(el.innerHTML !== html) el.innerHTML = html;
+        const h = document.getElementById('bmc-here'), cur = h && el.contains(h) ? el.innerHTML.replace(h.outerHTML, '') : el.innerHTML;
+        if(cur !== html) el.innerHTML = html;
       });
     } catch(e){ console.warn('Blue Mac guide:', e); }
     busy = false;
@@ -351,28 +359,14 @@ button.bmc-st:hover{border-color:rgba(255,255,255,0.3)}
 .bmc-st:not(:last-child)::after{content:'›';position:absolute;right:-7px;top:50%;transform:translateY(-50%);z-index:1;font-size:18px;font-weight:800;line-height:1;color:var(--text3)}
 .bmc-st.done:not(:last-child)::after{color:var(--bull)}
 /* "build my own strategy" is the headline option */
-/* room above the headline button for the "Start here" arrow, so it never covers the text */
-.bmc-bs:has(.bmc-b1.go){margin-top:44px}
 .bmc-b1.go{border-color:rgba(34,214,122,0.6);background:linear-gradient(135deg,#22D67A,#16a85c);color:#04140b;box-shadow:0 6px 20px rgba(34,214,122,0.3)}
-#bm-mystrats.bmb-cta{animation:bmcGlow 2.6s ease-in-out infinite}
-@keyframes bmcGlow{0%,100%{box-shadow:0 0 0 0 rgba(34,214,122,0)}50%{box-shadow:0 0 0 3px rgba(34,214,122,0.28)}}
-/* the arrow */
-#bmc-ptr{position:fixed;z-index:8000;display:none;flex-direction:column;align-items:flex-start;pointer-events:none;--ax:50%}
-#bmc-ptr.on{display:flex}
-#bmc-ptr.below{flex-direction:column-reverse}
-.bmc-ptr-l{background:var(--blue);color:#fff;font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:800;padding:6px 12px;border-radius:10px;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,0.45)}
-.bmc-ptr-a{width:0;height:0;margin-left:calc(var(--ax) - 9px);border-left:9px solid transparent;border-right:9px solid transparent;border-top:11px solid var(--blue)}
-#bmc-ptr.below .bmc-ptr-a{border-top:none;border-bottom:11px solid var(--blue)}
-#bmc-ptr.above{animation:bmcBob 1.1s ease-in-out infinite}
-#bmc-ptr.below{animation:bmcBobUp 1.1s ease-in-out infinite}
-@keyframes bmcBob{0%,100%{transform:translateY(-3px)}50%{transform:translateY(3px)}}
-@keyframes bmcBobUp{0%,100%{transform:translateY(3px)}50%{transform:translateY(-3px)}}
-.bmc-target{outline:2px solid rgba(42,143,227,0.85)!important;outline-offset:3px;border-radius:12px;animation:bmcRing 1.6s ease-in-out infinite}
-@keyframes bmcRing{0%,100%{outline-color:rgba(42,143,227,0.85)}50%{outline-color:rgba(42,143,227,0.25)}}
+#bm-mystrats.bmb-cta{box-shadow:0 0 0 1px rgba(34,214,122,0.35)}
+/* the pointer: a still label in the page + a steady outline */
+.bmc-here{display:flex;align-items:center;gap:6px;margin:6px 0 4px;font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:800;letter-spacing:.01em;color:#96D0FF}
+.bmc-target{outline:2px solid rgba(42,143,227,0.8)!important;outline-offset:3px}
 #bmc-chip{position:fixed;left:50%;transform:translateX(-50%);z-index:8000;display:none;border:1px solid rgba(42,143,227,0.6);background:var(--blue);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:800;padding:9px 16px;border-radius:22px;box-shadow:0 8px 24px rgba(0,0,0,0.5);cursor:pointer;white-space:nowrap;max-width:calc(100vw - 24px);overflow:hidden;text-overflow:ellipsis}
 #bmc-chip.on{display:block}
 #bmc-chip.up{bottom:auto!important;top:12px}
-@media (prefers-reduced-motion:reduce){#bmc-ptr,.bmc-target,#bm-mystrats.bmb-cta{animation:none!important}}
 @media (max-width:640px){
   .bmc-card{padding:12px}
   .bmc-path{gap:4px}.bmc-st{padding:6px 2px}.bmc-st span{font-size:10px}

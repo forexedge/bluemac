@@ -45,13 +45,16 @@ def page(ctx, fresh=True):
     return p
 coach = lambda p: p.evaluate("() => { const c = document.querySelector('#bmc-checklist'); return { t: (c.querySelector('.bmc-tx b') || {}).textContent || '', s: (c.querySelector('.bmc-tx p') || {}).textContent || '', prog: (c.querySelector('.bmc-prog') || {}).textContent || '', now: (c.querySelector('.bmc-st.now span') || {}).textContent || '', btns: [...c.querySelectorAll('.bmc-bs button')].map(b => b.textContent) }; }")
 def settle(p): p.wait_for_timeout(350)
-PTR = """() => { const p = document.getElementById('bmc-ptr'), c = document.getElementById('bmc-chip'), t = document.querySelector('.bmc-target');
-  const on = !!p && p.classList.contains('on'), r = t && t.getBoundingClientRect(), pr = p && p.getBoundingClientRect();
-  return { on, label: on ? p.querySelector('.bmc-ptr-l').textContent : '', chip: c && c.classList.contains('on') ? c.textContent : '',
+PTR = """() => { const h = document.getElementById('bmc-here'), c = document.getElementById('bmc-chip'), t = document.querySelector('.bmc-target');
+  const on = !!h && !!h.parentNode && h.offsetParent !== null, hr = on && h.getBoundingClientRect(), r = t && t.getBoundingClientRect();
+  const row = on ? h.nextElementSibling : null;
+  return { on, label: on ? h.textContent.replace(/^↓ /, '') : '', chip: c && c.classList.contains('on') ? c.textContent : '',
     target: t ? (t.id || t.className.split(' ').filter(x => x !== 'bmc-target')[0] || t.tagName) : '',
-    // arrow tip touches the target: above → its bottom sits just over the target's top; below → its top sits just under the target's bottom
-    touching: on && r ? (p.classList.contains('above') ? Math.abs(pr.bottom - r.top) < 14 : Math.abs(pr.top - r.bottom) < 14) : false,
-    over: on && r ? pr.left < r.right && pr.right > r.left : false }; }"""
+    // the label sits right above the row that holds the target, in the page flow
+    touching: !!(on && row && t && (row === t || row.contains(t)) && hr.bottom <= r.top + 1 && r.top - hr.bottom < 80),
+    // it never overlaps the target or anything else: nothing is drawn on top of it and it isn't on top of anything
+    over: !!(on && document.elementsFromPoint(hr.left + 4, hr.top + hr.height / 2).indexOf(h) === 0),
+    moving: !!(t && getComputedStyle(t).animationName !== 'none') || !!(on && getComputedStyle(h).animationName !== 'none') }; }"""
 ptr = lambda p: (p.wait_for_timeout(800), p.evaluate(PTR))[1]   # smooth scrolling (html{scroll-behavior:smooth}) needs to settle
 def shot(p, name):
     if not SHOTS: return
@@ -89,7 +92,7 @@ with sync_playwright() as pw:
         check(L('new member: Step 1 — pick how you trade, 0/4'), 'Step 1' in c['t'] and c['prog'] == '0/4 done' and c['now'] == 'Pick how you trade')
         check(L('"Build my own strategy" is the first, green button; the matched style (Day Trade) second'), c['btns'] == ['🛠 Build my own strategy', 'Or use Day Trade — matched to you'] and p.evaluate("() => document.querySelector('#bmc-checklist .bmc-b1').classList.contains('go')"))
         a = ptr(p); print('   arrow:', a)
-        check(L('arrow says "Start here" and touches the Build-my-own button'), a['on'] and a['label'] == 'Start here' and a['target'].startswith('bmc-b1') and a['touching'] and a['over'])
+        check(L('label says "Start here" right above the Build-my-own button, covering nothing, not moving'), a['on'] and a['label'] == 'Start here' and a['target'].startswith('bmc-b1') and a['touching'] and a['over'] and not a['moving'])
         check(L('arrows between the 4 path steps'), p.evaluate("() => getComputedStyle(document.querySelector('.bmc-st'), '::after').content.includes('›')"))
         p.click("#bmc-checklist .bmc-b1"); settle(p)
         check(L('Build my own strategy opens the builder, and the arrow hides behind it'), p.is_visible('#bmb-ov.on') and not ptr(p)['on'])
@@ -115,6 +118,10 @@ with sync_playwright() as pw:
         if a['chip']:
             p.click('#bmc-chip'); p.wait_for_timeout(700); a = ptr(p)
             check(L('tapping the chip scrolls to the target and the arrow appears'), a['on'] and a['touching'])
+        for opener, closer in [("openSetupGuide()", "closeSetupGuide()"), ("openQuiz()", "closeQuiz()")]:
+            p.evaluate("() => window.scrollTo(0, 0)"); p.evaluate(f"() => {opener}"); a = ptr(p)
+            check(L(f'pop-up {opener} open → no label, no chip on top of it'), not a['on'] and not a['chip'])
+            p.evaluate(f"() => {closer}"); p.wait_for_timeout(200)
         p.evaluate("() => UT.learn('smc-ob-bull')"); p.wait_for_timeout(300)
         check(L('a lesson opens on top → arrow hides'), not ptr(p)['on'] and not ptr(p)['chip'])
         p.evaluate("() => UT.closeLearn()"); p.wait_for_timeout(700)
@@ -141,7 +148,7 @@ with sync_playwright() as pw:
         c = coach(p); print('  ', r, c)
         check(L('result screen → Step 3: tap Generate, step 2 ticked'), r == 'ok' and 'Step 3' in c['t'] and c['prog'] == '2/4 done')
         p.evaluate("() => document.querySelector('#guided-panel .ut-fire').scrollIntoView({block:'center'})"); a = ptr(p); print('   arrow:', a)
-        check(L('arrow touches the Generate button'), a['on'] and 'generate' in a['label'].lower() and a['touching'])
+        check(L('label right above the Generate button, covering nothing'), a['on'] and 'generate' in a['label'].lower() and a['touching'] and a['over'])
         shot(p, f'{label}-c4-result.png')
         p.click("#bmc-checklist .bmc-b1"); p.wait_for_timeout(300)
         check(L('"Show me the button" highlights Generate'), p.evaluate("() => document.querySelector('#guided-panel .ut-fire').classList.contains('bmc-flash')"))

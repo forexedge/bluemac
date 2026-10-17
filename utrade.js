@@ -321,7 +321,6 @@ window.UT = (function(){
     const tp1Min = need(mins[0]), tp2Min = need(mins[1]);
     const rrTo = v => (dir * (v - e1) - sp) / Rn;              // net R:R
     const rrGross = v => dir * (v - e1) / R;
-    const r1 = v => (Math.floor(v * 10) / 10).toFixed(1);
     // structural targets beyond Entry 1, nearest first
     const tg = (k.tg || [[k.t1, k.t1why], [k.t2, k.t2why]]).filter(t => isFinite(t[0]) && dir * (t[0] - e1) > 0).sort((a, b) => dir * (a[0] - b[0]));
     const nearRR = tg.length ? rrTo(tg[0][0]) : null;
@@ -1265,6 +1264,8 @@ REASONING: …
 .ut-idea-row span{display:block;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);font-weight:700;margin-bottom:3px}
 .ut-idea-row.sig{border-left:3px solid var(--blue)}.ut-idea-row.inv{border-left:3px solid var(--bear)}
 .ut-take{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--bg3)}
+.ut-take-err{grid-column:1/-1;padding:9px 12px;border-radius:10px;border:1px solid rgba(255,92,92,0.4);background:rgba(255,92,92,0.08);color:#FF9A9A;font-size:12.5px;line-height:1.5}
+.ut-take-err b{color:#FF5C5C}
 .ut-take-b{padding:13px 10px;border-radius:12px;font-size:13.5px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--border2);background:var(--bg4);color:var(--text)}
 .ut-take-b.bull{background:rgba(34,214,122,0.12);border-color:rgba(34,214,122,0.45);color:var(--bull)}
 .ut-take-b.bear{background:rgba(255,92,92,0.12);border-color:rgba(255,92,92,0.45);color:var(--bear)}

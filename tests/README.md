@@ -14,6 +14,9 @@ PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_dna.py . tests [sho
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_quick.py . tests [shots_dir]
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_builder.py . tests [shots_dir]
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_coach.py . tests [shots_dir]
+PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_save.py . tests
+PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_css.py . tests
+PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/crawl_all.py . tests   # deep tap-through, prints PROBLEMS: 0
 ```
 
 `test_ai_limit.py` covers the daily AI idea counter, the locked buttons and the limit screen.

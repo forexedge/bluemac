@@ -70,7 +70,7 @@ window.BMT = (function(){
   const ORDER = ['checklist', 'journal', 'rules', 'examples', 'education'];
   const NAMES = { checklist:'uTrade Ideas', journal:'Journal', rules:'Rules', examples:'Examples', education:'Education' };
 
-  let steps = [], i = 0, root = null, raf = 0, auto = false;
+  let steps = [], i = 0, root = null, raf = 0;
 
   function build(mode){
     const list = [];
@@ -238,7 +238,7 @@ window.BMT = (function(){
     let n = 0;
     const t = setInterval(() => {
       if(done() || ++n > 600){ clearInterval(t); return; }
-      if(appReady()){ clearInterval(t); setTimeout(() => { if(!done() && appReady() && !root){ auto = true; start('full'); } }, 900); }
+      if(appReady()){ clearInterval(t); setTimeout(() => { if(!done() && appReady() && !root) start('full'); }, 900); }
     }, 1000);
   }
 

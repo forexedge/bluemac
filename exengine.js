@@ -221,7 +221,7 @@ window.BMX = (function(){
     // overlays (behind candles)
     (sp.ov || []).forEach(o => {
       if(o.t === 'ichi'){
-        const ic = ind.ichi; let up = [], dn = [];
+        const ic = ind.ichi;
         for(let i = s0; i < n - 1; i++){
           if(ic.sa[i] === null || ic.sb[i] === null || ic.sa[i+1] === null || ic.sb[i+1] === null) continue;
           const bull = ic.sa[i] >= ic.sb[i];
@@ -321,7 +321,7 @@ window.BMX = (function(){
         for(let i = s0; i < n; i++){
           const val = pane.t === 'vol' ? d.v[i] : pane.data[i - s0];
           const cc = pane.t === 'vol' ? (d.c[i] >= d.o[i] ? C.bull : C.bear) : (val >= 0 ? (pane.cPos || C.blue) : (pane.cNeg || C.bear));
-          const y0 = PY(Math.max(pmn, 0) === pmn ? pmn : 0), y1 = PY(val);
+          const y1 = PY(val);
           const base = pmn < 0 ? PY(0) : pB;
           s += `<rect x="${f1(X(i) - zw / 2)}" y="${f1(Math.min(base, y1))}" width="${f1(zw)}" height="${f1(Math.max(Math.abs(base - y1), 0.5))}" fill="${cc}" opacity="${(pane.hl || []).includes(i) ? 0.95 : 0.45}"/>`;
         }

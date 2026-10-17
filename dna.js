@@ -157,7 +157,7 @@ window.BMD = (function(){
     if(lo === 4) return 'swing';
     return 'position';
   }
-  const conceptName = id => (CONCEPTS.find(c => c[0] === id) || [, id])[1];
+  const conceptName = id => (CONCEPTS.find(c => c[0] === id) || [null, id])[1];
 
   function doneHTML(){
     const d = get(), sty = closestStyle(d);
