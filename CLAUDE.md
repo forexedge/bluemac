@@ -59,6 +59,10 @@ uTrade Ideas page shell, Journal, Rules page shell, auth, glossary, setup guide.
   pass each module quiz with 80%+. Placement marks lower modules "placed out" (`P.placed.level`);
   certificates still need real quiz passes; Level 7 can never be skipped.
   Placement level is also saved to Supabase user metadata (`tv_placement_level`).
+- **Old Education ticks (17 Oct, for the merge to main):** `university.js` `carryOldEdu()` maps the old live site's `tv_edu_progress`
+  ("Mark as Read", keys `lesson-<old card number>`) onto new lesson ids via `OLD_EDU` → `P.done` (never quizzes). Runs at start-up and
+  on `BMU.reload()` (so it survives a server copy); Reset progress also removes `tv_edu_progress`. Test: `tests/test_old_edu.py`.
+  Live site before the merge is saved as branch `backup-live-17oct`.
 - Auth: Supabase (`_supabase`). One login handler `onSignedIn()` runs once per login:
   placement test → disclaimer → app. If the Supabase CDN fails, `_sbOffline` stub keeps the app alive.
 - AI ideas: Supabase Edge Function `trade-idea`, called by `UT.fire()` for every style. The old

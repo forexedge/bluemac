@@ -21,6 +21,32 @@ window.BMU = (function(){
   let P = load();
   function save(){ try { localStorage.setItem(KEY, JSON.stringify(P)); } catch(e){} }
 
+  // ── Carry over the OLD Education tab's "Mark as Read" ticks (live site before 17 Oct) ──
+  // Old key 'tv_edu_progress' = { 'lesson-01':1, 'lesson-08A':1, … } (lesson number on the old card).
+  // Each old lesson ticks the matching new lesson(s) as read. Quizzes still have to be passed.
+  // Safe to run again (only adds missing ticks); Reset progress removes the old ticks too.
+  const OLD_EDU = {
+    '01':['l1-1-1'], '02':['l1-2-1'], '03':['l1-3-3'], '04':['l1-2-2','l1-2-3'], '05':['l1-3-1'], '06':['l1-3-1'],
+    '07':['l1-3-1','l2-1-2'], '08':['l2-2-2'], '08A':['l2-2-2'], '08B':['l2-2-2'], '08C':['l2-2-2'],
+    '09':['l2-1-1'], '10':['l2-3-1'], '11':['l2-2-1','l2-2-2'], '12':['l1-3-5'], '13':['l4-1-3'],
+    '14':['l1-1-4'], '14B':['l1-1-3'], '14C':['l4-2-4'], '15':['l7-1-1'], '15B':['l7-2-1'], '15C':['l4-1-1','l4-1-2'],
+    '16':['l5-1-1'], '17':['l3-1-2'], '17B':['l5-1-3'], '18':['l2-3-5'], '19':['l6-1-1','l6-1-2'],
+    'DAY':['l5-1-2'], 'SWING':['l5-1-2'], 'POS':['l5-1-2'], '21':['l6-1-5'], '22':['l6-2-1'], '23':['l6-1-4'],
+    '24':['l7-3-1'], '24B':['l7-3-1'], '25':['l7-3-4']
+  };
+  function carryOldEdu(){
+    let old = null;
+    try { old = JSON.parse(localStorage.getItem('tv_edu_progress') || 'null'); } catch(e){}
+    if(!old || typeof old !== 'object') return;
+    let added = 0;
+    Object.keys(old).forEach(k => {
+      if(!old[k]) return;
+      (OLD_EDU[k.replace(/^lesson-/, '')] || []).forEach(lid => { if(!P.done[lid]){ P.done[lid] = Date.now(); added++; } });
+    });
+    if(added){ if(!P.started) P.started = new Date().toISOString(); save(); }
+  }
+  carryOldEdu();
+
   const modDone   = m => m.lessons.filter(l => P.done[l.id]).length;
   const earned    = m => !!(P.quiz[m.id] && P.quiz[m.id].passed);              // passed the quiz
   const exempt    = m => !earned(m) && !!P.placed && m.level.num < P.placed.level; // placed out by the placement test
@@ -324,7 +350,7 @@ window.BMU = (function(){
   function reset(){
     const b = document.getElementById('uni-reset');
     if(!resetArmed){ resetArmed = true; if(b){ b.textContent = 'Tap again to erase all progress'; b.classList.add('armed'); } setTimeout(() => { resetArmed = false; if(b){ b.textContent = 'Reset progress'; b.classList.remove('armed'); } }, 4000); return; }
-    resetArmed = false; P = { v:1, done:{}, quiz:{}, last:null, certs:{}, started:null }; save(); home();
+    resetArmed = false; P = { v:1, done:{}, quiz:{}, last:null, certs:{}, started:null }; try { localStorage.removeItem('tv_edu_progress'); } catch(e){} save(); home();
   }
 
   function applyPlacement(level){
@@ -460,7 +486,7 @@ window.BMU = (function(){
   }`;
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
 
-  return { reload: () => { P = load(); }, home, module, lesson, complete, quiz, answer, nextQ, cert, reset, locked, onShow, applyPlacement, _p:() => P, isUnlocked: mid => { const m = MODULES.find(x => x.id === mid); return !!m && unlocked(m); }, MODULES, LEVELS, TOTAL };
+  return { reload: () => { P = load(); carryOldEdu(); }, home, module, lesson, complete, quiz, answer, nextQ, cert, reset, locked, onShow, applyPlacement, _p:() => P, isUnlocked: mid => { const m = MODULES.find(x => x.id === mid); return !!m && unlocked(m); }, MODULES, LEVELS, TOTAL };
 })();
 
 // Render the degree as soon as the page exists

@@ -15,6 +15,7 @@ PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_builder.py . tests 
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_coach.py . tests [shots_dir]
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_save.py . tests
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_css.py . tests
+PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_old_edu.py . tests   # old Education ticks carry over
 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/crawl_all.py . tests   # deep tap-through, prints PROBLEMS: 0
 ```
 
