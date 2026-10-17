@@ -185,6 +185,9 @@ can copy a Blue Mac style to tweak). Order: 1 ✅ toolbox → 2 ✅ builder UI (
 Why: 16 Oct usage check — 9 members, 0 AI ideas, uTrade drop-off before Generate. Personalised ideas = flag for the FSCA/FAIS check.
 
 ## Next up
+- **Open decision (Brahm, 17 Oct): kill-zone times + overseas members.** The University lesson "ICT Killzones (SAST)" uses ICT's definition
+  (London ≈ 08:00–11:00 SAST in summer); the engine / Pre-Flight / practice use London 08:00–11:00 *London* time (= 09:00–12:00 SAST in summer).
+  Brahm wants to support overseas members too, so time display (SAST vs the member's own zone) gets decided later — leave both as they are for now.
 - Brahm to test the new Blue Mac Key + Key Range layers on the `revamp` preview (phone first) and give feedback.
 - Agreed later list (15 Oct review): let members use it 4–6 weeks and log everything → FSCA/FAIS compliance check
   before charging (specific entries/SL/TP may count as advice) → PayFast → password reset (✅ done early) → University progress to
