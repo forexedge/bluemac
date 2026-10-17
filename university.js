@@ -486,7 +486,13 @@ window.BMU = (function(){
   }`;
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
 
-  return { reload: () => { P = load(); carryOldEdu(); }, home, module, lesson, complete, quiz, answer, nextQ, cert, reset, locked, onShow, applyPlacement, _p:() => P, isUnlocked: mid => { const m = MODULES.find(x => x.id === mid); return !!m && unlocked(m); }, MODULES, LEVELS, TOTAL };
+  // one lesson for other modules (Daily Drill in preflight.js): read-only, never changes progress
+  function card(lid){
+    for(const m of MODULES){ const l = m.lessons.find(x => x.id === lid);
+      if(l) return { mid:m.id, lid, level:m.level.num, color:m.level.color, mcode:m.code, mtitle:m.title, title:lessonTitle(l), icon:l.icon || m.icon, tag:l.tag || '', html:lessonBody(l), quiz:m.quiz || [] }; }
+    return null;
+  }
+  return { card, reload: () => { P = load(); carryOldEdu(); }, home, module, lesson, complete, quiz, answer, nextQ, cert, reset, locked, onShow, applyPlacement, _p:() => P, isUnlocked: mid => { const m = MODULES.find(x => x.id === mid); return !!m && unlocked(m); }, MODULES, LEVELS, TOTAL };
 })();
 
 // Render the degree as soon as the page exists
