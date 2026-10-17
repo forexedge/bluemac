@@ -3,7 +3,7 @@
 // Personal trade ideas, step 3 (16 Oct 2026).
 //
 // Members build up to 3 strategies of their own from the toolbox (quick.js):
-//   Start from (blank / my DNA / a Blue Mac style) → Direction → Location → Trigger
+//   Start from (blank / a Blue Mac style) → Direction → Location → Trigger
 //   → Extras + my own rules → Name & rules (entry chart, markets, sessions, stricter R:R)
 // Each saved strategy shows on uTrade Ideas as a "My strategies" tab and runs on
 // the same uTrade engine (BMQ.build(strategy, id)) — grades, prices, risk rules, AI.
@@ -67,16 +67,13 @@ window.BMB = (function(){
     document.body.style.overflow = ''; document.body.classList.remove('bmd-open'); st = null;
   }
   function blank(){
-    const d = window.BMD && BMD.get();
-    return { name:'', tfs: d && d.tfs && d.tfs.length ? d.tfs.slice() : ['15m'], instr: d ? (d.instr || []).slice() : [], sessions: d ? (d.sessions || []).slice() : [],
-             dir:[], loc:[], trig:[], extra:[], custom:[], rr:null, from:'blank' };
+    return { name:'', tfs:['15m'], instr:[], sessions:[], dir:[], loc:[], trig:[], extra:[], custom:[], rr:null, from:'blank' };
   }
 
   // ── Start from ──
   function start(kind, style){
     const keep = { tfs: st.s.tfs, instr: st.s.instr, sessions: st.s.sessions };
-    if(kind === 'dna'){ const f = BMQ.fromDNA(); st.s = Object.assign(blank(), f, { name:'', from:'dna' }); }
-    else if(kind === 'style'){ const x = STARTERS[style]; st.s = Object.assign(blank(), JSON.parse(JSON.stringify(x)), { instr: keep.instr, from:'style:' + style }); delete st.s.label; }
+    if(kind === 'style'){ const x = STARTERS[style]; st.s = Object.assign(blank(), JSON.parse(JSON.stringify(x)), { instr: keep.instr, from:'style:' + style }); delete st.s.label; }
     else st.s = Object.assign(blank(), { from:'blank' });
     st.step = 1; draw();
   }
@@ -190,11 +187,9 @@ window.BMB = (function(){
   }
 
   function startHTML(){
-    const d = window.BMD && BMD.get();
     const styleBtn = k => `<button class="bmb-start sm" onclick="BMB.start('style','${k}')"><b>${STARTERS[k].label}</b><span>${STARTERS[k].tfs[0]} entries · ${STARTERS[k].dir.concat(STARTERS[k].loc).slice(0, 3).map(i => T[i].name).join(', ')}${STARTERS[k].loc.length + STARTERS[k].dir.length > 3 ? '…' : ''}</span></button>`;
     return `<div class="bmb-starts">
-        ${d ? `<button class="bmb-start hero" onclick="BMB.start('dna')"><i>🧬</i><b>Start from my Trading DNA</b><span>${esc((d.concepts || []).length)} concepts you picked · ${esc((d.tfs || []).join(' / '))} entries — tweak from there</span></button>` : ''}
-        <button class="bmb-start${d ? '' : ' hero'}" onclick="BMB.start('blank')"><i>✏️</i><b>Start blank</b><span>Pick every tool yourself</span></button>
+        <button class="bmb-start hero" onclick="BMB.start('blank')"><i>✏️</i><b>Start blank</b><span>Pick every tool yourself</span></button>
       </div>
       <div class="bmd-group">Or copy a Blue Mac style and make it yours</div>
       <div class="bmb-starts grid">${Object.keys(STARTERS).map(styleBtn).join('')}</div>
@@ -265,7 +260,7 @@ window.BMB = (function(){
   // "My strategies" row on uTrade Ideas
   // ══════════════════════════════════════════════════════
   function paint(){
-    const anchor = document.getElementById('bm-dna') || document.getElementById('guided-toggle-bar'); if(!anchor) return;
+    const anchor = document.getElementById('guided-toggle-bar'); if(!anchor) return;
     let el = document.getElementById('bm-mystrats');
     if(!el){ el = document.createElement('div'); el.id = 'bm-mystrats'; anchor.parentNode.insertBefore(el, anchor); }
     const l = list(), cur = curStyle();
@@ -287,6 +282,56 @@ window.BMB = (function(){
   // ── Styles ──
   const css = document.createElement('style');
   css.textContent = `
+/* full-screen panel, tool cards, chips (bmd-* names kept from the retired picker that first used them) */
+.bmd-cta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 12px;padding:16px 18px;border-radius:16px;border:1px solid rgba(42,143,227,0.4);background:linear-gradient(135deg,rgba(42,143,227,0.12),rgba(34,214,122,0.04))}
+.bmd-sum-r i{font-style:normal;white-space:nowrap;font-size:11.5px;padding:3px 9px;border-radius:20px;background:var(--bg4);border:1px solid var(--border);color:var(--text2)}
+.bmd-ov{position:fixed;inset:0;z-index:8990;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px}
+.bmd-ov.on{display:flex}
+body.bmd-open #bmt-help{display:none!important}
+.bmd-box{width:100%;max-width:760px;max-height:92vh;display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border2);border-radius:18px;overflow:hidden;animation:rise .25s ease both}
+.bmd-head{display:flex;justify-content:space-between;gap:12px;padding:18px 20px 10px}
+.bmd-kicker{font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);font-weight:700}
+.bmd-title{font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:var(--text);margin-top:3px}
+.bmd-sub{font-size:13px;color:var(--text2);margin-top:4px;line-height:1.5}
+.bmd-x{flex-shrink:0;width:34px;height:34px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:15px;cursor:pointer}
+.bmd-body{overflow-y:auto;padding:4px 20px 16px;flex:1;-webkit-overflow-scrolling:touch}
+.bmd-group{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin:12px 0 8px}
+.bmd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bmd-card{position:relative;text-align:left;border:1px solid var(--border2);background:var(--bg4);border-radius:14px;padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:5px;transition:border-color .15s,background .15s;outline:none}
+.bmd-card:focus-visible,.bmd-chip:focus-visible{box-shadow:0 0 0 2px var(--blue)}
+.bmd-card.on{border-color:var(--blue);background:rgba(42,143,227,0.1);box-shadow:0 0 0 1px var(--blue)}
+.bmd-card.off,.bmd-chip.off{opacity:.45}
+.bmd-tick{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:6px;border:1.5px solid var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#050505;z-index:1}
+.bmd-card.on .bmd-tick{background:var(--blue);border-color:var(--blue)}
+.bmd-dg{border-radius:9px;background:rgba(0,0,0,0.35);padding:3px;display:flex;justify-content:center;max-height:96px;overflow:hidden;cursor:zoom-in}
+.bmd-dg svg{max-width:100%!important;max-height:90px;height:auto}
+.bmd-name{font-weight:700;font-size:13.5px;color:var(--text);line-height:1.3;padding-right:24px}
+.bmd-line{font-size:11.5px;color:var(--text2);line-height:1.45}
+.bmd-chips{display:flex;flex-wrap:wrap;gap:8px}
+.bmd-chip{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:9px 14px;border-radius:12px;border:1px solid var(--border2);background:var(--bg4);color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;min-width:96px}
+.bmd-chip b{font-size:13.5px}
+.bmd-chip span{font-size:11px;color:var(--text3)}
+.bmd-chip.on{border-color:var(--blue);background:rgba(42,143,227,0.12);box-shadow:0 0 0 1px var(--blue)}
+.bmd-chip.on span{color:var(--text2)}
+.bmd-note{margin-top:12px;font-size:12px;color:var(--text3);line-height:1.5}
+.bmd-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 20px;border-top:1px solid var(--border);background:var(--bg3)}
+.bmd-foot .ut-next[disabled]{background:var(--bg4);color:var(--text3);border-color:var(--border);box-shadow:none;cursor:not-allowed}
+.bmd-sum-r{display:flex;gap:10px;align-items:flex-start}
+.bmd-sum-r>span{width:86px;flex-shrink:0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding-top:5px}
+.bmd-sum-r>div{display:flex;flex-wrap:wrap;gap:5px}
+@media (max-width:640px){
+  .bmd-ov{padding:0;align-items:stretch}
+  .bmd-box{max-width:none;max-height:none;height:100%;border-radius:0;border:none}
+  .bmd-head{padding:14px 16px 8px}
+  .bmd-title{font-size:19px}
+  .bmd-body{padding-left:16px;padding-right:16px}
+  .bmd-grid{grid-template-columns:1fr 1fr}
+  .bmd-dg{max-height:78px}
+  .bmd-dg svg{max-height:72px}
+  .bmd-foot{padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+  .bmd-cta .ut-next{flex:1 1 100%;width:100%}
+}
+/* builder */
 .bmb-cta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 12px;padding:16px 18px;border-radius:16px;border:1px solid rgba(34,214,122,0.35);background:linear-gradient(135deg,rgba(34,214,122,0.1),rgba(42,143,227,0.06))}
 .bmb-cta-i{font-size:28px}
 .bmb-cta-t{flex:1;min-width:200px;display:flex;flex-direction:column;gap:3px}
@@ -341,8 +386,6 @@ window.BMB = (function(){
 .bmb-meter b{color:var(--text);font-size:13px}
 .bmb-del{color:var(--bear);border-color:rgba(255,92,92,0.35)}.bmb-del.sure{background:rgba(255,92,92,0.15)}
 .bmb-foot .ut-next,.bmb-foot .ut-back{white-space:nowrap}
-/* the builder replaces the DNA invitation; members who already have a DNA keep their slim bar */
-#bm-dna.bmd-cta{display:none}
 .bmb-foot .ut-next[disabled]{background:var(--bg4);color:var(--text3);border-color:var(--border);box-shadow:none;cursor:not-allowed}
 @media (max-width:640px){
   .bmb-tabs{grid-template-columns:1fr}

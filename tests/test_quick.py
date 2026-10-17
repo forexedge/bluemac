@@ -1,6 +1,6 @@
 # Strategy toolbox + personal uTrade Ideas (quick.js).
 # Walks EVERY tool in EVERY layer: diagrams on every option, scoring, gates, engine prices
-# and the Blue Mac risk rules; DNA starter strategies; own rules; stricter R:R; banned words.
+# and the Blue Mac risk rules; own rules; stricter R:R; banned words.
 #   PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers python3 tests/test_quick.py . tests [shots_dir]
 import json, sys, threading, functools, http.server, socketserver, os
 from playwright.sync_api import sync_playwright
@@ -164,11 +164,8 @@ with sync_playwright() as pw:
     check('F Key Range: no "ORB" / "opening range" in questions or AI prompt', 'opening range' not in txt + pr and 'orb' not in words)
     check('F no location tools → no zone question', 'zone' not in r['questions'])
 
-    # ── G. DNA starter strategies ──
-    p.evaluate("() => localStorage.setItem('bm_dna_v1', JSON.stringify({v:1, concepts:['ob','fvg','sweep','patterns','candles'], instr:['XAUUSD'], sessions:['london'], tfs:['15m']}))")
-    st = p.evaluate("() => BMQ.fromDNA()")
-    check('G DNA → starter strategy (OB, FVG, patterns, candles-first trigger, sweep)', st['loc'] == ['ob','fvg','pat_double','pat_hs'] and st['trig'][0] == 'engulf' and 'sweep' in st['extra'])
-    r = walk(p, None); check('G build() with no strategy uses the DNA', 'x_sweep' in r['questions'] and r['grade'] == 'A+')
+    # ── G. No strategy passed → safe minimal strategy (structure + default trigger), never a crash ──
+    r = walk(p, None); check('G build() with no strategy falls back to a safe minimum', 'dir_structure' in r['questions'] and 'trigger' in r['questions'] and r['grade'] in ('A+', 'A', 'B'))
 
     # ── H. Bad input is cleaned, never crashes ──
     s = p.evaluate("() => BMQ.clean({ dir:['nope','ob'], loc:['structure','fvg','fvg'], trig:[], extra:['rsi_div'], tfs:['3m'], custom:[{t:''},{t:'x'.repeat(300), must:1}] })")

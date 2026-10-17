@@ -64,10 +64,8 @@ with sync_playwright() as pw:
         check(L('"Build your own strategy" card shows'), p.evaluate("() => document.getElementById('bm-mystrats')?.className") == 'bmb-cta')
         p.locator('#bm-mystrats').scroll_into_view_if_needed(); shot(p, f'{label}-b0-cta.png')
 
-        # DNA set → "start from my DNA" offered
-        p.evaluate("() => localStorage.setItem('bm_dna_v1', JSON.stringify({v:1, concepts:['ob','fvg','sweep'], instr:['XAUUSD'], sessions:['london'], tfs:['15m']}))")
         p.click('#bm-mystrats .ut-next'); p.wait_for_timeout(200)
-        check(L('builder opens on "Start from"'), p.is_visible('#bmb-ov.on') and 'Trading DNA' in p.inner_text('#bmb-ov'))
+        check(L('builder opens on "Start from": blank or copy one of the 5 Blue Mac styles (no DNA option)'), p.is_visible('#bmb-ov.on') and 'Start blank' in p.inner_text('#bmb-ov') and p.evaluate("() => document.querySelectorAll('.bmb-start.sm').length") == 5 and 'DNA' not in p.inner_text('#bmb-ov'))
         shot(p, f'{label}-b1-start.png')
         p.click("button.bmb-start:has-text('Start blank')"); p.wait_for_timeout(200)
 

@@ -16,7 +16,6 @@
 //   strategy = { name, tfs:['15m'], dir:[…], loc:[…], trig:[…], extra:[…],
 //                custom:[{ t:'price above the Asian high', must:true }], rr:[2,3]|null, sessions:[…] }
 //   BMQ.TOOLS            the toolbox (id → { name, line, group, layer, kind, pic })
-//   BMQ.fromDNA(dna)     a starter strategy from My Trading DNA (dna.js)
 //   BMQ.build(s, key)    register the strategy with UT under `key` (default 'quick')
 //   BMQ.plan(s)          { questions, entryTF, biasTF, minRR } — previews / tests
 //   BMQ.pic(toolId)      the tool's diagram (for the builder)
@@ -440,7 +439,7 @@ window.BMQ = (function(){
   // ── Build: strategy → uTrade definition ──
   function build(strategy, key){
     key = key || 'quick';
-    S = clean(strategy || fromDNA());
+    S = clean(strategy);
     // the FIRST direction tool decides; extra ones confirm — they can warn, never hard-block on their own
     const dirQs = S.dir.map((id, i) => { const q = Object.assign({ id:'dir_' + id, stage:1, type:'single', bias:true, tf: A => btf(A) }, T[id].q());
       if(i > 0) q.options = q.options.map(o => o.gate === 'block' ? Object.assign({}, o, { gate:undefined, why:undefined, pts:0, warn:`${q.short}: ${o.l} — no direction from this tool` }) : o);
@@ -506,20 +505,9 @@ If chart screenshots are attached, use them to sharpen the signal, wait conditio
       }
     };
     UT.register(key, def); LAST = def;
-    try { STYLES[key] = { name: sName, icon:'🧬', color:'var(--blue)', ctxDesc: S.name ? 'Your own strategy' : 'Built from your Trading DNA',
+    try { STYLES[key] = { name: sName, icon:'🧬', color:'var(--blue)', ctxDesc:'Your own strategy',
       get pills(){ const m = minRR(); return [{ t:`${btf()} bias · ${etf()} entry`, c:'var(--blue)' }, { t:'Your tools only', c:'var(--text2)' }, { t:`TP1 ≥ 1:${m[0]} · TP2 ≥ 1:${m[1]}`, c:'var(--bull)' }]; } }; } catch(e){}
     return def;
-  }
-
-  // ── My Trading DNA → a starter strategy ──
-  function fromDNA(d){
-    d = Object.assign({ concepts:[], instr:[], sessions:[], tfs:[] }, d || (window.BMD && BMD.get()) || {});
-    const has = c => d.concepts.includes(c);
-    const loc = ['ob', 'fvg', 'sr', 'fib'].filter(has).concat(has('patterns') ? ['pat_double', 'pat_hs'] : []);
-    const trig = has('candles') && !has('structure') ? ['engulf', 'pin', 'choch'] : has('candles') ? ['choch', 'engulf', 'pin'] : ['choch', 'engulf'];
-    const extra = [].concat(has('keyrange') ? ['keyrange'] : [], has('sweep') ? ['sweep'] : [], has('structure') ? ['bos'] : [], has('pd') ? ['pd'] : [],
-                            has('rsi') ? ['rsi_div'] : [], has('vwap') ? ['vwap'] : [], has('rsi') || has('vwap') ? ['round'] : []);
-    return { name:'', tfs:d.tfs, instr:d.instr, sessions:d.sessions, dir:['structure'].concat(has('ma') ? ['ma'] : []), loc, trig, extra, custom:[] };
   }
 
   function plan(s){ const def = build(s); return { questions: def.questions.map(q => q.short), entryTF: etf(), biasTF: btf(), minRR: def.minRR }; }
@@ -532,5 +520,5 @@ If chart screenshots are attached, use them to sharpen the signal, wait conditio
   // the builder's picture for a tool
   function pic(id){ const t = T[id]; if(!t) return ''; try { return typeof t.pic === 'string' ? D.ref(t.pic) : t.pic && t.pic.dg ? D.chart(DG[t.pic.dg], 1) : t.pic && t.pic.fn ? t.pic.fn() : ''; } catch(e){ return ''; } }
 
-  return { TOOLS: T, build, fromDNA, plan, preview, pic, clean, current: () => LAST, RR_OF, BIAS_OF };
+  return { TOOLS: T, build, plan, preview, pic, clean, current: () => LAST, RR_OF, BIAS_OF };
 })();
