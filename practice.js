@@ -161,27 +161,127 @@ window.BMPR = (function(){
           req:['price', 'swing_hi', 'swing_lo', 'zone_hi', 'zone_lo', 'pdh'],
           ok:'Spot on. These are the only numbers Blue Mac needs — it builds the entries, stop and targets from them.' }
       ],
-      learnt:['Answer from what the chart shows — not what you hope', 'Daily trend decides LONG or SHORT', 'Wait for the pullback into a zone, then a 15m trigger', 'Blue Mac sets the prices — you just read the chart']
+      learnt:['Answer from what the chart shows — not what you hope', 'Daily trend decides LONG or SHORT', 'Wait for the pullback into a zone, then a 15m trigger', 'Blue Mac sets the prices — you just read the chart'],
+      name:'Gold',
+      coach: p => ({
+        e1:`A <b>buy limit</b> at the top of the golden pocket. Price is at 4206.50, so you wait for it to come back down to you.`,
+        e2:'Your second, cheaper buy — half the size. Blue Mac always keeps it <b>inside</b> the stop.',
+        sl:'Below the swing low the whole move started from. If price gets there, the idea is simply wrong — out, no arguing.',
+        tp1:`1:${p.rr1} after the spread. The swing high (4262) was too close to pay 1:2, so Blue Mac moved TP1 to the next real level.`,
+        tp2:`1:${p.rr2}. Take half off at TP1, move the stop to breakeven, and let this part run — closed before the NY close.` })
+    };
+  })();
+
+  // ════════════════════════════════════════════════════
+  // RUN 2 — "Spot the trap": EURUSD daily downtrend, every lower timeframe says BUY
+  // The right answers are all honest bullish readings → the engine says WAIT.
+  // ════════════════════════════════════════════════════
+  const R2 = (function(){
+    const D1 = { n:60, seed:21, noise:0.0011, wick:1.0,
+      pts:[[0,1.1180],[8,1.1060],[12,1.1125],[22,1.0960],[27,1.1022],[38,1.0860],[44,1.1000],[54,1.0700,0.0013],[59,1.0880]],
+      fix:{ 44:{ h:1.1004 }, 54:{ l:1.0698 }, 59:{ c:1.0880 } } };
+    const H4 = { n:80, seed:8, noise:0.0006, wick:1.0,
+      pts:[[0,1.0990],[12,1.0880],[18,1.0925],[30,1.0700,0.0007],[40,1.0790],[46,1.0752],[58,1.0852],[64,1.0816],[72,1.0896],[79,1.0880]],
+      fix:{ 30:{ l:1.0698 }, 79:{ c:1.0880 } } };
+    const H1 = { n:56, seed:14, noise:0.00028, wick:0.9,
+      pts:[[0,1.0816],[10,1.0850],[16,1.0838],[22,1.0869],[26,1.0862],[34,1.0896],[44,1.0874],[50,1.0865],[55,1.0880]],
+      fix:{ 26:{ o:1.0870, c:1.0861, h:1.0871, l:1.0858 }, 27:{ o:1.0861, c:1.0874 }, 55:{ c:1.0880 } } };
+    const M15 = { n:48, seed:6, noise:0.00014, wick:0.9,
+      pts:[[0,1.0890],[10,1.0876],[14,1.0882],[22,1.0866],[27,1.0873],[31,1.0864,0.0001],[38,1.0884],[47,1.0880]],
+      fix:{ 31:{ l:1.0862 }, 47:{ c:1.0880 } } };
+    const OB = { l:1.0858, h:1.0871 };
+
+    const d1Base = chart(D1);
+    const d1Struct = chart(with_(D1, { marks:[
+      { t:'text', i:12, p:1.1150, s:'LH', c:'bear' }, { t:'text', i:22, p:1.0935, s:'LL', c:'bear' },
+      { t:'text', i:27, p:1.1047, s:'LH', c:'bear' }, { t:'text', i:38, p:1.0835, s:'LL', c:'bear' },
+      { t:'text', i:44, p:1.1028, s:'LH', c:'bear' }, { t:'text', i:54, p:1.0674, s:'LL', c:'bear' }] }));
+    const pdLines = [{ t:'hline', i1:44, p:1.1000, l:'100%', c:'slate' }, { t:'hline', i1:44, p:1.0850, l:'50%', c:'silver', dash:'' }, { t:'hline', i1:44, p:1.0700, l:'0%', c:'slate' }];
+    const d1Pd = chart(with_(D1, { marks: pdLines }));
+    const d1PdR = chart(with_(D1, { marks: pdLines.concat([{ t:'dot', i:59, p:1.0880, c:'bear' }]),
+      boxes:[{ i1:44, i2:59, p1:1.0850, p2:1.1000, c:'bear', op:0.13, l:'PREMIUM' }, { i1:44, i2:59, p1:1.0700, p2:1.0850, c:'bull', op:0.07, l:'DISCOUNT', lt:'below' }] }));
+    const h4Base = chart(H4);
+    const h4R = chart(with_(H4, { marks:[{ t:'hline', i1:40, i2:60, p:1.0790, c:'bull', l:'BOS ↑', lr:false }, { t:'hline', i1:58, i2:76, p:1.0852, c:'bull', l:'BOS ↑', lr:false },
+      { t:'text', i:30, p:1.0682, s:'LOW', c:'slate' }] }));
+    const obBox = { i1:26, i2:55, p1:OB.l, p2:OB.h, c:'bull', op:0.16, border:true, l:'BULLISH OB', lt:'below' };
+    const h1Zone = chart(with_(H1, { boxes:[obBox] }));
+    const m15 = chart(with_(M15, { boxes:[{ i1:20, i2:47, p1:OB.l, p2:OB.h, c:'bull', op:0.13, l:'H1 OB', lt:'below' }] }));
+    const m15R = chart(with_(M15, { boxes:[{ i1:20, i2:47, p1:OB.l, p2:OB.h, c:'bull', op:0.13, l:'H1 OB', lt:'below' }],
+      marks:[{ t:'hline', i1:27, i2:42, p:1.0873, c:'bull', l:'CHoCH ↑', lr:false }] }));
+    const bigPic = chart(with_(D1, { boxes:[{ i1:44, i2:59, p1:1.0850, p2:1.1000, c:'bear', op:0.12, l:'PREMIUM' }],
+      marks:[{ t:'arrow', pts:[[2,1.1235],[53,1.0735]], c:'bear' }, { t:'text', i:30, p:1.1080, s:'THE TREND ↓', c:'bear' },
+             { t:'arrow', pts:[[55,1.0700],[59,1.0868]], c:'bull' }, { t:'text', i:52, p:1.0905, s:'BOUNCE ↑', c:'bull' }] }));
+
+    return {
+      id:'r2', n:2, title:'Spot the trap', style:'day', instrument:'EURUSD', name:'EURUSD',
+      blurb:'EURUSD · every lower timeframe says BUY · can you spot the trap?',
+      brief:`It's <b>Wednesday, 10:15 London time</b>. You're looking at <b>EURUSD</b> for a Day Trade.
+        The safety checks are already done for you: <b>London is open, no red news, first trade of the day</b>.
+        The lower timeframes look <b>amazing</b>. Read each chart honestly — then make the call.`,
+      pre:{ session:'london', news:'clear', discipline:'fresh' },
+      resultTitle:'What Blue Mac says', endBtn:'See what Blue Mac says →',
+      steps:[
+        { q:'d1_structure', pic:d1Base, picR:d1Struct, cap:'Practice chart · EURUSD · Daily', ans:'down',
+          ok:'Each swing high is <b>lower</b> than the last, and each low too. <b>LH + LL = downtrend</b> → today Blue Mac only looks for SHORTS. Remember that.',
+          no:{ up:'Follow the highs from left to right — they keep stepping <b>down</b>. The last bounce is just that, a bounce.',
+               choch_up:'A bullish CHoCH needs price to break the last <b>lower high</b> (1.1000). The bounce stalled well below it.',
+               choch_dn:'A bearish CHoCH turns an <b>uptrend</b> down. This chart has been falling for months.', range:'The candles step down clearly — no sideways box.' },
+          hint:'Follow the swing highs from left to right. Higher or lower each time?' },
+        { q:'d1_pd', pic:d1Pd, picR:d1PdR, cap:'Fib from the last daily swing high (1.1000) to low (1.0700)', ans:'premium',
+          ok:'Price (1.0880) is <b>above the 50% line at 1.0850</b> — the expensive half. In a downtrend, premium is where <b>sellers</b> step in.',
+          no:{ discount:'Discount is <b>below</b> 50%. Price is at 1.0880, the 50% line is at 1.0850.', eq:'Close — but price is 30 pips above the 50% line. That is premium.' },
+          hint:'Is price above or below the 50% line?' },
+        { q:'h4_structure', pic:h4Base, picR:h4R, cap:'Practice chart · EURUSD · H4', ans:'bos_bull',
+          ok:'Honest answer: the H4 bounced from 1.0700 and <b>broke two highs on the way up</b>. Now notice — that is <b>against</b> your daily bias. Keep that in mind.',
+          no:{ bos_bear:'Look again — the H4 broke <b>up</b> (above 1.0790, then 1.0852). It hasn\'t broken down yet.',
+               running:'It broke up, then dipped back — it is pulling back, not running.', range:'It made clear higher highs — not a range.' },
+          hint:'Since the low at 1.0700, is the H4 making higher highs or lower lows?' },
+        { q:'zone', pic:h1Zone, picR:h1Zone, cap:'Practice chart · EURUSD · H1', ans:'ob_bull',
+          ok:'Yes — price is sitting in a textbook <b>bullish order block</b>. It looks great. That\'s what makes it a trap.',
+          no:{ ob_bear:'The box marks the last <b>down</b> candle before a move <b>up</b> — that is a bullish OB.', none:'Price is inside the shaded order block right now.',
+               other:'The chart shows a <b>bullish order block</b> — answer what you can see.' },
+          hint:'What is the shaded box, and which way did price leave it?' },
+        { q:'trigger', pic:m15, picR:m15R, cap:'15m · zoomed into the H1 order block', ans:'choch_bull',
+          ok:'A clean <b>bullish 15m CHoCH</b> out of the OB. On its own, a perfect long trigger.',
+          no:{ eng_bull:'It did more than engulf — it broke the last 15m lower high. That\'s a CHoCH.', none:'The lower high near 1.0873 has been broken — there is a signal.',
+               other:'The break was <b>up</b>, through a lower high.' },
+          hint:'Price made lower highs into the OB. Did one get broken?' },
+        { call:[
+            { v:'buy', l:'BUY now', sub:'H4 broke up, bullish OB, bullish CHoCH — 3 signals!' },
+            { v:'sell', l:'SELL now', sub:'The daily is a downtrend, so sell.' },
+            { v:'wait', l:'WAIT', sub:'Let the bounce finish, then look for a SHORT.' }],
+          callQ:'Your call. What do you do?', pic:bigPic, cap:'Zoom out · EURUSD · Daily', ans:'wait',
+          ok:'That\'s the pro move. Every bullish signal you saw lives <b>inside a bounce in a daily downtrend</b> — buying it means fighting the tide. Selling now is the right direction but the wrong time: the H4 is still going up. So you <b>wait</b>.',
+          no:{ buy:'That\'s the trap 🪤 Three bullish signals — but all of them are <b>inside a bounce in a daily downtrend</b>. The daily decides the direction. Longs here fight the tide.',
+               sell:'Right direction, wrong time. The H4 is still breaking <b>up</b> and you have no bearish zone or trigger yet. Selling into a rising H4 is guessing.' },
+          hint:'Zoom out. Which way is the big arrow — and where is price now?' }
+      ],
+      after:{ t:'What has to happen before you SELL', list:[
+        'The bounce reaches a <b>bearish</b> zone in daily premium — a bearish order block or the golden pocket of the down-leg',
+        'The <b>H4 breaks structure down</b> (bearish BOS)',
+        'A <b>bearish 15m CHoCH</b> out of that zone — then uTrade builds the SHORT' ] },
+      moral:'🪤 <b>The trap:</b> a perfect-looking setup on the small charts, against the big chart. Blue Mac caught it by itself: every bullish answer worked <b>against your daily bias</b>, so each one scored 0 and raised a ⏳ wait flag. No trade — exactly what you decided. Answer honestly and the engine protects you.',
+      learnt:['The daily chart decides the direction — always', 'Great-looking signals against the daily are traps', 'Right direction + wrong time = still no trade', 'Answer honestly — Blue Mac\'s gates protect you']
     };
   })();
 
   // runs 2–5 (coming soon — shown so members see the path)
   const SOON = [
-    { n:2, title:'Spot the trap', blurb:'A great-looking setup against the higher timeframe → Wait' },
     { n:3, title:'News day', blurb:'CPI in 20 minutes → No Trade, and why' },
     { n:4, title:'Kill zone scalp', blurb:'London sweep → CHoCH → entry, fast' },
     { n:5, title:'Your own strategy', blurb:'Build one, then practise it' }
   ];
-  const RUNS = { r1: R1 };
+  const RUNS = { r1: R1, r2: R2 }, ORDER = ['r1', 'r2'];
   const TOTAL = 5;
+  const nextRun = () => { const P = load(); const id = ORDER.find(k => !P.done[k]); return id ? RUNS[id] : null; };
 
   // ── State ──
   let st = null;   // { run, i, ans, lv, tries, fb, solved, slips }
-  const q = s => UT.def(st.run.style).questions.find(x => x.id === s.q);
+  const q = s => s.call ? { type:'single', q:s.callQ, options:s.call, stage:-1 } : UT.def(st.run.style).questions.find(x => x.id === s.q);
 
   function open(id){
     const run = RUNS[id || 'r1']; if(!run) return;
-    st = { run, i:-1, ans:{ instrument: run.instrument }, lv:{}, tries:0, fb:null, solved:false, slips:0, picks:[] };
+    st = { run, i:-1, ans:Object.assign({ instrument: run.instrument }, run.pre || {}), lv:{}, tries:0, fb:null, solved:false, slips:0, picks:[] };
     let ov = document.getElementById('bmpr-ov');
     if(!ov){ ov = document.createElement('div'); ov.id = 'bmpr-ov'; ov.className = 'bmd-ov'; document.body.appendChild(ov); }
     ov.classList.add('on'); document.body.style.overflow = 'hidden'; document.body.classList.add('bmd-open');
@@ -195,7 +295,7 @@ window.BMPR = (function(){
   // ── Answering ──
   function pick(v){
     const s = st.run.steps[st.i]; if(st.solved) return;
-    if(v === s.ans){ st.ans[s.q] = v; st.solved = true; st.fb = { ok:true, t:s.ok }; }
+    if(v === s.ans){ if(!s.call) st.ans[s.q] = v; st.solved = true; st.fb = { ok:true, t:s.ok }; }
     else {
       st.tries++; st.slips++;
       const o = q(s).options.find(x => x.v === v);
@@ -204,7 +304,7 @@ window.BMPR = (function(){
     }
     draw();
   }
-  function reveal(){ const s = st.run.steps[st.i]; st.ans[s.q] = s.ans; st.solved = true; st.fb = { ok:true, shown:true, t:s.ok }; draw(); }
+  function reveal(){ const s = st.run.steps[st.i]; if(!s.call) st.ans[s.q] = s.ans; st.solved = true; st.fb = { ok:true, shown:true, t:s.ok }; draw(); }
   function toggle(v){
     if(st.solved) return;
     const i = st.picks.indexOf(v); if(i >= 0) st.picks.splice(i, 1); else st.picks.push(v);
@@ -270,24 +370,25 @@ window.BMPR = (function(){
 
   function resultHTML(){
     const { ev, p } = result();
-    if(!p || p.error || ev.blocked){
+    if(ev.waiting || ev.blocked || ev.tooWeak) return waitHTML(ev);
+    if(!p || p.error){
       return `<div class="bmpr-fb no"><b>Something went off-script.</b> ${esc(p && p.error ? p.error : 'Blue Mac could not build this practice idea.')} Tap back and check your answers.</div>`;
     }
     const z = lots(p, ev.risk, PRACTICE_BAL), small = lots(p, ev.risk, 20000);
-    const gc = ev.grade === 'A+' || ev.grade === 'A' ? 'bull' : 'amber';
+    const gc = ev.grade === 'A+' || ev.grade === 'A' ? 'bull' : 'amber', cc = st.run.coach(p);
     const row = (k, lab, v, why, coach, cls) => `<div class="bmpr-pr ${cls || ''}"><span class="k">${k}</span><div><b>${lab} <em>${v}</em></b><small>${esc(why)}</small><p>${coach}</p></div></div>`;
     return `
       <div class="bmpr-grade ${gc}">
         <div class="g">${ev.grade || '—'}</div>
-        <div><b>${esc(ev.gradeLong)} · LONG Gold</b><span>Blue Mac score ${ev.score}/100 · risk ${+ev.risk.toFixed(2)}% of your account</span></div>
+        <div><b>${esc(ev.gradeLong)} · ${p.dir > 0 ? 'LONG' : 'SHORT'} ${esc(st.run.name)}</b><span>Blue Mac score ${ev.score}/100 · risk ${+ev.risk.toFixed(2)}% of your account</span></div>
       </div>
       <div class="bmpr-note">This is the <b>real Blue Mac engine</b> working on your practice answers — the same maths as a real idea.</div>
       <div class="bmpr-plan">
-        ${row('E1', 'Entry 1', p.fmt(p.e1), p.e1why, `A <b>buy limit</b> at the top of the golden pocket. Price is at 4206.50, so you wait for it to come back down to you.`)}
-        ${row('E2', 'Entry 2', p.fmt(p.e2), p.e2why, 'Your second, cheaper buy — half the size. Blue Mac always keeps it <b>inside</b> the stop.')}
-        ${row('SL', 'Stop loss', p.fmt(p.sl), p.slwhy, 'Below the swing low the whole move started from. If price gets there, the idea is simply wrong — out, no arguing.', 'sl')}
-        ${row('TP1', 'Target 1', p.fmt(p.tp1), p.note1, `1:${p.rr1} after the spread. The swing high (4262) was too close to pay 1:2, so Blue Mac moved TP1 to the next real level.`, 'tp')}
-        ${row('TP2', 'Target 2', p.fmt(p.tp2), p.note2, `1:${p.rr2}. Take half off at TP1, move the stop to breakeven, and let this part run — closed before the NY close.`, 'tp')}
+        ${row('E1', 'Entry 1', p.fmt(p.e1), p.e1why, cc.e1)}
+        ${row('E2', 'Entry 2', p.fmt(p.e2), p.e2why, cc.e2)}
+        ${row('SL', 'Stop loss', p.fmt(p.sl), p.slwhy, cc.sl, 'sl')}
+        ${row('TP1', 'Target 1', p.fmt(p.tp1), p.note1, cc.tp1, 'tp')}
+        ${row('TP2', 'Target 2', p.fmt(p.tp2), p.note2, cc.tp2, 'tp')}
       </div>
       <div class="bmpr-size">
         <div class="bmpr-scene-h">🧮 Lot size · practice account ${R(PRACTICE_BAL)}</div>
@@ -302,6 +403,22 @@ window.BMPR = (function(){
       <div class="bmpr-real"><div class="bmpr-scene-h">🚀 On a real idea you'd also get</div>
         <div>✍️ The AI's <b>signal, wait condition, invalidation and management notes</b> — that's what your 2 daily AI ideas are for.</div>
         <div>📒 <b>Take This Trade</b> → saved to your Journal, so you can mark it Win / Loss / BE later.</div></div>`;
+  }
+
+  // a run that should end in Wait / No Trade: show the engine's gates and what has to happen first
+  function waitHTML(ev){
+    const run = st.run, head = ev.blocked ? '🛑 No Trade' : ev.tooWeak ? '✕ Below Blue Mac standard' : '⏳ Watchlist — not a trade yet';
+    const sub = ev.blocked ? 'A hard rule is broken — Blue Mac never builds this idea, and the AI is never called.'
+      : ev.tooWeak ? `Score ${ev.score}/100 — Blue Mac needs 60+ before it builds any idea.${ev.waiting ? ' And the setup isn\'t ready either:' : ''}`
+      : 'The setup may come — but it is not confirmed. On the real screen you would get a Watchlist idea to MONITOR, not to enter.';
+    return `
+      <div class="bmpr-grade ${ev.blocked ? 'block' : 'amber'}"><div class="g">${ev.blocked ? '🛑' : ev.tooWeak ? '✕' : '⏳'}</div>
+        <div><b>${head}</b><span>${sub}</span></div></div>
+      <div class="bmpr-note">This is the <b>real Blue Mac engine</b> reading your practice answers.</div>
+      <div class="bmpr-warns"><div class="bmpr-scene-h">Why Blue Mac won't build this trade</div>
+        ${ev.gates.map(g => `<div class="bmpr-gate"><b>${g.type === 'block' ? '🛑' : '⏳'} ${esc(g.q)}: ${esc(g.l)}</b>${g.why ? `<span>${esc(g.why)}</span>` : ''}</div>`).join('')}</div>
+      ${run.after ? `<div class="bmpr-real"><div class="bmpr-scene-h">✅ ${esc(run.after.t)}</div>${run.after.list.map(x => `<div>• ${x}</div>`).join('')}</div>` : ''}
+      ${run.moral ? `<div class="bmpr-fb ok">${run.moral}</div>` : ''}`;
   }
 
   // ── Drawing ──
@@ -321,22 +438,24 @@ window.BMPR = (function(){
         <div class="bmpr-note">🆓 Practice never uses your 2 daily AI ideas. Nothing is saved to your journal.</div>`;
       foot = `<button class="ut-back" onclick="BMPR.close()">Not now</button><button class="ut-next" onclick="BMPR.next()">Start practice →</button>`;
     } else if(atResult){
-      kicker += ' · Your practice idea'; title = 'Here\'s what Blue Mac built';
+      kicker += ' · Your practice idea'; title = run.resultTitle || 'Here\'s what Blue Mac built';
       body = resultHTML();
       foot = `<button class="ut-back" onclick="BMPR.back()">← Back</button><button class="ut-next" onclick="BMPR.finish()">Finish run ${run.n} ✓</button>`;
     } else if(atDone){
-      const P = load(), doneN = Object.keys(P.done).length;
+      const P = load(), doneN = Object.keys(P.done).filter(k => RUNS[k]).length, nx = nextRun();
       kicker = 'uTrade Practice'; title = `Run ${run.n} complete 🎉`;
       body = `<div class="bmpr-done">
           <div class="bmpr-badge"><span>✅</span><div><b>uTrade Certified · ${doneN}/${TOTAL}</b><small>${st.slips ? `${st.slips} slip${st.slips > 1 ? 's' : ''} along the way — that's how you learn.` : 'Not a single slip. Sharp! 🔥'}</small></div></div>
           <div class="bmpr-scene-h">What you just practised</div>
           ${run.learnt.map(t => `<div class="bmpr-l">✓ ${esc(t)}</div>`).join('')}
           <div class="bmpr-scene-h" style="margin-top:14px;">Next practice runs</div>
+          ${ORDER.map(id => RUNS[id]).filter(r => !P.done[r.id]).map(r => `<div class="bmpr-soon ready"><b>Run ${r.n} · ${esc(r.title)}</b><span>${esc(r.blurb)}</span><i>Ready</i></div>`).join('')}
           ${SOON.map(s => `<div class="bmpr-soon"><b>Run ${s.n} · ${esc(s.title)}</b><span>${esc(s.blurb)}</span><i>Coming soon</i></div>`).join('')}
         </div>`;
-      foot = `<button class="ut-back" onclick="BMPR.close()">Close</button><button class="ut-next" onclick="BMPR.goReal()">Try a real Day Trade idea →</button>`;
+      foot = nx ? `<button class="ut-back" onclick="BMPR.goReal()">Try it for real</button><button class="ut-next" onclick="BMPR.open('${nx.id}')">Next: Run ${nx.n} →</button>`
+                : `<button class="ut-back" onclick="BMPR.close()">Close</button><button class="ut-next" onclick="BMPR.goReal()">Try a real ${esc(UT.def(run.style).short)} idea →</button>`;
     } else {
-      const s = steps[st.i], qq = q(s), sg = UT.def(run.style).stages[qq.stage] || { label:'' };
+      const s = steps[st.i], qq = q(s), sg = s.call ? { label:'🧠 Your call' } : (UT.def(run.style).stages[qq.stage] || { label:'' });
       kicker += ` · Question ${st.i + 1} of ${n}`; title = run.title;
       const pic = st.solved && s.picR ? s.picR : s.pic;
       const visual = s.scene ? s.scene : `<div class="bmpr-pic">${pic}<div class="bmpr-cap">${esc(s.cap || '')}</div></div>`;
@@ -354,7 +473,7 @@ window.BMPR = (function(){
         ${ansHTML}`;
       const showMe = !st.solved && st.tries >= 2 && qq.type !== 'levels' ? `<button class="ut-back" onclick="BMPR.reveal()">Show me</button>` : '';
       let main;
-      if(st.solved) main = `<button class="ut-next" onclick="BMPR.next()">${st.i === n - 1 ? 'Build my practice idea →' : 'Next →'}</button>`;
+      if(st.solved) main = `<button class="ut-next" onclick="BMPR.next()">${st.i === n - 1 ? (run.endBtn || 'Build my practice idea →') : 'Next →'}</button>`;
       else if(qq.type === 'multi') main = `<button class="ut-next" onclick="BMPR.check()">Check →</button>`;
       else if(qq.type === 'levels') main = `${st.tries ? `<button class="ut-back" onclick="BMPR.checkLevels(true)">Fill them in for me</button>` : ''}<button class="ut-next" onclick="BMPR.checkLevels()">Check my prices →</button>`;
       else main = '<span class="bmpr-tap">Tap your answer</span>';
@@ -419,21 +538,24 @@ window.BMPR = (function(){
 
   // ── Entry points: uTrade Ideas (above My strategies) + Education home ──
   function cardHTML(where){
-    const P = load(), d = Object.keys(P.done).length;
+    const P = load(), d = Object.keys(P.done).filter(k => RUNS[k]).length, nx = nextRun();
+    if(d && nx) return `<div class="bmpr-cta-i">🎯</div>
+      <div class="bmpr-cta-t"><b>uTrade Certified · ${d}/${TOTAL} · next: Run ${nx.n}</b><span>${esc(nx.title)} — ${esc(nx.blurb)}.</span></div>
+      <button class="ut-next" onclick="BMPR.open('${nx.id}')">Start Run ${nx.n} →</button>`;
     if(!d) return `<div class="bmpr-cta-i">🎯</div>
       <div class="bmpr-cta-t"><b>New to uTrade? Practise first</b><span>${where === 'uni' ? 'Start here: ' : ''}answer the real questions on a safe practice chart. Instant feedback, a real price plan at the end — and it doesn't use your 2 daily AI ideas.</span></div>
       <button class="ut-next" onclick="BMPR.open('r1')">Start practice →</button>`;
     return `<div class="bmpr-cta-i">✅</div>
-      <div class="bmpr-cta-t"><b>uTrade Certified · ${d}/${TOTAL}</b><span>Run ${d} done. Runs ${d + 1}–${TOTAL} are coming soon. Practise again any time.</span></div>
-      <button class="ut-back" onclick="BMPR.open('r1')">Practise again</button>`;
+      <div class="bmpr-cta-t"><b>uTrade Certified · ${d}/${TOTAL}</b><span>${d < TOTAL ? `Runs ${d + 1}–${TOTAL} are coming soon. ` : ''}Practise again any time.</span></div>
+      <button class="ut-back" onclick="BMPR.open('${ORDER[0]}')">Practise again</button>`;
   }
   function paint(){
-    const P = load(), d = Object.keys(P.done).length;
+    const P = load(), d = Object.keys(P.done).filter(k => RUNS[k]).length, nx = nextRun();
     const anchor = document.getElementById('guided-toggle-bar');
     if(anchor){
       let el = document.getElementById('bmpr-ut');
       if(!el){ el = document.createElement('div'); el.id = 'bmpr-ut'; anchor.parentNode.insertBefore(el, document.getElementById('bm-mystrats') || anchor); }
-      el.className = 'bmpr-cta' + (d ? ' done' : '');
+      el.className = 'bmpr-cta' + (d && !nx ? ' done' : '');
       el.innerHTML = cardHTML('ut');
     }
     paintUni();
@@ -444,8 +566,8 @@ window.BMPR = (function(){
     let el = document.getElementById('bmpr-uni');
     if(!home){ if(el) el.remove(); return; }
     if(!el){ el = document.createElement('div'); el.id = 'bmpr-uni'; root.insertBefore(el, root.firstChild); }
-    const P = load(), d = Object.keys(P.done).length;
-    el.className = 'bmpr-cta' + (d ? ' done' : '');
+    const P = load(), d = Object.keys(P.done).filter(k => RUNS[k]).length;
+    el.className = 'bmpr-cta' + (d && !nextRun() ? ' done' : '');
     el.innerHTML = `<div class="bmpr-start">START HERE</div>` + cardHTML('uni');
   }
   function watchUni(){
@@ -514,6 +636,13 @@ window.BMPR = (function(){
 .bmpr-pr p{margin:4px 0 0;font-size:12.5px;color:var(--text2);line-height:1.5}
 .bmpr-warns div,.bmpr-real div{font-size:12.5px;color:var(--text2);line-height:1.5}
 .bmpr-done{display:flex;flex-direction:column;gap:8px}
+.bmpr-gate{display:flex;flex-direction:column;gap:2px;padding:6px 0;border-bottom:1px dashed var(--border)}
+.bmpr-gate:last-child{border-bottom:0}
+.bmpr-gate b{font-size:13px;color:var(--text)}.bmpr-gate span{font-size:12.5px;color:var(--text2);line-height:1.5}
+.bmpr-grade.block{border-color:rgba(255,92,92,0.45);background:rgba(255,92,92,0.07)}
+.bmpr-grade.amber .g,.bmpr-grade.block .g{font-size:28px}
+.bmpr-soon.ready{opacity:1;border-style:solid;border-color:rgba(42,143,227,0.45)}
+.bmpr-soon.ready i{color:var(--blue)}
 .bmpr-badge{display:flex;gap:14px;align-items:center;border-radius:14px;padding:14px 16px;background:linear-gradient(135deg,rgba(34,214,122,0.14),rgba(42,143,227,0.06));border:1px solid rgba(34,214,122,0.45);margin-bottom:6px}
 .bmpr-badge span{font-size:30px}.bmpr-badge b{display:block;font-family:'Outfit',sans-serif;font-size:17px;color:var(--text)}.bmpr-badge small{font-size:12px;color:var(--text2)}
 .bmpr-l{font-size:13px;color:var(--text2)}
