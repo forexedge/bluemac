@@ -351,12 +351,132 @@ window.BMPR = (function(){
     };
   })();
 
+  // ════════════════════════════════════════════════════
+  // RUN 4 — "Kill zone scalp": GBPUSD SHORT in the London kill zone
+  // H1 downtrend → Asian high swept at the open (+ 5-min Key Range) → 15m bearish FVG → 5m CHoCH
+  // ════════════════════════════════════════════════════
+  const R4 = (function(){
+    const f5 = v => (+v).toFixed(5);
+    const H1 = { n:80, seed:17, noise:0.00045, wick:1.0,
+      pts:[[0,1.3240],[10,1.3150],[15,1.3195],[27,1.3080],[33,1.3130],[46,1.3010],[54,1.3075],[64,1.2980],[75,1.3048],[79,1.3036]],
+      fix:{ 54:{ h:1.30752 }, 64:{ l:1.29800 }, 79:{ c:1.30360 } } };
+    const M15 = { n:56, seed:41, noise:0.00007, wick:0.9,
+      pts:[[0,1.3030],[6,1.3022],[12,1.3002,0.00004],[18,1.3028],[24,1.3043],[28,1.3031],[33,1.3040],[36,1.3036],[37,1.3045],[38,1.3034],[42,1.3031],[48,1.3036],[50,1.3037],[55,1.3036]],
+      fix:{ 24:{ h:1.30440 }, 37:{ o:1.30430, h:1.30480, l:1.30420, c:1.30425 }, 38:{ o:1.30425, c:1.30340, h:1.30428, l:1.30335 },
+            39:{ o:1.30340, c:1.30352, h:1.30370, l:1.30312 }, 50:{ h:1.30382 }, 55:{ c:1.30360 } } };
+    const M5 = { n:60, seed:43, noise:0.00004, wick:0.9,
+      pts:[[0,1.3036],[29,1.3040],[30,1.3042],[33,1.3043],[34,1.3044],[36,1.3042],[37,1.3043],[38,1.3036],[41,1.3034],[50,1.3036],[52,1.3037],[59,1.3036]],
+      fix:{ 30:{ o:1.30410, h:1.30445, l:1.30398, c:1.30432 }, 34:{ o:1.30436, h:1.30480, l:1.30428, c:1.30434 }, 38:{ o:1.30428, c:1.30340, h:1.30431, l:1.30335 },
+            52:{ h:1.30380 }, 59:{ c:1.30360 } } };
+    // every number below is read off the generated charts, so the pictures and the answers always agree
+    const HI = hl(H1, 50, 58).h, LO = hl(H1, 60, 68).l, MID = (HI + LO) / 2;
+    const ASIA = hl(M15, 0, 36), SWEEP = hl(M15, 37, 37).h, FVG = { h: hl(M15, 37, 37).l, l: hl(M15, 39, 39).h };
+    const KR = hl(M5, 30, 30), HL5 = hl(M5, 31, 37).l;
+    const L = { price:'1.30360', swing_hi:f5(SWEEP), swing_lo:f5(ASIA.l), zone_hi:f5(FVG.h), zone_lo:f5(FVG.l), liq_dn:f5(LO), kr_hi:f5(KR.h), kr_lo:f5(KR.l) };
+
+    const h1Base = chart(H1);
+    const h1Struct = chart(with_(H1, { marks:[{ t:'text', i:15, p:1.3222, s:'LH', c:'bear' }, { t:'text', i:27, p:1.3055, s:'LL', c:'bear' },
+      { t:'text', i:33, p:1.3157, s:'LH', c:'bear' }, { t:'text', i:46, p:1.2985, s:'LL', c:'bear' }, { t:'text', i:54, p:1.3101, s:'LH', c:'bear' }, { t:'text', i:64, p:1.2955, s:'LL', c:'bear' }] }));
+    const h1Ema = chart(with_(H1, { ov:[{ t:'ema', n:50, c:'blue', l:'50 EMA' }] }));
+    const pdLines = [{ t:'hline', i1:54, p:HI, l:'100%', c:'slate' }, { t:'hline', i1:54, p:MID, l:'50%', c:'silver', dash:'' }, { t:'hline', i1:54, p:LO, l:'0%', c:'slate' }];
+    const h1Pd = chart(with_(H1, { marks: pdLines }));
+    const h1PdR = chart(with_(H1, { marks: pdLines.concat([{ t:'dot', i:79, p:1.3036, c:'bear' }]),
+      boxes:[{ i1:54, i2:79, p1:MID, p2:HI, c:'bear', op:0.13, l:'PREMIUM' }, { i1:54, i2:79, p1:LO, p2:MID, c:'bull', op:0.07, l:'DISCOUNT', lt:'below' }] }));
+    const asiaBox = { i1:0, i2:35, p1:ASIA.l, p2:ASIA.h, c:'slate', op:0.10, border:true, l:'ASIAN RANGE', lt:'below' };
+    const m15Sweep = chart(with_(M15, { boxes:[asiaBox], marks:[{ t:'vline', i:36, l:'LONDON OPEN', c:'slate', a:'end' }] }));
+    const m15SweepR = chart(with_(M15, { boxes:[asiaBox], marks:[{ t:'vline', i:36, l:'LONDON OPEN', c:'slate', a:'end' }, { t:'hline', i1:0, i2:44, p:ASIA.h, c:'bear', l:'ASIAN HIGH', lr:false },
+      { t:'ring', i:37, p:SWEEP, r:6, c:'amber' }, { t:'text', i:46, p:SWEEP - 0.00001, s:'← SWEPT', c:'amber' }] }));
+    const krBox = { i1:30, i2:30, p1:KR.l, p2:KR.h, c:'blue', op:0.22, border:true };
+    const m5Kr = chart(with_(M5, { boxes:[krBox], marks:[{ t:'vline', i:30, l:'LONDON OPEN', c:'slate', a:'end' }, { t:'hline', i1:30, p:KR.h, c:'blue', l:'KR HIGH' }, { t:'hline', i1:30, p:KR.l, c:'blue', l:'KR LOW' }] }));
+    const m5KrR = chart(with_(M5, { boxes:[krBox], marks:[{ t:'vline', i:30, l:'LONDON OPEN', c:'slate', a:'end' }, { t:'hline', i1:30, p:KR.h, c:'blue', l:'KR HIGH' }, { t:'hline', i1:30, p:KR.l, c:'blue', l:'KR LOW' },
+      { t:'ring', i:34, p:1.30480, r:6, c:'amber' }] }));
+    const fvgBox = { i1:37, i2:55, p1:FVG.l, p2:FVG.h, c:'bear', op:0.2, border:true, l:'BEARISH FVG' };
+    const m15Poi = chart(with_(M15, { boxes:[fvgBox] }));
+    const m5Trig = chart(M5);
+    const m5TrigR = chart(with_(M5, { marks:[{ t:'hline', i1:31, p:HL5, c:'bear', l:'CHoCH ↓' }, { t:'ring', i:34, p:1.30480, r:6, c:'amber' }] }));
+    const m15Levels = chart(with_(M15, { fitExtra:[LO], boxes:[fvgBox],
+      marks:[{ t:'hline', i1:30, p:SWEEP, c:'light', l:'SWING H' }, { t:'hline', i1:8, p:ASIA.l, c:'light', l:'SWING L' }, { t:'hline', p:LO, c:'bull', l:'H1 LOW' }, { t:'dot', i:55, p:1.30360, c:'white' }] }));
+
+    const clock = `<div class="bmpr-scene"><div class="bmpr-scene-h">🕘 Practice clock</div>
+      <div class="bmpr-clock"><b>Wednesday · 09:25</b><span>SAST</span></div>
+      <div class="bmpr-scene-r"><span>London kill zone</span><b class="ok">09:00–12:00 · NOW</b></div>
+      <div class="bmpr-scene-r"><span>New York kill zone</span><b>14:30–17:00</b></div>
+      <div class="bmpr-scene-r"><span>Asian session</span><b>finished — the range is built</b></div></div>`;
+    const cal = `<div class="bmpr-scene"><div class="bmpr-scene-h">📅 Practice economic calendar · today (SAST)</div>
+      ${[['13:00', 'GBP', 'BoE MPC Member Speaks', 'med'], ['16:30', 'USD', 'Crude Oil Inventories', 'low'], ['20:00', 'USD', 'FOMC Meeting Minutes', 'high']].map(([t, c, n, k]) =>
+        `<div class="bmpr-cal${k === 'high' ? ' hot' : ''}"><span class="t">${t}</span><span class="c">${c}</span><span class="n">${n}</span><span class="i ${k}">${k === 'high' ? 'RED' : k === 'med' ? 'ORANGE' : 'YELLOW'}</span></div>`).join('')}
+      <small>It's 09:25 SAST. The Scalp rule: no red news for <b>GBP or USD</b> within the next <b>30 minutes</b>.</small></div>`;
+
+    return {
+      id:'r4', n:4, title:'Kill zone scalp', style:'scalp', instrument:'GBPUSD', name:'GBPUSD',
+      blurb:'GBPUSD · London kill zone · sweep → CHoCH → SHORT',
+      brief:`It's <b>Wednesday 09:25 SAST</b> — the London kill zone is open. You scalp <b>GBPUSD</b> with uTrade's <b>Scalp</b> style.
+        This one is a <b>SHORT</b>, and scalps move fast: H1 bias → a liquidity sweep at the London open → a 15m zone → a 5m trigger.`,
+      pre:{ discipline:'fresh' },
+      steps:[
+        { q:'session', scene:clock, ans:'london',
+          ok:'You\'re inside the <b>London kill zone</b>. The first hours of London are when the Asian high or low usually gets swept — exactly what this scalp hunts.',
+          no:{ ny:'New York\'s kill zone only starts at 14:30 SAST. Right now it\'s London.', between:'At 09:25 SAST you are <b>inside</b> the London kill zone (09:00–12:00), not between zones.',
+               asia:'Asia finished before London opened — its range is what we trade now.' },
+          hint:'Look at the clock — which kill zone says NOW?' },
+        { q:'news', scene:cal, ans:'clear',
+          ok:'Clear for now. There <b>is</b> red news today — the FOMC minutes at 20:00 SAST — but the Scalp rule looks at the next <b>30 minutes</b>. A scalp is closed long before 20:00. (Pop it in your Pre-Flight anyway.)',
+          no:{ soon:'There is a 🔴 red event today, but at <b>20:00 SAST</b> — more than 10 hours away. The Scalp rule is about the next 30 minutes.' },
+          hint:'The question says within 30 minutes. When is the red event?' },
+        { q:'h1_structure', pic:h1Base, picR:h1Struct, cap:'Practice chart · GBPUSD · H1', ans:'down',
+          ok:'<b>Lower highs and lower lows</b> — the H1 is in a downtrend, so this scalp is a <b>SHORT</b> only.',
+          no:{ up:'Follow the highs from left to right — every one is lower than the last.', choch_up:'For a bullish CHoCH the last lower high (~1.3075) must break. It hasn\'t.',
+               choch_dn:'A bearish CHoCH ends an <b>uptrend</b>. This chart has been falling all along.', range:'Clear steps down — not a sideways box.' },
+          hint:'Higher or lower highs, left to right?' },
+        { q:'h1_ema', pic:h1Ema, cap:'Same H1 chart with a 50 EMA', ans:'below',
+          ok:'Price is <b>below a falling 50 EMA</b> — the downtrend is healthy. This bounce is happening under the EMA, which is where sellers like to step in.',
+          no:{ above:'Look at the last candles — they\'re under the blue line, and the line is sloping down.', flat:'The EMA is clearly sloping down, with price under it.' },
+          hint:'Is the blue line sloping up or down — and which side of it is price?' },
+        { q:'h1_pd', pic:h1Pd, picR:h1PdR, cap:`Fib from the last H1 swing low (${f5(LO)}) to high (${f5(HI)})`, ans:'premium',
+          ok:`Price (1.30360) is <b>above the 50% line at ${f5(MID)}</b> — premium. Short sellers want to sell high, so premium is where we look.`,
+          no:{ discount:`Discount is below 50%. The 50% line is ${f5(MID)} and price is 1.30360 — above it.`, eq:`Price is about ${Math.round((1.3036 - MID) * 1e4)} pips above the 50% line — that is premium.` },
+          hint:'Above or below the 50% line?' },
+        { q:'sweep', pic:m15Sweep, picR:m15SweepR, cap:'Practice chart · GBPUSD · 15m · Asian range → London open', ans:'bsl',
+          ok:`At the London open price spiked to ${f5(SWEEP)} — <b>above the Asian high (${f5(ASIA.h)})</b> — and closed back inside. That grabbed the buy stops above the range. Classic liquidity sweep.`,
+          no:{ ssl:'The sweep was at the <b>top</b> of the Asian range, not the bottom.', bos:'Price didn\'t break and hold — it poked above the Asian high and closed straight back inside.',
+               none:'Look at the London open candle — it went above the Asian high and closed back inside.' },
+          hint:'Look at the first big candle after the London open line. Where did its wick go?' },
+        { q:'krange', pic:m5Kr, picR:m5KrR, cap:'5m · the first 5-minute candle of London = the Key Range', ans:'sweep_hi',
+          ok:`The 5-min Key Range was ${f5(KR.l)}–${f5(KR.h)}. Price <b>swept above it</b> to 1.30480 and closed back inside — a fake break that trapped buyers. Then it fell.`,
+          no:{ sweep_lo:'The poke was above the <b>high</b> of the box, not the low.', break_up:'It didn\'t hold above — the candle closed back inside the box.', break_dn:'Look at the first thing that happened after the box: a poke <b>above</b> it that failed.',
+               inside:'Price did leave the box — above, then straight back in.' },
+          hint:'Which side of the blue box did price poke out of first — and did it stay out?' },
+        { q:'poi', pic:m15Poi, cap:'15m · after the drop', ans:'fvg_bear',
+          ok:`The drop left a <b>bearish fair value gap</b> (${f5(FVG.l)}–${f5(FVG.h)}). Price has crept back up to it and is reacting — that's where we sell.`,
+          no:{ ob_bear:'There may be an order block too, but the shaded box is the <b>gap</b> left by the fast drop — an FVG.', none:'Price is right at the shaded gap now.',
+               other:'Everything here points down — and the box is the gap the drop left behind.' },
+          hint:'What is the shaded box — a candle, or a gap between candles?' },
+        { q:'trigger', pic:m5Trig, picR:m5TrigR, cap:'5m · the same move, close up', ans:'choch_bear',
+          ok:`After the sweep, price <b>broke below the last 5m higher low (${f5(HL5)})</b> with a big candle — a bearish CHoCH. That's your "now" signal.`,
+          no:{ eng_bear:'There\'s a strong candle — but it did more: it broke the last 5m <b>higher low</b>. That is a CHoCH.', none:'Look at the big red candle after the sweep — it broke a higher low.',
+               other:'The break was <b>down</b>, through a higher low.' },
+          hint:'Before the sweep price made higher lows. Did one break?' },
+        { q:'levels', pic:m15Levels, cap:'Read these prices off your 15m chart', lv:L, tol:0.00006, ph:'e.g. 1.30250',
+          names:{ price:'Current price (the dot)', swing_hi:'15m swing high (the sweep)', swing_lo:'15m swing low (Asian low)', zone_hi:'Bearish FVG top', zone_lo:'Bearish FVG bottom',
+                  liq_dn:'H1 swing low (liquidity below)', kr_hi:'5-min Key Range high', kr_lo:'5-min Key Range low' },
+          req:['price', 'swing_hi', 'swing_lo', 'zone_hi', 'zone_lo', 'liq_dn'],
+          ok:'Spot on. For FX every pip counts — that is why Blue Mac checks all 5 decimals.' }
+      ],
+      learnt:['Scalps live in the kill zones', 'The open sweeps the Asian range — that\'s the setup', 'A fake break of the Key Range traps traders', 'Enter from the gap the move left, after a 5m CHoCH'],
+      coach: p => ({
+        e1:`A <b>sell limit</b> at the bottom of the bearish FVG. Price is at 1.30360 — you wait for it to tick up into you.`,
+        e2:'Your second, better sell — higher in the gap, half the size, and always below the stop.',
+        sl:'Above the sweep high plus a small buffer. If price takes out the high that was just swept, the idea is wrong.',
+        tp1:`1:${p.rr1} after the spread — the Asian low, where the sell stops below the range sit.`,
+        tp2:`1:${p.rr2} — the H1 low. Scalps are quick: half off at TP1, stop to breakeven, done within the session.` })
+    };
+  })();
+
   // runs still to come (shown so members see the path)
   const SOON = [
-    { n:4, title:'Kill zone scalp', blurb:'London sweep → CHoCH → entry, fast' },
     { n:5, title:'Your own strategy', blurb:'Build one, then practise it' }
   ];
-  const RUNS = { r1: R1, r2: R2, r3: R3 }, ORDER = ['r1', 'r2', 'r3'];
+  const RUNS = { r1: R1, r2: R2, r3: R3, r4: R4 }, ORDER = ['r1', 'r2', 'r3', 'r4'];
   const TOTAL = 5;
   const nextRun = () => { const P = load(); const id = ORDER.find(k => !P.done[k]); return id ? RUNS[id] : null; };
 
@@ -411,7 +531,7 @@ window.BMPR = (function(){
       st.lv[f.id] = raw;
       const need = s.req.includes(f.id);
       if(!raw){ if(need) bad.push(f.id); return; }
-      if(!(Math.abs(+raw - want) < 0.051)) bad.push(f.id);
+      if(!(Math.abs(+raw - want) < (s.tol || 0.051))) bad.push(f.id);
     });
     st.bad = bad;
     if(bad.length){
@@ -590,7 +710,7 @@ window.BMPR = (function(){
         <span class="ut-check">${on ? '✓' : ''}</span><div class="ut-opt-t">${V(o.l, st.ans)}</div>${o.sub ? `<div class="ut-opt-s">${V(o.sub, st.ans)}</div>` : ''}</div>`; }).join('')}</div>`;
   }
   function levelsHTML(s, qq){
-    const names = { price:'Current price (the dot)', swing_hi:'H1 swing high', swing_lo:'H1 swing low', zone_hi:'Golden pocket top (61.8%)', zone_lo:'Golden pocket bottom (65%)',
+    const names = s.names || { price:'Current price (the dot)', swing_hi:'H1 swing high', swing_lo:'H1 swing low', zone_hi:'Golden pocket top (61.8%)', zone_lo:'Golden pocket bottom (65%)',
                     pdh:'Yesterday\'s high (PDH)', pdl:'Yesterday\'s low (PDL)', kr_hi:'First-hour range high', kr_lo:'First-hour range low' };
     const ladder = Object.keys(names).map(k => [k, names[k], s.lv[k]]).sort((a, b) => b[2] - a[2]);
     return `<div class="bmpr-ladder"><div class="bmpr-scene-h">📋 Price list from your chart (crosshair)</div>
@@ -600,7 +720,7 @@ window.BMPR = (function(){
         const need = s.req.includes(f.id);
         return `<div class="ut-lv-f${need ? ' req' : ''}${(st.bad || []).includes(f.id) ? ' bad' : ''}" data-f="${f.id}">
           <label for="bmpr-lv-${f.id}">${esc(V(f.label, st.ans))}${need ? ' <i>*</i>' : ' <em>optional</em>'}</label>
-          <input id="bmpr-lv-${f.id}" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 4200.00" value="${esc(st.lv[f.id] || '')}" ${st.solved ? 'readonly' : ''}>
+          <input id="bmpr-lv-${f.id}" type="text" inputmode="decimal" autocomplete="off" placeholder="${esc(s.ph || 'e.g. 4200.00')}" value="${esc(st.lv[f.id] || '')}" ${st.solved ? 'readonly' : ''}>
           <small>${V(f.hint, st.ans)}</small></div>`; }).join('')}</div>`;
   }
 
@@ -632,7 +752,7 @@ window.BMPR = (function(){
       <div class="bmpr-cta-t"><b>New to uTrade? Practise first</b><span>${where === 'uni' ? 'Start here: ' : ''}answer the real questions on a safe practice chart. Instant feedback, a real price plan at the end — and it doesn't use your 2 daily AI ideas.</span></div>
       <button class="ut-next" onclick="BMPR.open('r1')">Start practice →</button>`;
     return `<div class="bmpr-cta-i">✅</div>
-      <div class="bmpr-cta-t"><b>uTrade Certified · ${d}/${TOTAL}</b><span>${d < TOTAL ? `Runs ${d + 1}–${TOTAL} are coming soon. ` : ''}Practise again any time.</span></div>
+      <div class="bmpr-cta-t"><b>uTrade Certified · ${d}/${TOTAL}</b><span>${d < TOTAL ? (d + 1 === TOTAL ? `Run ${TOTAL} is coming soon. ` : `Runs ${d + 1}–${TOTAL} are coming soon. `) : ''}Practise again any time.</span></div>
       <button class="ut-back" onclick="BMPR.open('${ORDER[0]}')">Practise again</button>`;
   }
   function paint(){
